@@ -295,6 +295,7 @@ regenerates index notes, described below.
   old **and** there is work for it — something stale to condense, or workspace notes that break
   their format — this hook reminds the agent to offer the weekly condense run (it only offers — the
   run never starts unprompted).
+- **Background sessions write through a spool** — Claude Code blocks `Write`/`Edit` on a git checkout from a background session, and the vault is one. Instead of switching that protection off, the skills stage each note with `dev-workbook stage <vault path>` and edit the copy it prints, outside the vault. When the session ends, `SessionEnd` merges the staged notes in before maintenance and the commit: a note untouched meanwhile is replaced, one edited meanwhile is merged three ways (appends to the same day's log keep both sides), and an edit that conflicts is never written — it stays staged and the next session start says where. A spool whose session ended without its exit hook running is applied at the next session start. Only the paths the session-end hook commits are accepted. `dev-workbook staged` lists what is waiting.
 - **On session end, index maintenance** (`SessionEnd`) — for each workspace that opts in with a
   `.vault-config.json`, this hook fills in derived frontmatter (`project`, `topics`, `tags`) and
   regenerates the Topic, Tickets, Threads and Decisions indexes. It runs *before* the push, so

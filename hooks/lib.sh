@@ -86,6 +86,23 @@ warnings_file() {
   printf '%s/dev-workbook-warnings\n' "$dir"
 }
 
+# ---------------------------------------------------------------- background-session spool
+
+# apply_spool <vault> [ending session id] — merge in the notes that finished background sessions
+# staged with `dev-workbook stage` (see vault_spool.py), and print one line per thing worth
+# reporting. Call it under the session-end lock. Without Python it does nothing: the spool waits.
+apply_spool() {
+  local py script
+  script="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/..}/hooks/vault_spool.py"
+  [ -f "$script" ] || return 0
+  for py in python3 python; do
+    if command -v "$py" >/dev/null 2>&1; then
+      "$py" "$script" apply "$1" "${2-}" 2>/dev/null
+      return 0
+    fi
+  done
+}
+
 # ---------------------------------------------------------------- session-end lock
 
 # The session-end work runs detached (see session-end.sh), so it can still be committing or

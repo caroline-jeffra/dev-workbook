@@ -109,10 +109,21 @@ else
   status="Vault pull failed (offline, no remote, or non-fast-forward); working from local state."
 fi
 
+# --- Merge in notes from background sessions that have ended ---------------------
+# A background session cannot write the vault directly (see vault_spool.py), so it spools its
+# notes; its own exit hook normally applies them. This catches a session whose exit hook never
+# ran or ended without naming itself. After the pull, so the merge is against the latest notes;
+# this session's exit commits the result.
+spooled=""
+if [ -n "$locked" ]; then
+  spooled="$(apply_spool "$VAULT" | tr '\n' ' ' | tr -d '\000-\037')"
+  spooled="${spooled% }"
+fi
+
 # After the pull, so the comparison is against the version other machines recorded.
 stale="$(claim_version)"
 [ -n "$locked" ] && release_end_lock "$VAULT"
 
-emit_context "${relayed:+$relayed }${leftover:+$leftover }${stranded:+$stranded }${status}${stale:+ $stale}"
+emit_context "${relayed:+$relayed }${leftover:+$leftover }${stranded:+$stranded }${status}${spooled:+ $spooled}${stale:+ $stale}"
 
 exit 0
