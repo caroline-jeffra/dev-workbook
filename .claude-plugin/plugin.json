@@ -1,6 +1,6 @@
 {
   "name": "dev-workbook",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Working memory for coding agents in a plain markdown vault: per-repo workspaces, notes, imported project docs and contribution summaries, kept in sync by session hooks.",
   "author": {
     "name": "caroline-jeffra"

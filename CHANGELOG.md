@@ -14,6 +14,18 @@ are minor.
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-11-05
+
+### Added
+
+- **Background sessions can write the vault again, without clobbering anything.** Claude Code blocks `Write`/`Edit` on a git checkout from a background session until it isolates itself in a worktree, and the vault is a git checkout, so a background session's notes were never written. The guard stays on. Instead the skills stage each note with the new `dev-workbook stage <vault path>` command, which copies it to a spool under `${XDG_STATE_HOME:-~/.local/state}/dev-workbook/spool/<session>/` along with the base it was copied from, and the session edits that copy. When the session ends, `SessionEnd` merges its spool into the vault before maintenance and the commit, so the notes get the same frontmatter refresh, index regeneration and owned-paths-only commit as any other session's. A note untouched in the vault meanwhile is replaced. One edited meanwhile is merged three ways with `git merge-file`, and two sessions appending to the same day's log or `ProgressLog.md` both keep their entries. An edit that conflicts is never written: it stays in the spool, and the next session start says where. A spool whose session ended without running its exit hook is applied at the next session start, once its process is gone. The spool accepts only the paths the session-end hook commits, and is never applied mid-merge or mid-rebase.
+- **`dev-workbook staged`** lists the staged notes still waiting, and whether each spool is running, due or held on a conflict.
+- **`tests/test-vault-spool.py`** covers the staging rules, replace/create/merge, every no-clobber case, the log union rule and when a spool counts as finished. `tests/test-session-end.sh` covers the end-to-end path through the exit and start hooks.
+
+### Changed
+
+- The writing skills (`capture-notes`, `manage-project-workspaces`, `ingest-project-docs`, `summarize-contribution`) stage notes when `CLAUDE_JOB_DIR` is set. `condense-vault` declines to run in a background session, since it renames and deletes notes.
+
 ## [3.0.2] — 2026-10-17
 
 ### Fixed

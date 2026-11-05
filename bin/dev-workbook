@@ -10,8 +10,15 @@
                                                  rename a note and rewrite every link to it
     dev-workbook qualify [--vault P] [--dry-run] qualify ambiguous wikilinks
     dev-workbook hours [session_hours options]   measure time spent from session transcripts
+    dev-workbook stage [--vault P] PATH          background sessions: stage a vault note to edit
+                                                 outside the vault; prints the path to edit
+    dev-workbook staged [--vault P]              list staged notes not yet merged into the vault
     dev-workbook start [--format F]              session start: commit leftovers, pull, checks
     dev-workbook end                             session end: maintain indexes, commit, push
+
+`stage` is how a background session writes the vault: Claude Code blocks Write/Edit on the
+vault's checkout there, so the session edits the staged copy, and the session hooks merge it in
+three ways once the session has ended (see hooks/vault_spool.py).
 
 `start` and `end` are the session hooks, for harnesses that do not run Claude Code's
 hooks/hooks.json. `start` prints the session context once, in the harness's format:
@@ -140,6 +147,16 @@ def main(argv: list[str]) -> int:
         return session_start(args)
     if cmd == "end":
         return session_end(args)
+    if cmd in ("stage", "staged"):
+        import vault_spool
+
+        vault, rest = take_vault(args)
+        if cmd == "stage":
+            if len(rest) != 1:
+                print("usage: dev-workbook stage [--vault P] PATH", file=sys.stderr)
+                return 2
+            return vault_spool.main(["stage", vault, rest[0]])
+        return vault_spool.main(["list", vault])
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)

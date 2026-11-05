@@ -16,6 +16,8 @@ This is a routine, not a per-note judgement call — run it over the whole vault
 
 **Plugin tools** run through the `dev-workbook` command. If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook"` instead — the plugin root is two levels above this skill's base directory. A skill installed on its own, outside the plugin, needs the command on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
+**Not in a background session.** If `CLAUDE_JOB_DIR` is set, stop and say the condense run needs an interactive session: it renames and deletes notes, which a background session cannot do safely.
+
 ## Step 1 — Reconcile formats and names (every run, any age)
 
 The format rules are in [manage-project-workspaces/reference/structure.md](../manage-project-workspaces/reference/structure.md) — read "Two kinds of note", "Naming notes" and "Writing style" first, and use [templates.md](../manage-project-workspaces/reference/templates.md) for the target shape of each type.

@@ -54,6 +54,8 @@ find "$(git -C "$DEVWB_VAULT" rev-parse --absolute-git-dir)" -maxdepth 1 -name d
 - **Heartbeat less than a day old** → the hooks are installed. **Do not run `git pull`, `git add`, `git commit` or `git push` on the vault**; write the files and move on.
 - **No heartbeat, or an old one** → this harness runs no hooks, so sync yourself: `git -C "$DEVWB_VAULT" pull --ff-only` before your first read, and when the user closes out the session run `dev-workbook maintain`, then stage only the paths the plugin owns (`git -C "$DEVWB_VAULT" add -- Projects Resources Contributions Home.md TasksArchive.md WorkPlanning.md`, skipping any that do not exist), commit them as one single-line commit (`vault: session updates YYYY-MM-DD`) and push. Never `git add -A`, and never commit mid-merge or on a detached HEAD. If the push fails, leave the commit and tell the user.
 
+**Background sessions** (`CLAUDE_JOB_DIR` is set) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there, and a Bash write would sidestep the protection that block exists for. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and do all reading and writing for that note at the path it prints: an existing note is copied there, a new one does not exist yet. Stage each note once. When the session ends, the hooks merge the staged notes into the vault three ways, so edits made there meanwhile survive; a conflicting edit stays staged and the next session reports it. `dev-workbook staged` lists what is waiting. Skip renames and deletions in a background session — leave them for an interactive one.
+
 If the vault is not under version control, there is nothing to sync (and you should never `git init` it).
 ## Note template
 

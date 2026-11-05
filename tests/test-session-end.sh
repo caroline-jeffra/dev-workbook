@@ -9,6 +9,7 @@
 # rather than racing it.
 
 . "$(dirname "$0")/lib.sh"
+unset XDG_STATE_HOME   # the spool must land under the isolated HOME
 
 printf '\033[1msession-end.sh\033[0m\n'
 
@@ -155,5 +156,43 @@ t1="$(now)"
 if elapsed_lt "$t0" "$t1" 5; then ok 'a stale lock is not waited on'; else nope 'a stale lock is not waited on'; fi
 assert_eq "" "$(gitq "$v" status --porcelain -- Projects)" 'a stale lock does not block the commit'
 assert_file_absent "$lock" 'the stale lock is released afterwards'
+
+# ---------------------------------------------------------------------------
+section 'Background-session spool'
+# ---------------------------------------------------------------------------
+
+# stage_note <vault> <session> <pid> <path> <text> — what a background session does: stage a note
+# with the dev-workbook command, then write the staged copy.
+stage_note() {
+  local work
+  work="$(detach_env "$1" CLAUDE_CODE_SESSION_ID="$2" CLAUDE_PID="$3" \
+    python3 "$HOOKS/../bin/dev-workbook" stage "$4" 2>/dev/null)"
+  [ -n "$work" ] && printf '%s' "$5" > "$work"
+}
+
+# The ending session names itself on stdin; its spool goes into its own exit commit, even though
+# its process (here, this shell) is still alive when the hook runs.
+v="$(build_vault end-spool)"
+stage_note "$v" bg-session-1 "$$" Projects/Alpha/Notes/FromBackground.md $'# From background\n'
+old="$(remote_head "$v")"
+printf '{"session_id":"bg-session-1","hook_event_name":"SessionEnd"}' \
+  | detach_env "$v" bash "$HOOKS/session-end.sh" --detach >/dev/null 2>&1
+if wait_pushed "$v" "$old"; then ok 'the spool lands in the exit push'; else nope 'the spool lands in the exit push'; fi
+assert_contains "$(tracked "$v")" 'Projects/Alpha/Notes/FromBackground.md' 'the staged note is committed'
+assert_file_absent "$TEST_TMP/home.$$/.local/state/dev-workbook/spool/bg-session-1" 'the applied spool is removed'
+wf="$(gitq "$v" rev-parse --absolute-git-dir)/dev-workbook-warnings"
+assert_contains "$(cat "$wf" 2>/dev/null)" 'applied 1 note(s) from background session' 'the next start is told'
+
+# A session whose exit never applied its spool is caught by the next start, once its process is gone.
+v="$(build_vault start-spool)"
+sh -c 'exit 0' &
+gone=$!
+wait "$gone"
+stage_note "$v" bg-session-2 "$gone" Projects/Alpha/Notes/Orphan.md $'# Orphan\n'
+stage_note "$v" bg-session-3 "$$" Projects/Alpha/Notes/StillRunning.md $'# Running\n'
+run_hook vault-pull.sh "$v"
+assert_file_exists "$v/Projects/Alpha/Notes/Orphan.md" 'session start applies an ended session'"'"'s spool'
+assert_contains "$HOOK_OUT" 'applied 1 note(s) from background session' 'and says so'
+assert_file_absent "$v/Projects/Alpha/Notes/StillRunning.md" 'but not a running session'"'"'s'
 
 finish
