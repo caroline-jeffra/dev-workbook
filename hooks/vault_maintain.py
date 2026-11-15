@@ -657,7 +657,7 @@ def wikilink(ref: str, text: str) -> str:
 def link(n: Note, ref: Refs) -> str:
     """A wikilink carrying a readable display title.
 
-    Note names are slugs, so a bare `[[slug]]` renders as `bert-9534-lefty-offers-...`.
+    Note names are slugs, so a bare `[[slug]]` renders as `acme-1701-natural-sort-ad-approvals`.
     Where the note has a title, use `[[slug|Title]]` so the index reads as prose.
     """
     title = str(n.meta.get("title", "") or "").strip()

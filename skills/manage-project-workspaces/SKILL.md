@@ -129,8 +129,8 @@ or written.
 
 To scaffold:
 
-1. Create `$DEVWB_VAULT/Projects/<Repo>/` — the repo's name in PascalCase (`home-budgeter` →
-   `HomeBudgeter`) — and, inside it, the folders from
+1. Create `$DEVWB_VAULT/Projects/<Repo>/` — the repo's name in PascalCase (`garden-planner` →
+   `GardenPlanner`) — and, inside it, the folders from
    [reference/structure.md](reference/structure.md): `Tickets/`, `Epics/`, `Playbooks/`, `Research/`,
    `Notes/`, `Decisions/`, `Threads/`, `Log/`. **Create each on first use, never empty** — an empty folder is
    noise in the sidebar and tells the reader nothing.
@@ -268,7 +268,7 @@ Read [reference/structure.md](reference/structure.md) first. In short:
   and update the table, per [reference/time-tracking.md](reference/time-tracking.md).
 - **Names** — every note is PascalCase, **area first, kind last**, and never repeats what the
   folder already says — no project name, no `Playbook` suffix, no ticket key:
-  `FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `AdminApiPermissionsAudit`,
+  `FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `GoPublicAudit`,
   `1701-NaturalSortAdApprovals`; logs stay `YYYY-MM-DD`. The `# Heading` is the readable
   sentence-case form. Full table: "Naming notes" in [reference/structure.md](reference/structure.md).
 
@@ -308,17 +308,17 @@ So the rule is: **write the shortest path that names exactly one note.**
 - **A uniquely-named note → link it bare.** `[[UseTokenBucketOverFixedWindow]]`.
   This is the normal case: names are unique within a workspace and rarely repeat across them. A
   bare link is readable and survives the workspace being renamed or moved.
-- **A name another workspace also uses → prefix it with the workspace.** `[[Bert/CompletedItems]]`.
+- **A name another workspace also uses → prefix it with the workspace.** `[[Orchard/CompletedItems]]`.
   Check with `find "$DEVWB_VAULT/Projects" -name '<Name>.md'` when a name is generic.
 - **A per-workspace structural file → always prefix it with the workspace**, even from inside that
-  workspace. `[[Takeoffs/Overview]]`, `[[Takeoffs/ProgressLog]]`, `[[Takeoffs/DecisionsIndex]]`.
+  workspace. `[[Juniper/Overview]]`, `[[Juniper/ProgressLog]]`, `[[Juniper/DecisionsIndex]]`.
   These names — `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `ThreadsIndex`,
   `DecisionsIndex`, `TimeTracking` — exist once per workspace **by design**, so a bare link to one
   is ambiguous across the vault.
 - **A log day → prefix it with the workspace's `Log/` path when the date is not unique**, and show
-  the date: `[[Takeoffs/Log/2026-10-04|2026-10-04]]`. Several workspaces often log the same day.
+  the date: `[[Juniper/Log/2026-10-04|2026-10-04]]`. Several workspaces often log the same day.
   The `vault-maintain` lint reports a bare one as `ambiguous-link`.
-- **Inside a table cell → never alias.** Write `[[Takeoffs/Log/2026-10-04]]`, not
+- **Inside a table cell → never alias.** Write `[[Juniper/Log/2026-10-04]]`, not
   `[[…|2026-10-04]]`: the alias pipe splits the row into phantom columns in any viewer that ignores
   the `\|` escape. The lint reports one as `table-alias`.
 
@@ -376,7 +376,7 @@ projects header above its table, then the table itself:
 ## Aug 2026
 
 ### Month's Projects
-[[portal.example.com/Overview|portal.example.com]], [[home-budgeter/Overview|home-budgeter]]
+[[harbor.example.com/Overview|harbor.example.com]], [[garden-planner/Overview|garden-planner]]
 
 | Date | Tasks |
 | ---- | ----- |
@@ -396,7 +396,7 @@ Rows are **terse by design** — the archive is scanned, not read. One short cla
 that day, **three to four words each**, comma-separated, at a very high level. The detail belongs in
 that project's `ProgressLog`; do not restage it here.
 
-- Name the project when the clause needs the context (`home-budgeter Phase 0 landed`), and carry a
+- Name the project when the clause needs the context (`garden-planner Phase 0 landed`), and carry a
   ticket number only where it *is* the shortest identifier (`ACME-1763 Laravel 13 planned`).
 - Bold a genuine milestone — a release, an epic completing (`**ACME-1504 ready for review**`).
 - Several projects in one day → one clause each, project named first so they stay separable.
@@ -408,7 +408,7 @@ links belong in the `Month's Projects` line above the table, which is the one pl
 Write it as a cell that renders in one line, e.g.:
 
 ```markdown
-| 19 | ACME-1656 billing joins landed, home-budgeter deployed |
+| 19 | ACME-1656 billing joins landed, garden-planner deployed |
 | 12 | **ACME-1763 done — Laravel 10→13 climb complete** |
 ```
 

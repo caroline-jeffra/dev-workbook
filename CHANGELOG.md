@@ -18,10 +18,10 @@ are minor.
 
 ### Changed
 
-- **Note names are built to be skimmed.** Within a workspace, names used to carry the project's name (`BertDataFlowsMap`), every ticket began with the same key (`BERT-9366-…`), and every playbook ended in `Playbook`, so a sorted or truncated file list showed the same characters over and over. The naming contract now says a name never repeats what its folder already says, and spends its first characters on what tells notes apart: **area first, kind last** (`<Area><Subject><Kind>`). Decisions lead with their subject rather than a verb, threads and notes end in a short fixed vocabulary when they need a kind, and anything but a decision is two to four words.
-- **Tickets are `<number>-<Subject>`** (`9366-TrafficSourceFilterOnNotifications`). The key stays in `tickets:` and the heading, and `TicketsIndex.md` now takes a ticket note's key from `tickets:`.
-- **Playbooks drop the `Playbook` suffix** (`PhpstanBaselineFix`).
-- **Names need only be unique within their workspace.** Two workspaces may share a name; links to it carry the workspace path (`[[Bert/CompletedItems]]`). General notes outside `Projects/` stay unique across the vault.
+- **Note names are built to be skimmed.** Within a workspace, names used to carry the project's name (`OrchardStatusFlowMap`), every ticket began with the same key (`ACME-2378-…`), and every playbook ended in `Playbook`, so a sorted or truncated file list showed the same characters over and over. The naming contract now says a name never repeats what its folder already says, and spends its first characters on what tells notes apart: **area first, kind last** (`<Area><Subject><Kind>`). Decisions lead with their subject rather than a verb, threads and notes end in a short fixed vocabulary when they need a kind, and anything but a decision is two to four words.
+- **Tickets are `<number>-<Subject>`** (`2378-AcfRestApiHardening`). The key stays in `tickets:` and the heading, and `TicketsIndex.md` now takes a ticket note's key from `tickets:`.
+- **Playbooks drop the `Playbook` suffix** (`RelaySetup`).
+- **Names need only be unique within their workspace.** Two workspaces may share a name; links to it carry the workspace path (`[[Orchard/CompletedItems]]`). General notes outside `Projects/` stay unique across the vault.
 
 ### Lint
 
@@ -187,7 +187,7 @@ Portability step 2: the vault reads correctly in markdown viewers beyond Obsidia
 
 ### Breaking
 
-- **Every note in the vault is named in PascalCase.** This covers workspace notes (`FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `AdminApiPermissionsAudit`, `DataModelAndCrudPlaybook`, `ACME-1701-NaturalSortAdApprovals`), the structural files (`ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`), the vault-level notes (`Projects/WorkspaceIndex`, `TasksArchive`, `WorkPlanning`), general notes, and the workspace folders themselves (`Projects/HomeBudgeter/`). Acronyms are written as words; logs stay `YYYY-MM-DD`; the `# Heading` inside each note is the readable form. The hook now generates the indexes under their new names. **Migrating:** run `condense-vault`. The lint reports every pre-2.0 name (`legacy-name`, `bad-name`), and the reconcile step renames notes, rewrites their links, and removes the stale generated indexes. Until then the skills read the old names.
+- **Every note in the vault is named in PascalCase.** This covers workspace notes (`FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `AdminApiPermissionsAudit`, `DataModelAndCrudPlaybook`, `ACME-1701-NaturalSortAdApprovals`), the structural files (`ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`), the vault-level notes (`Projects/WorkspaceIndex`, `TasksArchive`, `WorkPlanning`), general notes, and the workspace folders themselves (`Projects/Orchard/`). Acronyms are written as words; logs stay `YYYY-MM-DD`; the `# Heading` inside each note is the readable form. The hook now generates the indexes under their new names. **Migrating:** run `condense-vault`. The lint reports every pre-2.0 name (`legacy-name`, `bad-name`), and the reconcile step renames notes, rewrites their links, and removes the stale generated indexes. Until then the skills read the old names.
 
 ### Changed
 
@@ -201,7 +201,7 @@ Portability step 2: the vault reads correctly in markdown viewers beyond Obsidia
 ### Added
 
 - **Closing a thread.** A finished or abandoned thread has its decisions, durable knowledge and leftover items moved to their own notes. It is then reduced to a stub (`status: done`, `closed:`, Goal / Outcome / Moved to), which stays so old log links still resolve. The new `unclosed-thread` lint finds threads that are finished but not closed.
-- **Optional time tracking.** `TimeTracking.md` is created only when the user asks for it. It holds a phases table (Phase, Status, Estimate, Actual, Variance, Sittings, Dates, Links) and a weekly-hours table, with every other detail linked out. Hours come from the new `scripts/session_hours.py`, which turns Claude Code transcripts into active hours using the method Home-Budgeter developed: only typed messages count, a gap over 15 minutes is a break, and a sitting books under its start date. Unlike that method, it pools concurrent sessions so they are not double-counted. Transcripts expire after 30 days by default, so the table is updated incrementally at each close-out from a `tracked_through:` date. The method is documented in `reference/time-tracking.md`.
+- **Optional time tracking.** `TimeTracking.md` is created only when the user asks for it. It holds a phases table (Phase, Status, Estimate, Actual, Variance, Sittings, Dates, Links) and a weekly-hours table, with every other detail linked out. Hours come from the new `scripts/session_hours.py`, which turns Claude Code transcripts into active hours using the method an earlier project developed: only typed messages count, a gap over 15 minutes is a break, and a sitting books under its start date. Unlike that method, it pools concurrent sessions so they are not double-counted. Transcripts expire after 30 days by default, so the table is updated incrementally at each close-out from a `tracked_through:` date. The method is documented in `reference/time-tracking.md`.
 - **Playbooks.** A `Playbooks/` folder and `type: playbook` for ordered procedures — phase plans, cutovers, upgrade runbooks, setup guides — with a Goal / Done when / Before you start / Steps / Verify / Gotchas / Out of scope template. An active playbook is its own tracker and is listed in the Threads Index.
 - **`vault_maintain.py --lint`** — reports, without writing, every workspace note that breaks the contract: `over-budget`, `root-stray`, `legacy-name`, `unclosed-thread`, `log-next`, `log-stacked`, `stale-link`, `broken-link`, `index-link`, `bad-name`, `dup-name`, `missing-section`, `hard-wrap`. `--lint --count` prints just the number.
 
@@ -256,7 +256,7 @@ The flat workspace layout is gone. That transition is what 1.0 was defined as, a
 - **Wikilink conventions are now written down.** A uniquely-named note is linked bare
   (`[[a-decision-note]]`), which survives a workspace being renamed. The six per-workspace
   structural files — `Overview`, `Progress Log`, and the four generated indexes — exist once per
-  workspace by design, so links to them carry the workspace prefix (`[[Takeoffs/Overview]]`)
+  workspace by design, so links to them carry the workspace prefix (`[[Juniper/Overview]]`)
   whenever they cross a workspace boundary. A bare link resolved against the whole vault binds to
   whichever workspace matches first and *resolves cleanly*, so it reads as healthy while pointing
   at another project's notes.

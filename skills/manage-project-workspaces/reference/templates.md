@@ -356,9 +356,9 @@ tracked_through: YYYY-MM-DD
 
 | Phase | Status | Estimate | Actual | Variance | Sittings | Dates | Links |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Planning | done | — | 3.37 | — | 8 | 08-15 | [[Takeoffs/Log/2026-08-15]] |
+| Planning | done | — | 3.37 | — | 8 | 08-15 | [[Juniper/Log/2026-08-15]] |
 | **0 Walking skeleton** | done | 12 | 7.89 | −34% | 6 | 08-16 → 08-19 | [[WalkingSkeleton]] |
-| 0.1–0.5 Scaffold and CI | done | 4 | 2.25 | −44% | 1 | 08-16 | [[Takeoffs/Log/2026-08-16]] |
+| 0.1–0.5 Scaffold and CI | done | 4 | 2.25 | −44% | 1 | 08-16 | [[Juniper/Log/2026-08-16]] |
 | **1 Data model and CRUD** | active | 25 | 11.13 | — | 13 | 08-23 → | [[DataModelAndCrud]] |
 | **Total** | | 165 | 22.39 | | 28 | | |
 

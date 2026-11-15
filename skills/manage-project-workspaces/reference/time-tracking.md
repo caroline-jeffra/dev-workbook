@@ -29,7 +29,7 @@ dev-workbook hours --repo <repo path> --since <first day of the week> --by week
 | **A sitting books under the day it started** | Same rule as the TasksArchive; a late session past midnight stays on its day |
 | **The result is a floor**, accurate to about ±15% | Thinking away from the keyboard and work without a session open are not counted |
 
-**Hours come only from the script's output.** Never derive them from a session's start and end times ("21:57 → ~23:30, 1.55 hrs"). A session's clock time counts every pause under an hour as work. Home-Budgeter's log recorded it that way and overstated a week by 55% (7.53 recorded vs 4.87 active). If the script cannot run, leave the row unchanged and say so; do not estimate.
+**Hours come only from the script's output.** Never derive them from a session's start and end times ("21:57 → ~23:30, 1.55 hrs"). A session's clock time counts every pause under an hour as work. One project's log recorded it that way and overstated a week by 55% (7.53 recorded vs 4.87 active). If the script cannot run, leave the row unchanged and say so; do not estimate.
 
 **Weekday means Monday to Friday**, by the date the sitting started; Saturday and Sunday are weekend. Take the split from `--by week` rather than adding days up by hand. A Friday once landed in the weekend column that way.
 

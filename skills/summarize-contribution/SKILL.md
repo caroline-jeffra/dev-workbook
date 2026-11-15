@@ -23,14 +23,14 @@ vault by absolute path; derive the project from the working directory.
 $DEVWB_VAULT/Contributions/<project>.md
 ```
 
-- `<project>` is the workspace folder name from `Projects/WorkspaceIndex.md` — so `Contributions/Portal.md`
-  pairs with `Projects/Portal/`. Matching names keep `[[wikilinks]]` resolving in both directions.
+- `<project>` is the workspace folder name from `Projects/WorkspaceIndex.md` — so `Contributions/Harbor.md`
+  pairs with `Projects/Harbor/`. Matching names keep `[[wikilinks]]` resolving in both directions.
 - Create `Contributions/` if it is missing. Do **not** nest by year, employer, or status — one flat
   folder, one file per project, updated in place over the project's whole life.
-- Never create a second file for the same project (no `Portal 2026.md`, no `Portal Q3.md`). A new
+- Never create a second file for the same project (no `Harbor 2026.md`, no `Harbor Q3.md`). A new
   period is an **update to the existing file**, not a new file. See "Updating".
 - If a legacy per-period summary already exists inside a workspace folder (e.g.
-  `Projects/Portal/CV Summary May-Aug 2026.md`), fold its content into `Contributions/<project>.md`,
+  `Projects/Harbor/CV Summary May-Aug 2026.md`), fold its content into `Contributions/<project>.md`,
   then leave the original in place with a link at the top pointing at the new home. Tell the user;
   do not delete their note yourself.
 

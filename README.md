@@ -194,7 +194,7 @@ Every workspace note is either **current state** (rewritten in place so it is tr
 
 Each type has a template, a naming pattern and — for the short types — a word budget: logs and decisions 150, overview 200, tickets 250, threads 300. Research opens with a TL;DR; playbooks follow a fixed Goal / Done when / Steps / Verify / Gotchas shape. The full contract is in [`structure.md`](skills/manage-project-workspaces/reference/structure.md) and the templates in [`templates.md`](skills/manage-project-workspaces/reference/templates.md).
 
-**Every note is named in PascalCase, area first and kind last**, so a sorted or truncated file list stays skimmable: `FrameworkIsFastapiOverDjango`, `AdminApiPermissionsAudit`, `1701-NaturalSortAdApprovals`, `ProgressLog`, and workspace folders like `Projects/HomeBudgeter/`. A name never repeats what its folder says — no project name, no `Playbook` suffix, no ticket key. Names are unique within a workspace, acronyms are written as words, logs stay `YYYY-MM-DD`, and the `# Heading` inside each note is the readable form.
+**Every note is named in PascalCase, area first and kind last**, so a sorted or truncated file list stays skimmable: `FrameworkIsFastapiOverDjango`, `GoPublicAudit`, `1701-NaturalSortAdApprovals`, `ProgressLog`, and workspace folders like `Projects/Orchard/`. A name never repeats what its folder says — no project name, no `Playbook` suffix, no ticket key. Names are unique within a workspace, acronyms are written as words, logs stay `YYYY-MM-DD`, and the `# Heading` inside each note is the readable form.
 
 **A finished thread is closed, not left behind.** Its decisions, knowledge and leftover items move to their own notes, and the thread shrinks to a Goal / Outcome / Moved-to stub.
 
