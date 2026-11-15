@@ -74,28 +74,34 @@ Not every ticket needs one. A ticket gets a note when there is something to say 
 
 ## Naming notes
 
-**Every note in the vault is named in PascalCase** — workspace notes, the structural files, general notes outside `Projects/`, and the workspace folders themselves. The only exceptions are log dates and the ticket ID at the front of a ticket note.
+**Every note in the vault is named in PascalCase** — workspace notes, the structural files, general notes outside `Projects/`, and the workspace folders themselves. The only exceptions are log dates and the ticket number at the front of a ticket note.
+
+**Names are built to be skimmed in a sorted, truncated file list.** The folder already says which project and which type a note is, so the name spends its first characters on what tells notes apart: **area first, kind last** — `<Area><Subject><Kind>`. The area is the subsystem or feature (`Currency`, `CrossSell`, `Docker`), so related notes sort together across folders and a truncated name still shows it.
 
 | Type | Pattern | Example |
 | --- | --- | --- |
-| decision, convention | a **claim**, 4–8 words | `FrameworkIsFastapiOverDjango` |
-| thread | a **noun phrase**, 2–5 words | `VaultPushReliability` |
-| playbook | `<Subject>Playbook` | `DataModelAndCrudPlaybook` |
-| research | `<Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `AdminApiPermissionsAudit` |
-| note | a noun phrase | `PostgresAdvisoryLocks` |
-| ticket | `<TICKET-ID>-<Subject>` | `ACME-1701-NaturalSortAdApprovals` |
+| decision, convention | a **claim**, 4–8 words, **subject first** | `FrameworkIsFastapiOverDjango`, `RedisMultiExcludesDbQueries` |
+| thread | `<Area><Subject>`, 2–4 words, optionally ending `FollowUps` · `Blocker` · `Backlog` | `VaultPushReliability`, `CurrencyCacheFollowUps` |
+| playbook | `<Area><Subject>`, no suffix | `DataModelAndCrud`, `PhpstanBaselineFix` |
+| research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `AdminApiPermissionsAudit` |
+| note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `DockerLocalEnvGotchas` |
+| ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
 | log | `YYYY-MM-DD` | `2026-08-19` |
 | structural | fixed | `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`, `TimeTracking` |
 | vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` |
 | workspace folder | the repo's name | `Projects/HomeBudgeter/` (and `Contributions/HomeBudgeter.md`) |
 
 - **Acronyms are words.** `AdminApiAudit`, `CiPipelineSpec`, `SqlInjectionAudit` — never `AdminAPIAudit`, which hides the word boundary.
-- **No spaces, hyphens, underscores or em dashes** — except the hyphen inside a ticket ID and the one after it.
-- **Numbers stay digits:** `Laravel13UpgradePlan`, `Phase2IngestionPlaybook`.
-- **No dates in names** except logs. A review of a playbook is `IngestionPlaybookReview`, not `Phase 2 Playbook Review 2026-10-02`; the date goes in frontmatter.
-- **Ticket IDs prefix ticket notes only.** A research note about a ticket carries the ID in `tickets:`, not in its name.
-- **The subject is specific enough to be vault-unique.** `Phase1Playbook` collides with every other project's phase 1; name what the phase does.
-- **Names must be unique across the whole vault.** `[[wikilinks]]` resolve by name, so a second `Index.md` anywhere makes both unreachable.
+- **No spaces, hyphens, underscores or em dashes** — except the one after a ticket note's number.
+- **Never the project's name.** `Projects/Bert/Research/DataFlowsMap.md`, not `BertDataFlowsMap.md` — the folder says it, and the prefix pushes the subject out of view. The lint reports one.
+- **Never the folder's type.** A playbook is not `…Playbook`; a ticket is not `BERT-1234-…`. Research keeps its Kind, because Audit, Plan and Spec tell research notes apart.
+- **Decisions lead with their subject, not a verb.** `RedisMultiExcludesDbQueries`, not `RunDbQueriesOutsideRedisMulti` — verb-first claims scatter across the alphabet and never group.
+- **Two to four words** for everything but decisions. Anything longer is truncated in a sidebar anyway.
+- **Numbers stay digits:** `Laravel13UpgradePlan`, `Phase2Ingestion`.
+- **No dates in names** except logs. A review of a playbook is `IngestionReview`, not `Phase 2 Playbook Review 2026-10-02`; the date goes in frontmatter.
+- **Ticket numbers prefix ticket notes only.** A research note about a ticket carries the ID in `tickets:`, not in its name.
+- **Name what it is, not where it falls.** `Phase1` says nothing in a year; name what the phase does.
+- **Names must be unique within their workspace**, and general notes outside `Projects/` unique across the vault. Two workspaces may share a name (`Bert/Threads/CompletedItems`, `Watson/Threads/CompletedItems`); links to such a note carry the workspace path — see "Linking between notes". The lint reports a bare link to a shared name as `ambiguous-link`.
 - **The `# Heading` is the readable form**, in sentence case with normal spacing and acronyms: `FrameworkIsFastapiOverDjango.md` has the heading `# Framework is FastAPI over Django`. The generated indexes display the heading, so lists stay readable.
 
 ---
@@ -136,7 +142,8 @@ Templates for every type are in [templates.md](templates.md).
 
 | Target | Write | Why |
 | --- | --- | --- |
-| A note in any type folder | `[[NoteName]]` | One note per fact means names are unique; a bare link survives a workspace rename |
+| A note in any type folder | `[[NoteName]]` | Names are unique within a workspace; a bare link survives a workspace rename |
+| A note whose name another workspace also uses | `[[Workspace/NoteName]]` | The bare name is ambiguous vault-wide |
 | `Overview`, `ProgressLog`, or any generated index | `[[Workspace/Overview]]`, even from inside that workspace | These exist once per workspace by design, so the bare name is ambiguous vault-wide |
 | A log day whose date another workspace also logged | `[[Workspace/Log/2026-10-04\|2026-10-04]]` | Workspaces often log the same day; the alias keeps the date readable |
 | Any link inside a table cell | `[[Workspace/Log/2026-10-04]]` — no alias | An alias pipe splits the row in viewers that ignore the `\|` escape |

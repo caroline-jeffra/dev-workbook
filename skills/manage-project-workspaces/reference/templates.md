@@ -186,7 +186,7 @@ closed: YYYY-MM-DD
 **Moved to:** [[<DecisionNote>]], [[<Note>]], [[<OtherThread>]]
 ```
 
-## Playbook — `Playbooks/<Subject>Playbook.md`
+## Playbook — `Playbooks/<Area><Subject>.md`
 
 Current state: the plan **and** its tracker. Tick steps in place as they finish; do not mirror them into a thread. `status: active` while being executed, `done` when finished, `reference` for a procedure you re-run (a setup guide, a cutover runbook).
 
@@ -197,7 +197,7 @@ status: active
 tickets: []
 ---
 
-# <Subject in sentence case> playbook
+# <Subject in sentence case>
 
 **Goal:** <one line — the outcome this playbook produces>
 
@@ -263,7 +263,9 @@ tickets: []
 
 `<Kind>` is one of `Audit` · `Analysis` · `Plan` · `Spec` · `Review` · `Map` · `Reference` — e.g. `AdminApiPermissionsAudit.md`, heading `# Admin API permissions — audit`.
 
-## Ticket — `Tickets/<TICKET-ID>-<Subject>.md`
+## Ticket — `Tickets/<number>-<Subject>.md`
+
+The project key stays in `tickets:` and the heading; the file name carries only the number, so the subjects line up in a sorted list. `ACME-1234` → `Tickets/1234-NaturalSortAdApprovals.md`.
 
 Current state. Budget: 250 words.
 
@@ -355,9 +357,9 @@ tracked_through: YYYY-MM-DD
 | Phase | Status | Estimate | Actual | Variance | Sittings | Dates | Links |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Planning | done | — | 3.37 | — | 8 | 08-15 | [[Takeoffs/Log/2026-08-15]] |
-| **0 Walking skeleton** | done | 12 | 7.89 | −34% | 6 | 08-16 → 08-19 | [[WalkingSkeletonPlaybook]] |
+| **0 Walking skeleton** | done | 12 | 7.89 | −34% | 6 | 08-16 → 08-19 | [[WalkingSkeleton]] |
 | 0.1–0.5 Scaffold and CI | done | 4 | 2.25 | −44% | 1 | 08-16 | [[Takeoffs/Log/2026-08-16]] |
-| **1 Data model and CRUD** | active | 25 | 11.13 | — | 13 | 08-23 → | [[DataModelAndCrudPlaybook]] |
+| **1 Data model and CRUD** | active | 25 | 11.13 | — | 13 | 08-23 → | [[DataModelAndCrud]] |
 | **Total** | | 165 | 22.39 | | 28 | | |
 
 ## Weekly hours

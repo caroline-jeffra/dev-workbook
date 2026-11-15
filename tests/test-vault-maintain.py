@@ -456,11 +456,11 @@ try:
     write(ws / "Research" / "HostCostsAnalysis.md",
           "---\ntype: research\nstatus: reference\n---\n\n# Host costs — analysis\n\n## TL;DR\n\n- cheaper\n\n"
           "Came out of [[OldWork]].\n\n- **Source:** a\n- **Date:** b\n")
-    write(ws / "Playbooks" / "CutoverToNewHostPlaybook.md",
-          "---\ntype: playbook\nstatus: active\n---\n\n# Cutover to new host playbook\n\n**Goal:** g\n\n"
+    write(ws / "Playbooks" / "CutoverToNewHost.md",
+          "---\ntype: playbook\nstatus: active\n---\n\n# Cutover to new host\n\n**Goal:** g\n\n"
           "**Done when:** d\n\n## Steps\n\n- [ ] **1. Copy**\n")
-    write(ws / "Tickets" / "ACME-12-NaturalSortApi.md",
-          "---\ntype: ticket\nstatus: active\n---\n\n# ACME-12 natural sort API\n\n**Goal:** g\n")
+    write(ws / "Tickets" / "12-NaturalSortApi.md",
+          "---\ntype: ticket\nstatus: active\ntickets: [ACME-12]\n---\n\n# ACME-12 natural sort API\n\n**Goal:** g\n")
     write(ws / "TimeTracking.md",
           "---\ntype: time-tracking\nstatus: active\n---\n\n# Time tracking — demo\n\n**Budget:** 6 hrs/week\n\n"
           "## Phases\n\n| Phase | Status | Estimate | Actual |\n| --- | --- | --- | --- |\n| **0 Skeleton** | done | 12 | 7.89 |\n")
@@ -493,6 +493,14 @@ try:
           "---\ntype: playbook\nstatus: active\n---\n\n# Deploy\n\n- [ ] go\n")
     write(ws / "Tickets" / "ACME-13 old style.md",
           "---\ntype: ticket\nstatus: active\n---\n\n# ACME-13\n")
+    write(ws / "Tickets" / "ACME-14-KeyedName.md",
+          "---\ntype: ticket\nstatus: active\ntickets: [ACME-14]\n---\n\n# ACME-14 keyed name\n")
+    write(ws / "Research" / "DemoHostingMap.md",
+          "---\ntype: research\nstatus: reference\n---\n\n# Demo hosting map\n\n## TL;DR\n\n- x\n")
+    write(ws / "Notes" / "Demolition.md",
+          "---\ntype: note\nstatus: reference\n---\n\n# Demolition\n\nA word that starts with the project name.\n")
+    write(ws / "Playbooks" / "RollbackPlaybook.md",
+          "---\ntype: playbook\nstatus: active\n---\n\n# Rollback\n\n**Goal:** g\n\n**Done when:** d\n\n## Steps\n\n- [ ] go\n")
     write(ws / "Decisions" / "UseRedisCache.md",
           "---\ntype: decision\nstatus: active\nsupersedes: use-memcached\n---\n\n# Use Redis cache\n\n**Decision:** Redis.\n")
     write(tmp6 / "Archived" / "old" / "UseNewHost.md", "# dup\n")
@@ -515,7 +523,7 @@ try:
 
     for clean in ("Overview.md", "ProgressLog.md", "2026-10-01.md", "UseOldHost.md",
                   "CutoverTracking.md", "OldWork.md", "HostCostsAnalysis.md",
-                  "CutoverToNewHostPlaybook.md", "ACME-12-NaturalSortApi.md", "TimeTracking.md",
+                  "CutoverToNewHost.md", "12-NaturalSortApi.md", "TimeTracking.md",
                   "LinkChecker.md", "TopicIndex.md"):
         got = codes_for(findings, clean)
         check(not got, f"clean {clean}: no findings", f"got {sorted(got)}")
@@ -534,6 +542,9 @@ try:
         "HostingNotes.md": {"bad-name"},
         "Deploy20261002Playbook.md": {"bad-name", "missing-section"},
         "ACME-13 old style.md": {"bad-name"},
+        "ACME-14-KeyedName.md": {"bad-name"},
+        "DemoHostingMap.md": {"bad-name"},
+        "RollbackPlaybook.md": {"bad-name"},
         "Tasks Archive.md": {"legacy-name"},
         "Link checker.md": {"bad-name"},
         "StackedKeys.md": {"stacked-keys"},
@@ -566,6 +577,15 @@ try:
           "a supersedes: value naming a real note is not reported")
     check(not any("[[ACME-12]]" in f for f in findings),
           "a bare ticket-ID link is a placeholder, not a broken link")
+    check(not codes_for(findings, "Demolition.md"),
+          "a name that merely starts with the project's letters is not a project prefix")
+    keyed = [f for f in findings if "ACME-14-KeyedName.md: bad-name" in f]
+    check(bool(keyed) and "project key" in keyed[0], "a keyed ticket name is told to drop the key", str(keyed))
+    prefixed = [f for f in findings if "DemoHostingMap.md: bad-name" in f]
+    check(bool(prefixed) and "project name" in prefixed[0], "a project-prefixed name is told to drop it", str(prefixed))
+    tickets = (ws / "TicketsIndex.md").read_text()
+    check("**[[12-NaturalSortApi|ACME-12]]**" in tickets,
+          "a <number>-<Subject> ticket note owns its key from tickets:", tickets)
 
     # The CLI: lint writes nothing, and --count prints just the number.
     before = {p: p.read_bytes() for p in tmp6.rglob("*.md")}
@@ -612,6 +632,13 @@ try:
           "- **[[2026-10-02]]** — unique\n- **[[2026-10-01]]** — ambiguous\n"
           "- **[[Alpha/Log/2026-10-01|2026-10-01]]** — qualified\n- [[warmthecache]] by case\n")
 
+    for proj in ("Alpha", "Beta"):
+        write(tmp7 / "Projects" / proj / "Threads" / "CompletedItems.md",
+              "---\ntype: thread\nstatus: open\n---\n\n# Completed items\n\n- [ ] x\n")
+    write(alpha / "Notes" / "SharedNameLinks.md",
+          "---\ntype: note\nstatus: reference\n---\n\n# Shared name links\n\n"
+          "See [[CompletedItems]] and [[Alpha/Threads/CompletedItems]].\n")
+
     run_maintain(tmp7)
     topic = (alpha / "TopicIndex.md").read_text()
     check("[[Alpha/Log/2026-10-01|2026-10-01]]" in topic,
@@ -633,6 +660,11 @@ try:
           "links resolve case-insensitively, as every viewer does", "\n".join(findings))
     check(not any("ambiguous-link" in f for f in findings if "TopicIndex" in f or "Index.md" in f),
           "generated indexes are never ambiguous")
+    check(not any("dup-name" in f and "CompletedItems" in f for f in findings),
+          "two workspaces may share a note name", "\n".join(findings))
+    shared = [f for f in findings if f.startswith("Projects/Alpha/Notes/SharedNameLinks.md: ambiguous-link")]
+    check(len(shared) == 1 and "[[CompletedItems]]" in shared[0] and "Alpha/Threads" not in shared[0],
+          "a bare link to a name two workspaces share is ambiguous; a qualified one is not", "\n".join(findings))
 
     names = vm.VaultNames.scan(tmp7)
     check(names.matches("2026-10-01") == 2 and names.matches("Alpha/Log/2026-10-01") == 1

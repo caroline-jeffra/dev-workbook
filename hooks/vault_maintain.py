@@ -601,10 +601,16 @@ def build_ticket_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) ->
     owned: dict[str, Note] = {}
     for n in notes:
         m = pattern.match(n.name)
-        if m:
-            prev = owned.get(m.group(1))
+        key = m.group(1) if m else None
+        # A ticket note named `<number>-<Subject>` takes its key from `tickets:`.
+        num = re.match(r"^(\d+)-", n.name) if key is None and n.doctype == "ticket" else None
+        if num:
+            key = next((t for t in as_list(n.meta.get("tickets"))
+                        if t.rsplit("-", 1)[-1] == num.group(1)), None)
+        if key:
+            prev = owned.get(key)
             if prev is None or len(n.name) < len(prev.name):
-                owned[m.group(1)] = n
+                owned[key] = n
 
     lines = [
         emit_frontmatter(
@@ -834,7 +840,11 @@ ACRONYM = re.compile(r"[A-Z]{3,}")
 # A date in a name, hyphenated or run together as PascalCase leaves it (`Review20261002`).
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}|(?:19|20)\d{2}[01]\d[0-3]\d")
 LOG_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-TICKET_NAME = re.compile(r"^[A-Z][A-Z0-9]+-\d+-(?:[A-Z][a-z0-9]*)+$")
+# The ticket's number and subject. The project key is implicit in the folder, and stays in
+# the note's `tickets:` frontmatter.
+TICKET_NAME = re.compile(r"^\d+-(?:[A-Z][a-z0-9]*)+$")
+# The pre-3.3 form, `ACME-1234-Subject`: every name in a folder began with the same key.
+KEYED_TICKET_NAME = re.compile(r"^[A-Z][A-Z0-9]+-\d+-")
 # A bare ticket ID as a link target. These are deliberate placeholders for a ticket with no
 # note yet (the Tickets Index lists them), not broken links.
 TICKET_ID = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
@@ -946,6 +956,12 @@ class VaultNames:
         """How many notes a link target names."""
         return self.suffixes.get(target.strip("/").lower(), 0)
 
+    def spans_workspaces(self, stem: str) -> bool:
+        """Whether notes of this name sit in more than one workspace — allowed, but a bare link
+        to the name is then ambiguous."""
+        hits = [p for s, ps in self.stems.items() if s.lower() == stem.lower() for p in ps]
+        return len({w for w in map(workspace_of, hits) if w}) > 1
+
     def resolves(self, target: str) -> bool:
         """Whether a link target names some note — bare by stem, or by a trailing path."""
         return self.matches(target) > 0
@@ -984,25 +1000,38 @@ def pascal_problem(name: str) -> str | None:
     return None
 
 
-def name_problem(n: Note) -> str | None:
+def workspace_of(rel: str) -> str | None:
+    """The workspace folder a vault-relative path sits in, or None outside `Projects/<name>/`."""
+    parts = rel.split("/")
+    return parts[1] if len(parts) > 2 and parts[0] == "Projects" else None
+
+
+def name_problem(n: Note, workspace: str = "") -> str | None:
     name, t = n.name, n.doctype
     if t == "log":
         return None if LOG_NAME.match(name) else "log name must be YYYY-MM-DD"
     if DATE.search(name):
         return "date in name — dates belong in frontmatter"
     if t == "ticket":
-        if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 2)[-1]):
+        if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
             return None
-        return "ticket name must be '<TICKET-ID>-<PascalCaseSubject>'"
+        if KEYED_TICKET_NAME.match(name):
+            return "drop the project key — name it '<number>-<Subject>'; the key stays in tickets:"
+        return "ticket name must be '<number>-<PascalCaseSubject>'"
     problem = pascal_problem(name)
     if problem:
         return problem
+    # The folder already says which project a note belongs to; repeating it pushes the subject
+    # out of sight in a sorted or truncated file list.
+    w = len(workspace)
+    if w and len(name) > w and name[:w].lower() == workspace.lower() and not name[w].islower():
+        return f"drop the project name — the {workspace}/ folder already says it"
     if t in ("decision", "convention") and len(re.findall(r"[A-Z]", name)) > 10:
         return "decision name longer than ~10 words — name the claim, not the sentence"
     if t == "research" and not name.endswith(RESEARCH_KINDS):
         return "research name must end in its kind: " + ", ".join(RESEARCH_KINDS)
-    if t == "playbook" and not name.endswith("Playbook"):
-        return "playbook name must end in 'Playbook'"
+    if t == "playbook" and name.endswith("Playbook") and name != "Playbook":
+        return "drop the 'Playbook' suffix — the Playbooks/ folder already says it"
     return None
 
 
@@ -1051,7 +1080,7 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
         status = str(n.meta.get("status", "") or "").lower()
         prose = strip_code(n.body)
 
-        problem = None if stray else name_problem(n)
+        problem = None if stray else name_problem(n, root.name)
         if problem:
             report(n, "bad-name", problem)
 
@@ -1074,7 +1103,14 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
         # workspace by design, and a stray is already reported — moving it settles its name.
         if n.doctype != "log" and n.name not in ROOT_FILES and not stray:
             mine = n.path.relative_to(vault).as_posix()
-            others = [p for p in names.stems.get(n.name, []) if p != mine]
+            # Workspaces may share a name — links between them are qualified with the
+            # workspace path. A clash inside one workspace, or with a note outside every
+            # workspace, still makes a bare link ambiguous where it is meant to be the default.
+            here = workspace_of(mine)
+            others = [
+                p for p in names.stems.get(n.name, [])
+                if p != mine and not (here and workspace_of(p) and workspace_of(p) != here)
+            ]
             if others:
                 report(n, "dup-name", "also at " + ", ".join(others[:3])
                        + (f" (+{len(others) - 3} more)" if len(others) > 3 else ""))
@@ -1116,7 +1152,8 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
         ambiguous = sorted({
             t for t in targets
             if names.matches(t) > 1
-            and (LOG_NAME.match(t.split("/")[-1]) or t.split("/")[-1] in ROOT_FILES)
+            and (LOG_NAME.match(t.split("/")[-1]) or t.split("/")[-1] in ROOT_FILES
+                 or names.spans_workspaces(t.split("/")[-1]))
         })
         if ambiguous:
             report(n, "ambiguous-link", ", ".join(f"[[{t}]]" for t in ambiguous[:5])

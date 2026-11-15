@@ -14,6 +14,23 @@ are minor.
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-11-15
+
+### Changed
+
+- **Note names are built to be skimmed.** Within a workspace, names used to carry the project's name (`BertDataFlowsMap`), every ticket began with the same key (`BERT-9366-…`), and every playbook ended in `Playbook`, so a sorted or truncated file list showed the same characters over and over. The naming contract now says a name never repeats what its folder already says, and spends its first characters on what tells notes apart: **area first, kind last** (`<Area><Subject><Kind>`). Decisions lead with their subject rather than a verb, threads and notes end in a short fixed vocabulary when they need a kind, and anything but a decision is two to four words.
+- **Tickets are `<number>-<Subject>`** (`9366-TrafficSourceFilterOnNotifications`). The key stays in `tickets:` and the heading, and `TicketsIndex.md` now takes a ticket note's key from `tickets:`.
+- **Playbooks drop the `Playbook` suffix** (`PhpstanBaselineFix`).
+- **Names need only be unique within their workspace.** Two workspaces may share a name; links to it carry the workspace path (`[[Bert/CompletedItems]]`). General notes outside `Projects/` stay unique across the vault.
+
+### Lint
+
+- `bad-name` now reports a name that starts with its workspace's name, a keyed ticket name, and a playbook ending in `Playbook` — each with the fix. `condense-vault`'s reconcile pass renames them with the rename script, which rewrites every link.
+- `dup-name` no longer reports the same name in two workspaces; it still reports a clash inside one workspace or with a note outside every workspace.
+- `ambiguous-link` now also reports a bare link to a name that more than one workspace uses. `dev-workbook qualify` fixes it as before.
+
+Existing names keep working; the lint flags them for the next condense run.
+
 ## [3.2.0] — 2026-11-15
 
 ### Added
