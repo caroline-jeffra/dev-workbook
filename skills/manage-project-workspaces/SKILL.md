@@ -132,7 +132,7 @@ To scaffold:
 1. Create `$DEVWB_VAULT/Projects/<Repo>/` — the repo's name in PascalCase (`garden-planner` →
    `GardenPlanner`) — and, inside it, the folders from
    [reference/structure.md](reference/structure.md): `Tickets/`, `Epics/`, `Playbooks/`, `Research/`,
-   `Notes/`, `Decisions/`, `Threads/`, `Log/`. **Create each on first use, never empty** — an empty folder is
+   `Notes/`, `Decisions/`, `Threads/`, `Diagrams/`, `Log/`. **Create each on first use, never empty** — an empty folder is
    noise in the sidebar and tells the reader nothing.
 2. Create `Overview.md` from the template in [reference/templates.md](reference/templates.md) — what
    the repo is, current focus, next up, the repo path relative to the code root, links to external
@@ -417,6 +417,13 @@ Write it as a cell that renders in one line, e.g.:
 Book work under the date it **started**. A session that runs past midnight still belongs to the day
 it began, so it appends to that day's row rather than opening a new one. If a row for the day already
 exists, extend it — never add a second row for the same date.
+
+## Optional integrations: graphify and Excalidraw
+
+Two tools help when they're installed; nothing here depends on them. Detection, rules and formats: [reference/integrations.md](reference/integrations.md).
+
+- **graphify** — when the repo has `graphify-out/graph.json`, answer structural questions while working ("where does X live", "what calls Y") with `graphify query` / `path` before a text search, after checking the graph isn't far behind `HEAD`. Never build or update a graph yourself.
+- **Diagrams** — when the user asks for a diagram, or a note would be clearer with one, write it to `Diagrams/<Area><Subject>.md` as a Mermaid note and embed it where it's needed. When the Excalidraw plugin is in the vault and the user wants a drawing they can edit, write `Diagrams/<Area><Subject>.excalidraw.md` instead. Read an existing drawing through its `## Text Elements`; never rewrite one the user has edited.
 
 ## Time tracking (optional)
 

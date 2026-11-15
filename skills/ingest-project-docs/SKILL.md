@@ -55,6 +55,7 @@ Open issues, open milestones, and open PRs/MRs. Keep title, number, URL, labels,
 - Docs: `README*`, `docs/`, any `ARCHITECTURE`/`ADR` files, and every agent instruction file present — `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursor/rules/`, `.github/copilot-instructions.md`, `.claude/` (agents/skills/commands).
 - Temp/scratch: untracked or gitignored working files, `TODO.md`, `NOTES.md`, scratchpads
   (`git status --porcelain --ignored` finds them). These are often the richest undocumented context.
+- Maps and diagrams, **when present**: a graphify graph (`graphify-out/GRAPH_REPORT.md`) and any diagram files in the repo (`*.excalidraw`, `*.excalidraw.md`, `*.mmd`, Mermaid blocks in docs). How to read each, and how to tell a stale graph: [integrations.md](../manage-project-workspaces/reference/integrations.md). Absent → skip without comment.
 
 **Step 5 — Map into the workspace** (append/merge, never overwrite).
 
@@ -76,6 +77,8 @@ for the full contract.
   entry to the root `ProgressLog.md`.
 - **Decisions** — one note per decision in `Decisions/` (`type: decision`, `status: active`,
   `decided:`), not a stacked `Decisions.md`.
+- **Architecture map** — from a graphify report, `Research/ArchitectureMap.md`: one bullet per real area (skip vendored communities) with its key files and a link to `graphify-out/graph.html`. Use its area names when naming the other notes this run writes.
+- **Diagrams** — a system diagram found in the repo becomes a note in `Diagrams/`: a Mermaid note summarising it with a link back, or, when the vault has the Excalidraw plugin and the source is an Excalidraw file, a drawing.
 - Write only `type`, `status` and the dates. The `vault-maintain` hook derives `project`, `topics`
   and `tags`, and regenerates the indexes.
 
@@ -84,6 +87,8 @@ Full mapping table and templates: [reference/sources.md](reference/sources.md).
 **Step 6 — Report the run.**
 Tell the user what was ingested, per source, with counts (e.g. "12 open issues, 3 milestones, 2 open
 PRs, README + 4 docs, 1 TODO.md"), and list any source that failed (auth, missing, empty).
+
+If the repo has no graph and `command -v graphify` finds the CLI, end with a one-line offer: running `/graphify` on the repo would map its areas, and a re-ingest would then add an architecture map. Offer it only on a workspace this run created, never run it yourself, and say nothing when graphify isn't installed.
 
 ## Vault writing style
 

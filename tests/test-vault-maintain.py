@@ -674,6 +674,60 @@ finally:
     shutil.rmtree(tmp7, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
+section("Diagrams: Excalidraw drawings are named and linked, never rewritten")
+# ---------------------------------------------------------------------------
+
+DRAWING = (
+    "---\n\nexcalidraw-plugin: parsed\ntags: [excalidraw]\n\n---\n"
+    "==⚠  Switch to EXCALIDRAW VIEW in the MORE OPTIONS menu of this document. ⚠==\n\n\n"
+    "# Excalidraw Data\n\n## Text Elements\nApi gateway ^a1b2c3d4\n\nQueue worker ^e5f6g7h8\n\n"
+    "%%\n## Drawing\n```compressed-json\nN4KAkARALgngDgUwgLgAQQQDwMYEMA2AlgCYBOuA7hADTgQBuCpAzoQPYB2KqATLZMzYBXUtiRoIACyhQ4zZAHoFAc0JRJQgEYA6bGwC2CgF7N6hbEcK4OCtptbErHALRY8RMpWdx8Q1TdIEfARcZgRmBShcZQUebQBGAA4ePzKFNgA5JGMjEUwALSpxIuo\n```\n%%\n"
+)
+
+tmp9 = Path(tempfile.mkdtemp(prefix="dev-workbook-vm-tests."))
+try:
+    ws = tmp9 / "Projects" / "Demo"
+    write(ws / ".vault-config.json", json.dumps({
+        "project": "demo", "topics": {"queue": {"name": "Queue", "patterns": ["queue"]}},
+    }))
+    write(ws / "Overview.md", "---\ntype: overview\nstatus: active\n---\n\n# Demo\n\n## Next up\n\n- x\n")
+    write(ws / "Diagrams" / "SystemContext.excalidraw.md", DRAWING)
+    write(ws / "Diagrams" / "QueueFlow.md",
+          "---\nstatus: reference\n---\n\n# Queue flow\n\nHow a job moves through the queue queue queue.\n\n"
+          "```mermaid\nflowchart LR\n  api --> queue --> worker\n```\n")
+    write(ws / "Research" / "SystemContextMap.md",
+          "---\ntype: research\nstatus: reference\n---\n\n# System context map\n\n## TL;DR\n\n"
+          "- Three parts.\n\n![[SystemContext.excalidraw]]\n\nAlso [[SystemContext.excalidraw|the drawing]], "
+          "[[QueueFlow]] and ![[MissingSketch.excalidraw]].\n")
+    write(ws / "Notes" / "Misfiled.excalidraw.md", DRAWING)
+    write(ws / "Diagrams" / "Drawing 2026-11-15 10.22.33.excalidraw.md", DRAWING)
+
+    run_maintain(tmp9)
+    check((ws / "Diagrams" / "SystemContext.excalidraw.md").read_text() == DRAWING,
+          "the maintainer never rewrites a drawing")
+    check("type: diagram" in (ws / "Diagrams" / "QueueFlow.md").read_text(),
+          "a note in Diagrams/ is typed diagram")
+    topic = (ws / "TopicIndex.md").read_text()
+    check("**Diagram** (1)" in topic and "SystemContext.excalidraw" not in topic,
+          "a Mermaid diagram note is indexed; a drawing carries no topics", topic)
+
+    findings = lint_vault(tmp9)
+    check(not codes_for(findings, "SystemContext.excalidraw.md"),
+          "a well-placed drawing raises no findings", "\n".join(findings))
+    check(not codes_for(findings, "QueueFlow.md"), "a Mermaid diagram note is clean", "\n".join(findings))
+    broken = [f for f in findings if f.startswith("Projects/Demo/Research/SystemContextMap.md: broken-link")]
+    check(len(broken) == 1 and "MissingSketch.excalidraw" in broken[0] and "SystemContext.excalidraw]]" not in broken[0],
+          "an embedded drawing resolves; an embed of a missing one is broken", "\n".join(findings))
+    check(any("Misfiled.excalidraw.md: bad-name" in f and "Diagrams/" in f for f in findings),
+          "a drawing outside Diagrams/ is reported", "\n".join(findings))
+    check("bad-name" in codes_for(findings, "Drawing 2026-11-15 10.22.33.excalidraw.md"),
+          "the plugin's default drawing name is reported", "\n".join(findings))
+    check(not any("hard-wrap" in f or "stacked-keys" in f for f in findings if ".excalidraw" in f),
+          "a drawing's body is not linted as prose", "\n".join(findings))
+finally:
+    shutil.rmtree(tmp9, ignore_errors=True)
+
+# ---------------------------------------------------------------------------
 section("Stale-session guard: an older maintainer leaves a newer vault alone")
 # ---------------------------------------------------------------------------
 

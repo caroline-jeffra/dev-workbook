@@ -78,6 +78,8 @@ Append/merge into the structured workspace; never overwrite. Dedupe on the key s
 | Open PRs/MRs | `Threads/<NounPhrase>.md` | `- [ ] PR/MR !<n> <title> ([link](url))` | pr/mr number |
 | Runbooks, setup or upgrade guides | `Playbooks/<Area><Subject>.md` | Playbook template, `status: reference` | file path |
 | Milestones | `Overview.md` | `## Next up` bullets: title, due date, link | milestone title |
+| graphify report (`graphify-out/GRAPH_REPORT.md`), when present | `Research/ArchitectureMap.md` | TL;DR, then one bullet per real area: its key files and god nodes; link `graphify-out/graph.html` by repo path | — (rewrite in place) |
+| Diagram files (`*.excalidraw`, `*.excalidraw.md`, `*.mmd`), when present | `Diagrams/<Area><Subject>.md` (or `.excalidraw.md` when the vault has the plugin) | Diagram template; Mermaid summarising the labels and arrows, linked back | file path |
 | Decisions in docs/ADRs | `Decisions/<Claim>.md` | One decision note each | decision title |
 | The ingestion run itself | `Log/YYYY-MM-DD.md` + `ProgressLog.md` line | Log template (below) | date |
 
