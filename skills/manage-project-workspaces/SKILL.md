@@ -228,6 +228,22 @@ Read [reference/structure.md](reference/structure.md) first. In short:
   day's later work made wrong. **No `Next:` line.** Then add or update that day's one-line entry in
   the root `ProgressLog.md`, newest first. Never append a dated entry to the root `ProgressLog.md`
   itself — it is an index.
+- **Case-study flags** — reviews and interviews ask for specific examples, and the session is often
+  the only record of the best ones. Before writing the log, check the session's work against the
+  prompts in `$DEVWB_VAULT/Contributions/CaseStudyPrompts.md` (if the vault has none, read the
+  bundled list at `<plugin root>/skills/summarize-contribution/reference/case-study-prompts.md`;
+  do not create the vault copy from here). For each real match, add one line to the day's log:
+  ``- **Case study:** <what happened, one clause> — `slug` `slug` · <success | failure | mixed>``.
+  - **Tag every prompt it answers** — an incident can also be a mistake owned and an observability fix.
+  - **Watch hardest for the `Commits: low` prompts**: a disagreement, pushback on scope, a mistake
+    caught, an approach abandoned, someone unblocked. Git will not show them later; this line will.
+  - **Flag failures as readily as successes**, including an AI tool (this one included) getting
+    something wrong that the user caught. `pair` prompts want both.
+  - **Do not flag routine work.** No match is the normal case. If the story's *why* needs more than
+    a clause, it belongs in a decision or note — link that note from the line.
+  - On a second close-out the same day, merge into the existing lines. Mention a new flag in the
+    close-out report ("flagged a case-study candidate: scope-pushback"), without asking anything.
+  `summarize-contribution` harvests these lines into the project's case studies.
 - **Next up** — rewrite `Overview.md`'s `## Next up`: remove what got done, add what is now next,
   at most five bullets, each linking its thread or playbook. This is the only place next work is
   written.
@@ -425,8 +441,8 @@ work. Write to the vault only on one of these two triggers:
 - **The user says to close out the session** — "close out the session", "wrap up", "we're done for
   the day", "end of session", or an equivalent.
 
-When one of those fires, do the whole write in one pass: write or merge the day's log and its
-ProgressLog line, rewrite `## Next up`, update threads (closing any that finished), playbooks and
+When one of those fires, do the whole write in one pass: write or merge the day's log (with any
+case-study flags) and its ProgressLog line, rewrite `## Next up`, update threads (closing any that finished), playbooks and
 decisions as needed, update `TimeTracking.md` if the workspace has one, and append the day's row to [[TasksArchive]] (see "Maintaining the TasksArchive" above).
 
 Reading the vault is unrestricted — read it freely whenever you need context (Step 3, and the

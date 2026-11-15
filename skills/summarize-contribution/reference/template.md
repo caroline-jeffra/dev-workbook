@@ -9,7 +9,8 @@ project's whole life.
 |---|---|
 | CV entry | **At a glance**, plus one line per major effort |
 | LinkedIn update | **At a glance**, plus one **Story seed** for a post |
-| 360 / performance review | **Major efforts** (Judgement calls, Outcome) and **Signals** |
+| 360 / performance review | **Major efforts** (Judgement calls, Outcome), **Signals** and **Case studies** |
+| Interview ("tell me about a time…") | **Case studies**, backed by the relevant effort |
 | Blog post ideas | **Story seeds**, backed by the relevant effort's Judgement calls |
 
 Every section earns its place by serving at least one of these. If a section is empty for a project,
@@ -28,6 +29,7 @@ role: <what the user actually did — omit entirely if the evidence does not set
 scale: ~275 commits, 60+ tickets   # order of magnitude, omit if not meaningful
 efforts: [framework-upgrade, spa-migration, permissions-hardening]
 skills: [migration-strategy, authorization-design, ci-cd, data-modelling, code-review]
+case_studies: [production-incident, owned-mistake, observability, scope-pushback]
 tickets: [ACME-1614, ACME-1504]
 tags: [contribution, summary, <project>]
 ---
@@ -35,6 +37,8 @@ tags: [contribution, summary, <project>]
 
 `efforts` mirrors the Major efforts subsections. `skills` is the generic capture — record the full
 range the evidence supports (technical, operational, and interpersonal), not a role-targeted subset.
+`case_studies` lists every prompt slug the Case studies section has a story for, `ready` or
+`candidate`, so a search across `Contributions/` finds every story for one prompt.
 
 ## Body
 
@@ -121,6 +125,41 @@ Mostly sourced from Step 5 (asking the user and any tracker). If a bullet has no
 this is the section where invention is most tempting and most costly.
 
 On update: merge, keeping the strongest evidence per claim rather than every instance.
+
+### `## Case studies`
+
+Stories matched to the prompts in `Contributions/CaseStudyPrompts.md`, written to be told aloud in a
+review or interview. One `###` per story, in STAR shape, each field a sentence or two:
+
+```markdown
+### Recovering the August export outage
+`production-incident` `owned-mistake` `observability` · **failure → recovered** · *ready* · [[#Export pipeline rewrite]]
+
+**Situation.** A schema change I shipped broke nightly exports for a subset of clients.
+**Task.** Restore exports and make the next failure visible before clients noticed it.
+**Action.** Rolled back within the hour, backfilled the missed runs, then added a row-count monitor.
+**Result.** No data lost; the monitor caught a similar regression two months later.
+**Reflection.** I now ship schema changes behind a dual-read step first.
+```
+
+- **The tag line** carries every prompt slug the story answers, the outcome (`success`, `failure`,
+  `mixed`, or an arrow like `failure → recovered`), `ready` or `candidate`, and a link to the major
+  effort it comes from, if any.
+- **Reflection** is required for a failure or mixed outcome — it is what the interviewer is really
+  asking for — and optional otherwise.
+- **A `candidate`** keeps its fields short and ends with `**Missing.** <what to ask or look up>`.
+- **Speak as "I".** These are told in first person; keep "we" for the team's part and say which was
+  yours, exactly as the ownership markers do for efforts.
+
+Close the section with a **Coverage** line: prompts with no story yet, and `pair` prompts that have
+only a success or only a failure. It tells the user what to watch for, and tells the daily logging
+what to flag.
+
+```markdown
+**Coverage.** No story yet: `mentoring`, `cancelled-project`. Success only: `trade-off`, `hard-deadline`.
+```
+
+On update: merge stories, promote candidates once their gap is filled, and recompute Coverage.
 
 ### `## Story seeds`
 

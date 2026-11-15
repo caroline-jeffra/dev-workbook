@@ -14,6 +14,19 @@ are minor.
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-11-15
+
+### Added
+
+- **Case-study flagging.** Reviews and interviews ask for specific examples — an incident, a disagreement, a mistake you owned — and the best ones rarely show up in commits. A new prompt list, `Contributions/CaseStudyPrompts.md`, holds the questions with a stable slug each, whether to collect a success *and* a failure (`pair`), and how visible such a story is in git. `summarize-contribution` seeds it on first run from 21 common prompts, and the vault copy is yours to edit.
+- **`manage-project-workspaces` flags candidates as work is logged.** At close-out it checks the session against the prompts and adds a ``- **Case study:** … — `slug` `slug` · outcome`` line to the day's log for each real match, tagging every prompt the story answers and watching hardest for the ones git cannot show: disagreements, scope pushback, mistakes caught, abandoned approaches, people unblocked.
+- **`summarize-contribution` writes a `## Case studies` section.** It harvests the log flags, matches major efforts, decision notes, git signals and tracker evidence against the prompts, and writes each story in STAR shape (plus a reflection for failures), tagged with its prompts, outcome and `ready`/`candidate` grade. A Coverage line names the prompts with no story and the `pair` prompts missing a success or a failure. A new `case_studies:` frontmatter field lists the covered slugs so one prompt can be searched across every project.
+- **Case-study signals in `reference/git-evidence.md`** — reverts of your own commits, off-hours fixes, commit bursts, AI co-author trailers, first touches of each directory, closed-unmerged PRs, the most-discussed PRs and PRs you reviewed. Step 5 now asks for review threads, ticket comments and design docs explicitly.
+
+### Changed
+
+- `condense-vault` keeps every `Case study:` line word for word when it condenses or merges a log.
+
 ## [3.1.0] — 2026-11-05
 
 ### Added
