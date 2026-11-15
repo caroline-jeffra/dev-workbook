@@ -260,16 +260,17 @@ Read [reference/structure.md](reference/structure.md) first. In short:
   decisions, durable knowledge and leftover items to their own notes, then reduce it to the closing
   stub (`status: done`, `closed:`, Goal / Outcome / Moved to). See "Closing a thread" in
   [reference/structure.md](reference/structure.md).
-- **A playbook** — an ordered procedure goes in `Playbooks/` as `<Subject>Playbook.md`,
+- **A playbook** — an ordered procedure goes in `Playbooks/` as `<Area><Subject>.md` (no suffix),
   `type: playbook`. While it is being executed it is the tracker: tick its steps in place and do
   not open a thread that repeats them.
 - **Overview** — update "current focus" when the direction of the work shifts.
 - **Time tracking** — only if `TimeTracking.md` exists: measure the sittings since `tracked_through:`
   and update the table, per [reference/time-tracking.md](reference/time-tracking.md).
-- **Names** — every note is PascalCase: `FrameworkIsFastapiOverDjango`, `VaultPushReliability`,
-  `AdminApiPermissionsAudit`, `ACME-1701-NaturalSortAdApprovals`; logs stay `YYYY-MM-DD`. The
-  `# Heading` is the readable sentence-case form. Full table: "Naming notes" in
-  [reference/structure.md](reference/structure.md).
+- **Names** — every note is PascalCase, **area first, kind last**, and never repeats what the
+  folder already says — no project name, no `Playbook` suffix, no ticket key:
+  `FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `AdminApiPermissionsAudit`,
+  `1701-NaturalSortAdApprovals`; logs stay `YYYY-MM-DD`. The `# Heading` is the readable
+  sentence-case form. Full table: "Naming notes" in [reference/structure.md](reference/structure.md).
 
 ### Current-state notes are rewritten, not appended
 
@@ -305,8 +306,10 @@ ambiguous link means — Obsidian silently picks one, often another project's, a
 So the rule is: **write the shortest path that names exactly one note.**
 
 - **A uniquely-named note → link it bare.** `[[UseTokenBucketOverFixedWindow]]`.
-  This is the normal case in a structured workspace: one note per fact gives PascalCase names that
-  are naturally unique. A bare link is readable and survives the workspace being renamed or moved.
+  This is the normal case: names are unique within a workspace and rarely repeat across them. A
+  bare link is readable and survives the workspace being renamed or moved.
+- **A name another workspace also uses → prefix it with the workspace.** `[[Bert/CompletedItems]]`.
+  Check with `find "$DEVWB_VAULT/Projects" -name '<Name>.md'` when a name is generic.
 - **A per-workspace structural file → always prefix it with the workspace**, even from inside that
   workspace. `[[Takeoffs/Overview]]`, `[[Takeoffs/ProgressLog]]`, `[[Takeoffs/DecisionsIndex]]`.
   These names — `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `ThreadsIndex`,

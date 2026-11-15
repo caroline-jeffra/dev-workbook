@@ -76,7 +76,7 @@ Append/merge into the structured workspace; never overwrite. Dedupe on the key s
 | Open issues | `Threads/<NounPhrase>.md` | `- [ ] issue <n>: <title> ([link](url))` under `## Open`, grouped by theme into one thread — never a bare `#<n>`, which viewers read as a tag | issue number |
 | TODOs in temp files | `Threads/<NounPhrase>.md` | `- [ ] <action> (from <file>)` | action text |
 | Open PRs/MRs | `Threads/<NounPhrase>.md` | `- [ ] PR/MR !<n> <title> ([link](url))` | pr/mr number |
-| Runbooks, setup or upgrade guides | `Playbooks/<Subject>Playbook.md` | Playbook template, `status: reference` | file path |
+| Runbooks, setup or upgrade guides | `Playbooks/<Area><Subject>.md` | Playbook template, `status: reference` | file path |
 | Milestones | `Overview.md` | `## Next up` bullets: title, due date, link | milestone title |
 | Decisions in docs/ADRs | `Decisions/<Claim>.md` | One decision note each | decision title |
 | The ingestion run itself | `Log/YYYY-MM-DD.md` + `ProgressLog.md` line | Log template (below) | date |
