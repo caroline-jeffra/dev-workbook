@@ -230,7 +230,17 @@ DEFAULT_FOLDERS: dict[str, str] = {
     "convention": "Decisions",
     "thread": "Threads",
     "log": "Log",
+    "diagram": "Diagrams",
 }
+
+# An Excalidraw drawing is a markdown file the Obsidian plugin owns: `Name.excalidraw.md`, its
+# labels under `## Text Elements` and the scene in a (usually compressed) JSON block. It is a
+# note for naming and linking, but its frontmatter and body are never rewritten or linted.
+DRAWING_SUFFIX = ".excalidraw"
+
+
+def is_drawing(p: Path) -> bool:
+    return p.name.endswith(DRAWING_SUFFIX + ".md")
 
 
 @dataclass
@@ -309,6 +319,10 @@ class Note:
     topics: list[str] = field(default_factory=list)
     changed: bool = False
 
+    @property
+    def drawing(self) -> bool:
+        return is_drawing(self.path)
+
 
 # Turns a note into the link target the indexes write for it: the shortest path that names it
 # and no other note in the vault.
@@ -355,6 +369,8 @@ def collect(root: Path, cfg: Config) -> list[Note]:
         # A declared type wins; otherwise infer from location. Root notes with
         # no declared type are left alone rather than guessed at.
         doctype = declared or inferred or ""
+        if is_drawing(p):
+            doctype = "diagram"
 
         notes.append(Note(p, p.stem, meta, body, doctype, raw_fm=raw))
     return notes
@@ -375,7 +391,7 @@ def refresh_metadata(notes: list[Note], cfg: Config) -> list[str]:
     }
 
     for n in notes:
-        if not n.doctype or n.path.name in generated_files:
+        if not n.doctype or n.path.name in generated_files or n.drawing:
             continue
         fields = dict(n.meta)
         before = dict(n.meta)
@@ -454,10 +470,11 @@ TYPE_PLURAL = {
     "convention": ("Convention", "Conventions"),
     "thread": ("Thread", "Threads"),
     "log": ("Log day", "Log days"),
+    "diagram": ("Diagram", "Diagrams"),
 }
 TYPE_RANK = {
-    "playbook": 0, "research": 1, "epic": 2, "ticket": 3, "note": 4,
-    "decision": 5, "convention": 6, "thread": 7, "log": 8,
+    "playbook": 0, "research": 1, "diagram": 2, "epic": 3, "ticket": 4, "note": 5,
+    "decision": 6, "convention": 7, "thread": 8, "log": 9,
 }
 
 
@@ -827,7 +844,7 @@ BUDGETS = {
 # Notes that state current truth. Logs are history; indexes are generated.
 CURRENT_STATE = {
     "overview", "thread", "playbook", "decision", "convention", "research", "note", "ticket",
-    "epic",
+    "epic", "diagram",
 }
 
 RESEARCH_KINDS = ("Audit", "Analysis", "Plan", "Spec", "Review", "Map", "Reference")
@@ -885,7 +902,7 @@ def link_targets(text: str) -> list[str]:
         if not target:
             continue
         suffix = Path(target).suffix.lower()
-        if suffix and suffix != ".md" and (embed or len(suffix) <= 5):
+        if suffix and suffix not in (".md", DRAWING_SUFFIX) and (embed or len(suffix) <= 5):
             continue
         found.append(target[:-3] if target.endswith(".md") else target)
     return found
@@ -1006,8 +1023,12 @@ def workspace_of(rel: str) -> str | None:
     return parts[1] if len(parts) > 2 and parts[0] == "Projects" else None
 
 
-def name_problem(n: Note, workspace: str = "") -> str | None:
+def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> str | None:
     name, t = n.name, n.doctype
+    if n.drawing:
+        name = name[: -len(DRAWING_SUFFIX)]
+        if n.path.parent.name != diagrams:
+            return f"drawings live in {diagrams}/ — move it there"
     if t == "log":
         return None if LOG_NAME.match(name) else "log name must be YYYY-MM-DD"
     if DATE.search(name):
@@ -1080,7 +1101,7 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
         status = str(n.meta.get("status", "") or "").lower()
         prose = strip_code(n.body)
 
-        problem = None if stray else name_problem(n, root.name)
+        problem = None if stray else name_problem(n, root.name, cfg.folders.get("diagram", "Diagrams"))
         if problem:
             report(n, "bad-name", problem)
 
@@ -1114,6 +1135,10 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
             if others:
                 report(n, "dup-name", "also at " + ", ".join(others[:3])
                        + (f" (+{len(others) - 3} more)" if len(others) > 3 else ""))
+
+        # The Excalidraw plugin writes the rest of a drawing; only its name and place are ours.
+        if n.drawing:
+            continue
 
         budget = BUDGETS.get(n.doctype)
         if budget:
@@ -1376,7 +1401,7 @@ def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
             continue
         if LOG_NAME.match(p.stem):
             continue
-        problem = pascal_problem(p.stem)
+        problem = pascal_problem(p.stem.removesuffix(DRAWING_SUFFIX))
         if problem:
             out.append(f"{key}: bad-name — {problem}")
     return out

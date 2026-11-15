@@ -20,6 +20,7 @@ It runs under Claude Code today, and the vault reads in any wikilink-aware markd
 - **`git`** — for vault version control. Optional: without it the sync hooks do nothing and `condense-vault` condenses rather than deletes.
 - **`jq`** — used by the hooks to read hook input.
 - **`python3`** — required by the `SessionEnd` maintenance hook. Without it that hook exits silently and indexes are simply not refreshed.
+- **[graphify](https://github.com/Graphify-Labs/graphify)** and the **[Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) Obsidian plugin** are optional. When a repo has a graphify graph, the skills use it to map the repo's areas, answer structural questions and show which parts of a system you changed; with Excalidraw in the vault, diagrams can be editable drawings. Without them nothing changes. See [`integrations.md`](skills/manage-project-workspaces/reference/integrations.md).
 - **A viewer** is optional. The vault is plain markdown on disk with `[[wikilinks]]`; [Obsidian](https://obsidian.md) and [Foam](https://foambubble.github.io/foam/) (VS Code) both read it, and links are written so either resolves them the same way.
 
 ## Setup
@@ -204,7 +205,7 @@ Each type has a template, a naming pattern and — for the short types — a wor
 
 ### Workspace layout
 
-A project workspace is **one note per fact**, filed by document type into `Log/`, `Decisions/`, `Threads/`, `Playbooks/`, `Tickets/`, `Research/` and `Notes/`, with an optional `TimeTracking.md`, with `type:`/`status:` frontmatter and generated Topic, Tickets, Decisions and Threads indexes on top. A `.vault-config.json` in the workspace folder marks it as a workspace.
+A project workspace is **one note per fact**, filed by document type into `Log/`, `Decisions/`, `Threads/`, `Playbooks/`, `Tickets/`, `Research/`, `Notes/` and `Diagrams/`, with an optional `TimeTracking.md`, with `type:`/`status:` frontmatter and generated Topic, Tickets, Decisions and Threads indexes on top. A `.vault-config.json` in the workspace folder marks it as a workspace.
 
 The folder skeleton is **fixed** — every workspace uses the same folder names and document types, so the skills can rely on them. What varies per project is the vocabulary in `.vault-config.json`: the `topics` map and the index tuning (`min_hits`, `title_weight`, `root_notes`).
 

@@ -14,6 +14,18 @@ are minor.
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-11-15
+
+### Added
+
+- **Optional graphify support.** When a repo has a graphify graph (`graphify-out/graph.json`), `ingest-project-docs` seeds a `Research/ArchitectureMap.md` from its areas, `manage-project-workspaces` answers structural questions with `graphify query` before a text search, and `summarize-contribution` maps the files you modified onto the graph's areas as evidence of breadth. Each checks the graph's `built_at_commit` against `HEAD` and says when it is stale, and each skips vendored communities. No skill builds or updates a graph; `ingest-project-docs` offers `/graphify` once for a newly ingested repo when the CLI is installed. Graph output never goes into the vault.
+- **A `Diagrams/` folder** (`type: diagram`) for one diagram per note, named `<Area><Subject>`. By default a diagram is a Mermaid note; when the vault has the Excalidraw plugin and you want a drawing to edit by hand, it is an `.excalidraw.md` drawing, embedded with `![[Name.excalidraw]]`. Skills read a drawing through its `## Text Elements`, and never rewrite one you have edited.
+- Detection, formats and rules for both live in one place: `skills/manage-project-workspaces/reference/integrations.md`.
+
+### Hooks
+
+- The session-end maintainer recognises Excalidraw drawings and leaves their frontmatter and body untouched. The lint checks only a drawing's name and that it sits in `Diagrams/`, and an embed of a drawing (`![[Name.excalidraw]]`) is now checked like any other link.
+
 ## [3.3.0] — 2026-11-15
 
 ### Changed

@@ -20,7 +20,7 @@ Never guess from the presence of a folder — only `.vault-config.json` marks a 
 
 | Kind | Types | Rule |
 | --- | --- | --- |
-| **Current state** | overview, thread, playbook, decision, convention, research, note, ticket, epic | **Rewrite in place** so the note is true today. No dated history inside — git keeps that. Remove what is finished or wrong; do not annotate it. |
+| **Current state** | overview, thread, playbook, decision, convention, research, note, ticket, epic, diagram | **Rewrite in place** so the note is true today. No dated history inside — git keeps that. Remove what is finished or wrong; do not annotate it. |
 | **History** | log | **Append-only and backward-looking.** Records what happened that day. Never carries `Next:` or any other forward-looking line. |
 
 **"What's next" lives in exactly one place:** the `## Next up` section of `Overview.md`, each bullet linking the thread or playbook that holds the detail. Nothing else states next work — not logs, not research, not decisions.
@@ -56,6 +56,7 @@ A workspace may whitelist extra root notes in `.vault-config.json` (`root_notes`
 | `Notes/` | `note` | Durable cross-ticket knowledge; reusable techniques |
 | `Decisions/` | `decision`, `convention` | One note per decision or standing convention |
 | `Threads/` | `thread` | One note per thread of unfinished work; closed when finished (see "Closing a thread") |
+| `Diagrams/` | `diagram` | One diagram per note: a Mermaid note, or an Excalidraw drawing (`<Name>.excalidraw.md`) when the plugin is installed — see [integrations.md](integrations.md) |
 | `Log/` | `log` | One note per working day: `Log/YYYY-MM-DD.md` |
 
 ### Choosing the type
@@ -85,6 +86,7 @@ Not every ticket needs one. A ticket gets a note when there is something to say 
 | playbook | `<Area><Subject>`, no suffix | `DataModelAndCrud`, `RelaySetup` |
 | research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `RepoStateAudit` |
 | note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `PromptSkillAuthoringGotchas` |
+| diagram | `<Area><Subject>` — a drawing adds `.excalidraw` before `.md` | `CheckoutFlow`, `SystemContext.excalidraw` |
 | ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
 | log | `YYYY-MM-DD` | `2026-08-19` |
 | structural | fixed | `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`, `TimeTracking` |

@@ -221,6 +221,11 @@ Using the confirmed identities (see [reference/git-evidence.md](reference/git-ev
 - **Case-study signals** — reverts and hotfixes after the user's own changes, off-hours fixes,
   closed-unmerged PRs, AI co-author trailers, first commits in a new stack, long review threads.
   Commands are in section 8 of [reference/git-evidence.md](reference/git-evidence.md).
+- **Breadth by area, when the repo has a graphify graph** — map the files the user modified onto the
+  graph's communities to show which parts of the system they changed and how much of each. The script,
+  the vendored-code filter and the freshness check are in
+  [integrations.md](../manage-project-workspaces/reference/integrations.md). No graph → skip it; never
+  build one for a summary.
 
 **Two vocabularies, deliberately.** `reference/git-evidence.md` classifies what git *shows* —
 **Authored** / **Shipped** / **Integrated**. The document records what the user can *claim* per
