@@ -80,28 +80,28 @@ Not every ticket needs one. A ticket gets a note when there is something to say 
 
 | Type | Pattern | Example |
 | --- | --- | --- |
-| decision, convention | a **claim**, 4–8 words, **subject first** | `FrameworkIsFastapiOverDjango`, `RedisMultiExcludesDbQueries` |
+| decision, convention | a **claim**, 4–8 words, **subject first** | `FrameworkIsFastapiOverDjango`, `LiveUpdatesStreamOverSse` |
 | thread | `<Area><Subject>`, 2–4 words, optionally ending `FollowUps` · `Blocker` · `Backlog` | `VaultPushReliability`, `CurrencyCacheFollowUps` |
-| playbook | `<Area><Subject>`, no suffix | `DataModelAndCrud`, `PhpstanBaselineFix` |
-| research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `AdminApiPermissionsAudit` |
-| note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `DockerLocalEnvGotchas` |
+| playbook | `<Area><Subject>`, no suffix | `DataModelAndCrud`, `RelaySetup` |
+| research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `RepoStateAudit` |
+| note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `PromptSkillAuthoringGotchas` |
 | ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
 | log | `YYYY-MM-DD` | `2026-08-19` |
 | structural | fixed | `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`, `TimeTracking` |
 | vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` |
-| workspace folder | the repo's name | `Projects/HomeBudgeter/` (and `Contributions/HomeBudgeter.md`) |
+| workspace folder | the repo's name | `Projects/Orchard/` (and `Contributions/Orchard.md`) |
 
 - **Acronyms are words.** `AdminApiAudit`, `CiPipelineSpec`, `SqlInjectionAudit` — never `AdminAPIAudit`, which hides the word boundary.
 - **No spaces, hyphens, underscores or em dashes** — except the one after a ticket note's number.
-- **Never the project's name.** `Projects/Bert/Research/DataFlowsMap.md`, not `BertDataFlowsMap.md` — the folder says it, and the prefix pushes the subject out of view. The lint reports one.
-- **Never the folder's type.** A playbook is not `…Playbook`; a ticket is not `BERT-1234-…`. Research keeps its Kind, because Audit, Plan and Spec tell research notes apart.
-- **Decisions lead with their subject, not a verb.** `RedisMultiExcludesDbQueries`, not `RunDbQueriesOutsideRedisMulti` — verb-first claims scatter across the alphabet and never group.
+- **Never the project's name.** `Projects/Orchard/Research/StatusFlowMap.md`, not `OrchardStatusFlowMap.md` — the folder says it, and the prefix pushes the subject out of view. The lint reports one.
+- **Never the folder's type.** A playbook is not `…Playbook`; a ticket is not `ACME-1234-…`. Research keeps its Kind, because Audit, Plan and Spec tell research notes apart.
+- **Decisions lead with their subject, not a verb.** `BookItemsAreWorksNotEditions`, not `TreatBookItemsAsWorks` — verb-first claims scatter across the alphabet and never group.
 - **Two to four words** for everything but decisions. Anything longer is truncated in a sidebar anyway.
 - **Numbers stay digits:** `Laravel13UpgradePlan`, `Phase2Ingestion`.
 - **No dates in names** except logs. A review of a playbook is `IngestionReview`, not `Phase 2 Playbook Review 2026-10-02`; the date goes in frontmatter.
 - **Ticket numbers prefix ticket notes only.** A research note about a ticket carries the ID in `tickets:`, not in its name.
 - **Name what it is, not where it falls.** `Phase1` says nothing in a year; name what the phase does.
-- **Names must be unique within their workspace**, and general notes outside `Projects/` unique across the vault. Two workspaces may share a name (`Bert/Threads/CompletedItems`, `Watson/Threads/CompletedItems`); links to such a note carry the workspace path — see "Linking between notes". The lint reports a bare link to a shared name as `ambiguous-link`.
+- **Names must be unique within their workspace**, and general notes outside `Projects/` unique across the vault. Two workspaces may share a name (`Orchard/Threads/CompletedItems`, `Lantern/Threads/CompletedItems`); links to such a note carry the workspace path — see "Linking between notes". The lint reports a bare link to a shared name as `ambiguous-link`.
 - **The `# Heading` is the readable form**, in sentence case with normal spacing and acronyms: `FrameworkIsFastapiOverDjango.md` has the heading `# Framework is FastAPI over Django`. The generated indexes display the heading, so lists stay readable.
 
 ---
@@ -276,7 +276,7 @@ The user says "this replaces our old decision that X", but no note records X. **
 `ProgressLog.md` in the root is an **index**: one line per working day, newest first.
 
 ```markdown
-- **[[Takeoffs/Log/2026-08-19|2026-08-19]]** — ACME-1656 billing joins landed
+- **[[Juniper/Log/2026-08-19|2026-08-19]]** — ACME-1656 billing joins landed
 ```
 
 The detail lives in `Log/2026-08-19.md`: **one** `Did` / `Decided` / `Learned` block for the whole day. A second close-out on the same day **merges into those sections** — it never adds a second block, a `###` sub-entry, or a correction of an earlier line. If something said earlier that day is now wrong, fix the line.

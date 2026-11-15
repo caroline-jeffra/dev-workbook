@@ -119,11 +119,11 @@ assert_not_contains "$(tracked "$v")" 'random-root-file.txt' \
 # Non-ASCII filenames: without core.quotepath=off git quotes and escapes the whole path,
 # so every note with an em-dash or arrow in its name silently fails to match the allowlist.
 v="$(build_vault nonascii)"
-printf '# a\n' > "$v/Projects/Hilda ↔ Sherlock RBAC differences.md"
+printf '# a\n' > "$v/Projects/Kestrel ↔ Osprey role differences.md"
 printf '# b\n' > "$v/Projects/ACME-1656 review — billing joins.md"
 run_hook vault-push.sh "$v"
 t="$(gitq "$v" -c core.quotepath=off ls-files)"
-assert_contains "$t" 'Sherlock' '[T1.1] non-ASCII filename (arrow) committed'
+assert_contains "$t" 'Osprey' '[T1.1] non-ASCII filename (arrow) committed'
 assert_contains "$t" 'billing joins' '[T1.1] non-ASCII filename (em-dash) committed'
 
 # A filename containing a newline must not split the loop or leak a partial path.

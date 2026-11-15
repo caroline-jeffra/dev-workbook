@@ -121,7 +121,7 @@ try:
     check("2026-10-05" not in out and "2026-10-10" in out, "--since drops earlier days", out)
 
     print("\n\033[1mRepo → transcript folders\033[0m")
-    check(sh.encode(Path("/Users/a/code/home-budgeter")) == "-Users-a-code-home-budgeter",
+    check(sh.encode(Path("/Users/a/code/garden-planner")) == "-Users-a-code-garden-planner",
           "a repo path encodes the way Claude Code names its folder")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
