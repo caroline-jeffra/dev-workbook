@@ -45,7 +45,7 @@ Each line is `<workspace>/<path>: <code> — <detail>`. Work through them by cod
 | Code | Fix |
 | --- | --- |
 | `log-next` | For each `Next:` line, check whether the step is done (later logs, threads, git). **Still open** → make sure it is in `Overview.md`'s `## Next up` or an open thread, adding it if not. Then **delete the line** from the log. |
-| `log-stacked` | Merge the day's blocks into one `Did` / `Decided` / `Learned` / `Links` block. Where an earlier entry was overtaken later that day ("1.3 not yet done" … "1.3 done"), keep only the final state. |
+| `log-stacked` | Merge the day's blocks into one `Did` / `Decided` / `Learned` / `Links` block, keeping every `Case study:` line. Where an earlier entry was overtaken later that day ("1.3 not yet done" … "1.3 done"), keep only the final state. |
 | `over-budget` | Rewrite the note to its template: cut process narrative, dates on ticked items, commit SHAs and restated context; link out to the note that owns a fact. If it still will not fit, it is two notes — split it. |
 | `stale-link` | A current-state note links a superseded decision or a finished thread. Repoint to the successor (`superseded_by`), or delete the line if it only existed to point at finished work. |
 | `broken-link` | Find where the target went (`git log --diff-filter=DR --name-status -- '*<name>*'`). Renamed → repoint. Deleted → remove the link, keeping the plain text only if the sentence still needs it. |
@@ -181,7 +181,7 @@ linked source. A good condensed note is the bullet list you'd want when the topi
 year. Target well under half the original length; a long note may become five bullets.
 
 **Project workspaces** (`Projects/<repo>/`) condense each stale note **to its type's template** (see [templates.md](../manage-project-workspaces/reference/templates.md)) rather than to free bullets:
-- `Log/<date>.md` — one `Did` / `Decided` / `Learned` / `Links` block; `Did` down to the outcomes that still matter.
+- `Log/<date>.md` — one `Did` / `Decided` / `Learned` / `Links` block; `Did` down to the outcomes that still matter. Keep every `Case study:` line word for word — `summarize-contribution` harvests them, and they are often the only record of the story.
 - Decisions — keep every one; condense `Why` and `Rejected` to a line each.
 - Threads — collapse `## Done` to one line per item; a `status: done` thread keeps only its goal and done list.
 - Playbooks and research — `status: done` playbooks keep goal, done-when and the step titles; research keeps its TL;DR and the sections that still hold facts.

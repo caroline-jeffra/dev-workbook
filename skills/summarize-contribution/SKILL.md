@@ -1,13 +1,14 @@
 ---
 name: summarize-contribution
-description: Writes or updates a career-facing summary of the user's contribution to a project, stored one-file-per-project in the vault's top-level Contributions folder. Evidence comes from git history, the project's vault workspace, and any tracker the user has CLI access to. Use when the user says "summarize my contribution", "write a CV summary for this project", "update my contribution summary", "what should I put on my CV for this", "what did I accomplish on this project", or when a project is wrapping up, going on pause, or a review/CV/LinkedIn update is due. Not for status or next-work questions — "where did we leave off", "what's the status", "what have I been working on" belong to manage-project-workspaces; this skill is only for career-facing write-ups.
+description: Writes or updates a career-facing summary of the user's contribution to a project, stored one-file-per-project in the vault's top-level Contributions folder, including case studies matched to the questions reviews and interviews ask for examples of. Evidence comes from git history, the project's vault workspace, and any tracker the user has CLI access to. Use when the user says "summarize my contribution", "write a CV summary for this project", "update my contribution summary", "what should I put on my CV for this", "what did I accomplish on this project", "find me case studies", "what examples do I have for <interview question>", or when a project is wrapping up, going on pause, or a review/CV/LinkedIn update is due. Not for status or next-work questions — "where did we leave off", "what's the status", "what have I been working on" belong to manage-project-workspaces; this skill is only for career-facing write-ups.
 ---
 
 # Summarizing a contribution
 
 Produce one durable, career-facing document per project describing what the user did, why it was
 hard, and what it demonstrates — written so it can be lifted into a CV, a LinkedIn update, a 360
-review, or a blog-post outline without being rewritten each time.
+review, or a blog-post outline without being rewritten each time — and with its stories already
+matched to the "tell me about a time when…" questions that reviews and interviews ask.
 
 **Vault location:** resolve in this order — (1) the `DEVWB_VAULT` environment variable (or the pre-3.0 `OBSIDIAN_VAULT`), (2) the config file `${XDG_CONFIG_HOME:-~/.config}/dev-workbook/vault` (or the pre-3.0 `…/claudesidion/vault`), (3) the legacy config file `~/.claude/obsidian-vault`, (4) the default `~/ObsidianVault`. A config file holds one line, the vault's path (whitespace trimmed, a leading `~/` or `$HOME/` expanded); `dev-workbook vault-path` prints the result. If none of them yields an existing directory, ask the user where their vault is and write the answer to `~/.config/dev-workbook/vault` (creating the folder) so every future session and hook finds it. Use the resolved absolute path (written below as `$DEVWB_VAULT`) for every read/write.
 
@@ -33,6 +34,24 @@ $DEVWB_VAULT/Contributions/<project>.md
   then leave the original in place with a link at the top pointing at the new home. Tell the user;
   do not delete their note yourself.
 
+## Case-study prompts
+
+Reviews and interviews ask for specific examples: an incident, a disagreement, a mistake you owned.
+The prompts are a list the user owns, at:
+
+```
+$DEVWB_VAULT/Contributions/CaseStudyPrompts.md
+```
+
+If it is missing, create it as a copy of [reference/case-study-prompts.md](reference/case-study-prompts.md)
+on this skill's first write, and tell the user it is there to edit. The vault copy always wins over the
+bundled one. It is not a project summary: skip it when matching `Contributions/` files to a repo.
+
+Each prompt has a **slug** (the tag stories carry), a **Want** column (`pair`, `failure` or `any`) and
+a **Commits** column saying how visible such a story is in git. `manage-project-workspaces` uses the
+same list to flag candidates in the daily log as work happens; this skill harvests those flags and
+writes them up as stories (Step 7).
+
 ## Principles
 
 - **Evidence, not recollection.** Every claim traces to a commit, a ticket, a vault note, or
@@ -52,6 +71,9 @@ $DEVWB_VAULT/Contributions/<project>.md
   a review form. Assume every line will be read by someone outside the company, and write it that
   way from the start — see "Confidentiality".
 - **Integrate on update, never staple.** See "Updating" — this is the rule most likely to be broken.
+- **One story, many prompts.** An incident can also be a mistake owned, a hard bug and an
+  observability fix. Tag every prompt a story honestly answers; it multiplies the usable stories
+  from the same history.
 
 ## Confidentiality
 
@@ -67,6 +89,9 @@ user never pastes it outward by accident**.
 
 - **Vault copy** — may contain identifiable detail: client names, ticket keys, brands, figures.
 - **Anything quoted outward** — must be generalised first.
+
+Case studies are the most outward-facing part of the file: they get told aloud to an interviewer.
+Write them to the same publishable standard as the rest of the prose.
 
 Keep the two separable *inside the file*, so the split survives without the user remembering it:
 write the prose in publishable form, and put anything that must not travel in the marked
@@ -142,8 +167,9 @@ Contribution summary progress:
 - [ ] Step 4: Read the vault workspace for domain context
 - [ ] Step 5: Ask the user for other evidence sources
 - [ ] Step 6: Identify the major efforts
-- [ ] Step 7: Write or update the document (updates: state the plan before writing)
-- [ ] Step 8: Report the run
+- [ ] Step 7: Match the work to case-study prompts
+- [ ] Step 8: Write or update the document (updates: state the plan before writing)
+- [ ] Step 9: Report the run
 ```
 
 ### Step 1 — Locate the project and its existing summary
@@ -192,6 +218,9 @@ Using the confirmed identities (see [reference/git-evidence.md](reference/git-ev
   are integration work. Both count; they are different claims and must not be blurred.
 - Note the larger efforts and epic branches the user participated in, reviewed, or integrated
   against, and be explicit that not all work inside them was theirs.
+- **Case-study signals** — reverts and hotfixes after the user's own changes, off-hours fixes,
+  closed-unmerged PRs, AI co-author trailers, first commits in a new stack, long review threads.
+  Commands are in section 8 of [reference/git-evidence.md](reference/git-evidence.md).
 
 **Two vocabularies, deliberately.** `reference/git-evidence.md` classifies what git *shows* —
 **Authored** / **Shipped** / **Integrated**. The document records what the user can *claim* per
@@ -215,6 +244,18 @@ Read `Projects/<project>/` — `Overview.md`, the progress log, decisions/ADRs, 
 where the *why* lives: what the software is for, what the commercial or operational stakes are, and
 which decisions were contested. Git shows what changed; the workspace shows what it was worth.
 
+**Harvest the case-study flags.** Logs carry a `Case study:` line wherever a session's work matched
+a prompt (see `manage-project-workspaces`). Collect them, with their dates, before Step 7:
+
+```bash
+grep -H '^- \*\*Case study:\*\*' "$DEVWB_VAULT/Projects/<project>/Log/"*.md
+```
+
+These are the flags most worth having: they were written while the disagreement, mistake or
+cancelled plan was still in the conversation, which is the only place many such stories ever appear.
+Decision notes are the other rich source — their rejected alternatives are trade-off and
+disagreement material.
+
 ### Step 5 — Ask the user for other evidence sources
 
 Git and the vault miss the things that matter most to a review or a CV: outcomes, adoption, incidents
@@ -227,10 +268,16 @@ option. Suggested sources:
 - **Trackers** — `acli` for Jira, `gh issue` / `gh pr` for GitHub, `glab` for GitLab. Useful for
   ticket titles and epic names that give commit keys meaning, and for review load (PRs reviewed, not
   just authored).
+- **Review threads and closed PRs** — `gh pr list --author @me --state closed` (closed unmerged =
+  a cancelled or abandoned attempt), and the longest review threads on the user's PRs and on PRs
+  they reviewed. Disagreements, pushback and mentoring live here, not in commits.
+- **Ticket comments and design docs** — rewritten descriptions, "phase 2" or descoped tickets,
+  "Won't Do" resolutions, incident and postmortem docs, RFCs with many comments.
 - **Anything else with CLI or MCP access** in this session — a docs store, a Slack export, an
   analytics or monitoring tool.
 - **The user directly** — impact and outcomes git cannot show: what the work enabled, numbers that
-  moved, incidents averted, feedback received, people mentored, decisions they drove or lost.
+  moved, incidents averted, feedback received, people mentored, decisions they drove or lost. Name
+  the `Commits: low` prompts that have no story yet and ask whether any happened on this project.
 
 Use whatever they offer; record in the run report which sources were unavailable rather than
 silently skipping them. If they decline, proceed on git and vault alone and say so.
@@ -262,7 +309,25 @@ For each effort, establish four things — this is the shape it is written in:
 Mark efforts the user **contributed to or reviewed** rather than owned, explicitly and per effort.
 Overstated ownership is the single most damaging error this document can contain.
 
-### Step 7 — Write or update the document
+### Step 7 — Match the work to case-study prompts
+
+Read `Contributions/CaseStudyPrompts.md` (see "Case-study prompts"). Then, for each prompt, look for
+a story in everything gathered so far: the harvested log flags, the major efforts, the case-study
+signals from git, and what the user told you in Step 5.
+
+- **Tag broadly.** One story carries every prompt it honestly answers. A major effort usually
+  yields several stories; a single log flag can be one on its own.
+- **Record the outcome.** `success`, `failure` or `mixed`. For a `pair` prompt, look for one of each
+  — design decisions, scope and deadlines in particular are asked about both ways.
+- **Grade the evidence.** `ready` when you can write all four STAR fields from sources; `candidate`
+  when something matched but the action or result is missing. A candidate names what to ask for.
+- **Name the gaps.** Prompts with no story, and `pair` prompts missing their success or failure,
+  go in the section's Coverage line so the user knows what to watch for next.
+
+Do not stretch a story to fill a prompt. An empty prompt is a useful gap; a forced story is one the
+user cannot defend when the interviewer asks a follow-up.
+
+### Step 8 — Write or update the document
 
 Before writing, re-read your drafted prose once against "Confidentiality" — client names, named
 colleagues, absolute figures, internal hostnames, verbatim internal text. Anything on that list
@@ -273,10 +338,11 @@ In a background session (`CLAUDE_JOB_DIR` is set) run `dev-workbook stage "Contr
 
 Write to `$DEVWB_VAULT/Contributions/<project>.md` using the structure in
 [reference/template.md](reference/template.md): light frontmatter, then **Context → Major efforts →
-At a glance → Detail by theme → Signals → Story seeds → Timeline → Related notes**.
+At a glance → Detail by theme → Signals → Case studies → Story seeds → Timeline → Related notes**.
 
-Per-section guidance, including what each of the four target usages (CV, LinkedIn, 360 review, blog
-topics) draws from, is in [reference/template.md](reference/template.md). Read it before writing.
+Per-section guidance, including what each of the target usages (CV, LinkedIn, 360 review,
+interviews, blog topics) draws from, is in [reference/template.md](reference/template.md). Read it
+before writing.
 
 #### Creating
 
@@ -317,9 +383,13 @@ For each section:
   ground. Rewrite bullets that the new work has superseded — if the summary says a system was built
   and it has since been replaced, that is one bullet about its life, not two contradicting each other.
 - **Signals** — merge; keep the strongest evidence per claim rather than accumulating every instance.
+- **Case studies** — merge. Promote a `candidate` to `ready` once its gap is filled, retag a story
+  when the prompt list changes, and rewrite a story's Result when the outcome moved. Recompute the
+  Coverage line from scratch.
 - **Story seeds** — drop seeds already written up or gone stale; add what the new period surfaced.
 - **Timeline** — **the only append-only section.** Add one dated line per update.
-- **Frontmatter** — extend `period` to the new end date, and merge `efforts`, `skills` and `tickets`.
+- **Frontmatter** — extend `period` to the new end date, and merge `efforts`, `skills`,
+  `case_studies` and `tickets`.
 
 #### The pre-write pass (updates only)
 
@@ -336,24 +406,28 @@ Update plan:
 - Detail by theme / CI-CD — MERGE two new items; REWRITE the bullet about the old test harness
   (superseded by the new one)
 - Signals — MERGE collaboration evidence, drop the weaker instance
+- Case studies — PROMOTE "Aug outage" to ready; ADD "descoped export" (scope-pushback, success);
+  REWRITE Coverage
 - Story seeds — DROP "enum migration" (written up), ADD "timezone correctness"
 - Timeline — APPEND one line
 ```
 
-Every existing section must appear in the plan as **REVISE**, **REWRITE**, **MERGE**, **DROP** or
-**unchanged**. If the only verbs in your plan are ADD and APPEND, you are stapling — go back and
+Every existing section must appear in the plan as **REVISE**, **REWRITE**, **MERGE**, **DROP**,
+**PROMOTE** or **unchanged**. If the only verbs in your plan are ADD and APPEND, you are stapling — go back and
 find what the new work actually supersedes, because new work almost always changes the standing of
 old work. Then cut what has become redundant and write the document.
 
 The document should get **sharper** as the project goes on, not merely longer.
 
-### Step 8 — Report the run
+### Step 9 — Report the run
 
 Tell the user, briefly:
 
 - Which file was written, and whether it was a create or an update.
 - The date range git actually shows, called out if it differs from what they said.
 - The major efforts recorded, and which are marked as review/collaboration rather than owned.
+- The case studies: how many `ready` and `candidate`, which prompts they cover, and the Coverage
+  gaps — prompts with no story and `pair` prompts missing a success or a failure.
 - Evidence sources used, and any that were unavailable or declined.
 - What you could not source — the specific gaps worth filling before this is used for a review or an
   application.

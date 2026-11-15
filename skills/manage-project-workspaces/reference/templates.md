@@ -140,6 +140,7 @@ date: YYYY-MM-DD
 - **Did:** <what changed — outcomes, one clause each, semicolon-separated>
 - **Decided:** [[<DecisionNote>]] <omit the line if nothing was decided>
 - **Learned:** <what you now know that you did not before; omit if nothing>
+- **Case study:** <what happened, one clause> — `production-incident` `owned-mistake` · failure <omit unless the work matched a prompt in Contributions/CaseStudyPrompts.md; one line per story>
 - **Links:** [[<ThreadOrPlaybook>]], PR <url>
 ```
 

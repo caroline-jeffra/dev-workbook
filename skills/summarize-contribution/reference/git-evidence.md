@@ -156,3 +156,59 @@ was theirs**. Mark contribution-or-review efforts as such, per effort, in the ou
   This is collaboration evidence — use it, and don't claim sole authorship where it appears.
 - Generated files, lockfiles and vendored directories inflate line counts. Exclude them when quoting
   volume: `-- . ':(exclude)package-lock.json' ':(exclude)vendor/'`.
+
+## 8. Case-study signals
+
+Starting points for the prompts in `Contributions/CaseStudyPrompts.md`. Each is a lead to read, not
+a story on its own — open the commit or PR before tagging anything.
+
+```bash
+# reverts and hotfixes — owned-mistake, production-incident
+git log --author="$ME" --basic-regexp --format='%ad %h %s' --date=short \
+  | grep -iE 'revert|hotfix|rollback|roll back'
+
+# reverts of the user's own commits, by whoever reverted them
+mine=$(git log --author="$ME" --basic-regexp --no-merges --format=%H)
+git log --all --grep='This reverts commit' --format='%x00%ad %h %s %b' --date=short \
+  | tr '\n' ' ' | tr '\0' '\n' | grep -F "$mine"
+
+# commits outside working hours (before 08:00, after 20:00, or weekends) — incidents, deadlines
+git log --author="$ME" --basic-regexp --no-merges --format='%ad %h %s' \
+  --date=format:'%a %H:%M' | awk '$1 ~ /Sat|Sun/ || $2 < "08:00" || $2 > "20:00"'
+
+# AI-assisted commits — ai-tools
+git log --author="$ME" --basic-regexp --format='%ad %h %s' --date=short \
+  -i --grep='co-authored-by: \(claude\|copilot\|cursor\|codex\|gemini\)'
+
+# root-cause write-ups — detective-bug
+git log --author="$ME" --basic-regexp --format='%ad %h %s' --date=short \
+  -i --grep='root cause\|race\|flaky\|timezone'
+
+# commit bursts — hard-deadline (days with the most commits)
+git log --author="$ME" --basic-regexp --no-merges --format='%ad' --date=short \
+  | sort | uniq -c | sort -rn | head -10
+
+# when the user first touched each top-level directory — fast-ramp-up, legacy-migration
+git log --author="$ME" --basic-regexp --no-merges --reverse --name-only --format='%ad' --date=short \
+  | awk 'NF==1 && /^[0-9-]+$/ {d=$1; next} NF {if (split($0,a,"/") > 1 && !(a[1] in s)) {s[a[1]]=d; print d, a[1]}}'
+```
+
+With `gh` (or `glab mr list` equivalents):
+
+```bash
+# closed without merging — cancelled-project
+gh pr list --author @me --state closed --limit 200 --json number,title,mergedAt,closedAt \
+  --jq '.[] | select(.mergedAt == null) | "\(.closedAt[:10]) #\(.number) \(.title)"'
+
+# most-discussed PRs the user authored — technical-disagreement, scope-pushback
+gh pr list --author @me --state all --limit 200 --json number,title,comments,reviews \
+  --jq 'sort_by(-(.comments|length) - (.reviews|length)) | .[:10][] | "#\(.number) \(.title)"'
+
+# PRs the user reviewed — mentoring, influence-adoption
+gh search prs --reviewed-by @me --repo "$(gh repo view --json nameWithOwner --jq .nameWithOwner)" \
+  --limit 100 --json number,title,author --jq '.[] | "#\(.number) \(.author.login) \(.title)"'
+```
+
+The `Commits: low` prompts — disagreement, scope pushback, mentoring, cancelled work — rarely
+surface here at all. Their best source is the `Case study:` lines in the workspace logs, then the
+user.
