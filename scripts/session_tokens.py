@@ -10,8 +10,16 @@ The method, kept stable so figures stay comparable over time:
   * Only `user`, `assistant` and `attachment` records are read, line by line. `api-request*`
     records are skipped unread: they repeat tool results.
   * Every record is counted once across the whole run, by its ID (tool-call ID, tool-result
-    `tool_use_id`, `message.id`, record `uuid`), so resumed sessions and subagents that copy
-    earlier records add nothing. Subagent files fold into their parent session.
+    `tool_use_id`, `message.id`, record `uuid`), so the copies a resumed session or a subagent
+    carries of earlier records add nothing. Sessions are read in order of their first
+    timestamp, so the original, not the resume, keeps what it did. Subagent files fold into
+    their parent session.
+  * A streamed assistant turn repeats one `message.id`; its usage is the largest value seen
+    for each field.
+  * Description bytes count each distinct dev-workbook line of the skill listings once per
+    session: subagents and resumes get their own listing, with the same lines.
+  * "ref" bytes are reads of the plugin's installed skill files: reference files, and SKILL.md
+    when the agent reads it again by path.
   * "In context" bytes are the bytes the transcript holds. A large tool result is stored in a
     file and the transcript keeps only a short preview, which is what reached the model.
   * Bytes are attributed by text size. Token usage is reported only as per-session totals (it
@@ -23,6 +31,8 @@ The method, kept stable so figures stay comparable over time:
     record names only the event, so this plugin's share cannot be separated out.
   * "est. tokens" is plugin bytes (skills + descriptions + re-injection + reference reads)
     divided by 4.
+  * The version summary carries the per-session figures above; re-injected bytes and token
+    totals are in the per-session rows and --json only.
 
 Usage:
     session_tokens.py [--repo PATH] [--transcripts DIR ...] [--vault P] [--since YYYY-MM-DD]
@@ -56,6 +66,8 @@ CACHE_RE = re.compile(PLUGIN_DIR + r"[^/\s]+/skills/")
 PLUGINS = ("dev-workbook", "claudesidion")
 VAULT_TOOLS = ("Read", "Edit", "Write", "Grep", "Glob", "Bash")
 PATH_KEYS = ("file_path", "path", "notebook_path")
+# Glob takes an absolute pattern as its whole path when `path` is not given.
+GLOB_KEYS = PATH_KEYS + ("pattern",)
 TOKEN_KEYS = (("input", "input_tokens"), ("cache_creation", "cache_creation_input_tokens"),
               ("cache_read", "cache_read_input_tokens"), ("output", "output_tokens"))
 METRICS = (("skill_bytes", "skill B"), ("description_bytes", "desc B"),
@@ -74,7 +86,8 @@ def content_text(c) -> str:
     if isinstance(c, str):
         return c
     if isinstance(c, list):
-        return "".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
+        return "".join(b["text"] for b in c
+                       if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str))
     return ""
 
 
@@ -83,8 +96,13 @@ def result_bytes(c) -> int:
         return nbytes(c)
     if isinstance(c, list):
         return sum(nbytes(b["text"]) if isinstance(b, dict) and isinstance(b.get("text"), str)
-                   else nbytes(json.dumps(b)) for b in c)
-    return 0 if c is None else nbytes(json.dumps(c))
+                   else nbytes(dumps(b)) for b in c)
+    return 0 if c is None else nbytes(dumps(c))
+
+
+def dumps(o) -> str:
+    """JSON for sizing: non-ASCII stays as itself, so it is not inflated to \\u escapes."""
+    return json.dumps(o, ensure_ascii=False, default=str)
 
 
 # --- vault matching ---------------------------------------------------------------------
@@ -98,9 +116,12 @@ class Vault:
         for f in self.forms:
             if f.startswith(home + "/"):
                 self.cmd_forms.add("~" + f[len(home):])
+        # A shell command may escape spaces in the path with a backslash.
+        self.cmd_forms |= {f.replace(" ", "\\ ") for f in self.cmd_forms if " " in f}
         alt = "|".join(re.escape(f) for f in sorted(self.cmd_forms, key=len, reverse=True))
+        # The path must start a word (not be the tail of a longer path) and end at a separator.
         self.cmd_re = re.compile(
-            r"(?:%s)(?=/|$|[\s\"';|&)<>`])|\$DEVWB_VAULT(?![A-Za-z0-9_])|\$\{DEVWB_VAULT\b" % alt)
+            r"(?<![\w./~-])(?:%s)(?=/|$|[\s\"';|&)<>`])|\$DEVWB_VAULT(?![A-Za-z0-9_])|\$\{DEVWB_VAULT\b" % alt)
 
     def has_path(self, p: str) -> bool:
         if not isinstance(p, str) or not p:
@@ -108,14 +129,17 @@ class Vault:
         p = os.path.expanduser(p)
         if not os.path.isabs(p):
             return False
-        p = os.path.normpath(p)
-        cands = {p, os.path.realpath(p)}
+        try:
+            p = os.path.normpath(p)
+            cands = {p, os.path.realpath(p)}
+        except (ValueError, OSError):  # e.g. a NUL byte in the path
+            return False
         return any(c == f or c.startswith(f + "/") for c in cands for f in self.forms)
 
     def call_in_vault(self, name: str, inp: dict) -> bool:
         if name == "Bash":
             return bool(self.cmd_re.search(str(inp.get("command", ""))))
-        return any(self.has_path(inp.get(k)) for k in PATH_KEYS)
+        return any(self.has_path(inp.get(k)) for k in (GLOB_KEYS if name == "Glob" else PATH_KEYS))
 
 
 def call_is_reference(name: str, inp: dict) -> bool:
@@ -129,19 +153,52 @@ def call_is_reference(name: str, inp: dict) -> bool:
 # --- reading ----------------------------------------------------------------------------
 
 def session_files(dirs: list[Path]) -> list[tuple[str, list[Path]]]:
-    """(session key, files) in a stable order: the main file, then its subagents."""
+    """(session key, files), oldest session first: the main file, then its subagents.
+
+    Order matters: a resumed or forked session starts with a copy of the original's records, so
+    both files share a first timestamp, and whichever file is read first keeps the shared
+    records. Ties break on the last timestamp: the original ended first."""
     groups: dict[str, list[Path]] = {}
     for d in dirs:
         for f in sorted(d.glob("*.jsonl")):
             groups.setdefault(f"{d}/{f.stem}", []).append(f)
         for sub in sorted(d.glob("*/subagents/*.jsonl")):
             groups.setdefault(f"{d}/{sub.parent.parent.name}", []).append(sub)
-    return sorted(groups.items())
+    return sorted(groups.items(), key=lambda kv: (first_timestamp(kv[1][0]), last_timestamp(kv[1][0]), kv[0]))
+
+
+def first_timestamp(f: Path) -> str:
+    """The first record timestamp in a file, as text ('~' sorts an undated file last)."""
+    try:
+        with open(f, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if line.startswith('{"type":"api-request'):
+                    continue
+                mt = TS_RE.search(line)
+                if mt:
+                    return mt.group(1)
+    except OSError:
+        pass
+    return "~"
+
+
+def last_timestamp(f: Path, tail: int = 256 * 1024) -> str:
+    """The latest record timestamp near the end of a file ('~' when there is none)."""
+    try:
+        with open(f, "rb") as fh:
+            fh.seek(max(0, fh.seek(0, os.SEEK_END) - tail))
+            found = TS_RE.findall(fh.read().decode("utf-8", errors="replace"))
+    except OSError:
+        return "~"
+    return max(found) if found else "~"
+
+
+TS_RE = re.compile(r'"timestamp":\s*"(\d{4}-\d\d-\d\dT[^"]*)"')
 
 
 def new_session(key: str) -> dict:
     return {"session": key.rsplit("/", 1)[-1], "ts": None, "repo": "", "cwd": "", "version": None,
-            "loads": {}, "listings": set(), "description_bytes": 0, "reinjected_bytes": 0,
+            "loads": {}, "listing_lines": set(), "description_bytes": 0, "reinjected_bytes": 0,
             "hook_context_bytes_all_plugins": 0, "reference_reads": 0, "reference_bytes": 0,
             "vault_calls": 0, "vault_input_bytes": 0, "vault_result_bytes": 0,
             "tokens": {k: 0 for k, _ in TOKEN_KEYS}}
@@ -154,30 +211,34 @@ def is_plugin_skill(name: str, path: str = "") -> bool:
 def read_session(files: list[Path], key: str, vault: Vault, seen: dict, ids: dict, stats: dict) -> dict:
     s = new_session(key)
     for f in files:
-        with open(f, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                if line.startswith('{"type":"api-request') or not line.lstrip().startswith("{"):
-                    continue
-                try:
-                    o = json.loads(line)
-                except json.JSONDecodeError:
-                    stats["malformed"] += 1
-                    continue
-                if not isinstance(o, dict) or o.get("type") not in KEPT:
-                    continue
-                note_identity(s, o)
-                handle(s, o, vault, seen, ids)
+        try:
+            with open(f, encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    if line.startswith('{"type":"api-request') or not line.lstrip().startswith("{"):
+                        continue
+                    try:
+                        o = json.loads(line)
+                    except json.JSONDecodeError:
+                        stats["malformed"] += 1
+                        continue
+                    if not isinstance(o, dict) or o.get("type") not in KEPT:
+                        continue
+                    note_identity(s, o, seen)
+                    handle(s, o, vault, seen, ids)
+        except OSError:
+            stats["unreadable"] += 1
     return s
 
 
-def note_identity(s: dict, o: dict) -> None:
+def note_identity(s: dict, o: dict, seen: dict) -> None:
     ts = o.get("timestamp")
-    if isinstance(ts, str):
+    # A record copied from an earlier session (same uuid) does not date this one.
+    if isinstance(ts, str) and once(seen, "dated", o.get("uuid")):
         try:
             t = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
             if s["ts"] is None or t < s["ts"]:
                 s["ts"] = t
-        except ValueError:
+        except (ValueError, OverflowError, OSError):
             pass
     cwd = o.get("cwd")
     if isinstance(cwd, str) and cwd and not s["cwd"]:
@@ -206,10 +267,15 @@ def handle(s: dict, o: dict, vault: Vault, seen: dict, ids: dict) -> None:
         return
     if kind == "assistant":
         u = m.get("usage")
-        if isinstance(u, dict) and once(seen, "msg", m.get("id")):
+        mid = m.get("id")
+        if isinstance(u, dict) and isinstance(mid, str) and mid:
+            # A streamed turn repeats its id; keep the largest value of each field, on the
+            # session that first carried it.
+            owner, best = ids.setdefault(("msg", mid), (s, {}))
             for k, src in TOKEN_KEYS:
                 v = u.get(src)
-                s["tokens"][k] += v if isinstance(v, int) else 0
+                if isinstance(v, int) and v > best.get(k, 0):
+                    best[k] = v
     c = m.get("content")
     if kind == "user" and o.get("isMeta"):
         injected(s, o, content_text(c), seen)
@@ -230,11 +296,9 @@ def attachment(s: dict, o: dict, seen: dict) -> None:
         return
     t = a.get("type")
     if t == "skill_listing" and isinstance(a.get("content"), str):
-        if a["content"] in s["listings"]:
-            return
-        s["listings"].add(a["content"])
         for ln in a["content"].splitlines():
-            if re.match(r"- (?:dev-workbook|claudesidion):", ln):
+            if re.match(r"- (?:dev-workbook|claudesidion):", ln) and ln not in s["listing_lines"]:
+                s["listing_lines"].add(ln)
                 s["description_bytes"] += nbytes(ln) + 1
     elif t == "invoked_skills" and isinstance(a.get("skills"), list):
         for sk in a["skills"]:
@@ -251,7 +315,8 @@ def injected(s: dict, o: dict, text: str, seen: dict) -> None:
     if not mt or not once(seen, "meta", o.get("uuid")):
         return
     ver, name = mt.groups()
-    load = s["loads"].setdefault(o.get("sourceToolUseID") or "meta:" + str(o.get("uuid")),
+    src = o.get("sourceToolUseID")
+    load = s["loads"].setdefault(src if isinstance(src, str) and src else "meta:" + str(o.get("uuid")),
                                  {"name": name, "bytes": 0, "version": ver})
     load.update(name=name, bytes=nbytes(text), version=ver)
 
@@ -263,7 +328,7 @@ def tool_call(s: dict, b: dict, vault: Vault, seen: dict, ids: dict) -> None:
         return
     if name == "Skill":
         sk = str(inp.get("skill", ""))
-        if sk.split(":", 1)[0] in PLUGINS:
+        if sk.split(":", 1)[0] in PLUGINS and isinstance(tid, str):
             s["loads"].setdefault(tid, {"name": sk.split(":", 1)[1] if ":" in sk else sk,
                                         "bytes": 0, "version": None})
         return
@@ -276,14 +341,14 @@ def tool_call(s: dict, b: dict, vault: Vault, seen: dict, ids: dict) -> None:
     if vault.call_in_vault(name, inp):
         kinds.append("vault")
         s["vault_calls"] += 1
-        s["vault_input_bytes"] += nbytes(json.dumps(inp))
+        s["vault_input_bytes"] += nbytes(dumps(inp))
     if kinds and isinstance(tid, str):
         ids[tid] = (s, kinds)
 
 
 def tool_result(b: dict, seen: dict, ids: dict) -> None:
     tid = b.get("tool_use_id")
-    if tid not in ids or not once(seen, "result", tid):
+    if not isinstance(tid, str) or tid not in ids or not once(seen, "result", tid):
         return
     s, kinds = ids[tid]
     n = result_bytes(b.get("content"))
@@ -355,7 +420,8 @@ def print_rows(rows: list[dict]) -> None:
     print("|" + " --- |" * 14)
     for r in rows:
         t = r["tokens"]
-        print(f"| {r['date']} | {r['repo']} | {r['version']} | {r['skill_loads']} | {r['skill_bytes']} "
+        repo = r["repo"].replace("|", "\\|")
+        print(f"| {r['date']} | {repo} | {r['version']} | {r['skill_loads']} | {r['skill_bytes']} "
               f"| {r['description_bytes']} | {r['reinjected_bytes']} "
               f"| {r['hook_context_bytes_all_plugins']} | {r['reference_reads']} | {r['reference_bytes']} "
               f"| {r['vault_calls']} | {r['vault_input_bytes']} | {r['vault_result_bytes']} "
@@ -381,26 +447,37 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--since", type=date.fromisoformat, help="only sessions that started on or after")
     ap.add_argument("--sessions", type=int, metavar="N", help="only the N most recent counted sessions")
     ap.add_argument("--by", choices=("session", "version"), default="session")
-    ap.add_argument("--json", action="store_true", help="print one object per session as a JSON array")
+    ap.add_argument("--json", action="store_true",
+                    help="print a JSON array: one object per session, or per version with --by version")
     a = ap.parse_args(argv)
 
     if a.transcripts:
+        missing = [d for d in a.transcripts if not d.is_dir()]
+        if missing:
+            print(f"dev-workbook tokens: not a directory: {missing[0]}", file=sys.stderr)
+            return 2
         dirs = a.transcripts
     elif a.repo:
         dirs = transcript_dirs(a.repo)
     else:
         dirs = sorted(d for d in PROJECTS.iterdir() if d.is_dir()) if PROJECTS.is_dir() else []
     if not dirs:
-        print(f"no transcripts found under {PROJECTS}", file=sys.stderr)
+        where = f"for {a.repo} under {PROJECTS}" if a.repo else f"under {PROJECTS}"
+        print(f"no transcripts found {where}", file=sys.stderr)
         return 1
 
     vault = Vault(str(paths.resolve_vault(a.vault)))
     seen: dict = {}
     ids: dict = {}
-    stats = {"malformed": 0}
+    stats = {"malformed": 0, "unreadable": 0}
+    read = [read_session(files, key, vault, seen, ids, stats) for key, files in session_files(dirs)]
+    for k, v in ids.items():
+        if isinstance(k, tuple) and k[0] == "msg":
+            owner, best = v
+            for field, n in best.items():
+                owner["tokens"][field] += n
     sessions, left_out = [], 0
-    for key, files in session_files(dirs):
-        s = read_session(files, key, vault, seen, ids, stats)
+    for s in read:
         if s["cwd"] and vault.has_path(s["cwd"]):
             left_out += 1
             continue
@@ -409,7 +486,8 @@ def main(argv: list[str] | None = None) -> int:
         sessions.append(finish(s))
     if a.since:
         sessions = [s for s in sessions if s["ts"] and s["ts"].date() >= a.since]
-    sessions.sort(key=lambda s: (s["ts"] is None, s["ts"].timestamp() if s["ts"] else 0, s["session"]))
+    # Undated sessions sort oldest, so --sessions N keeps dated ones.
+    sessions.sort(key=lambda s: (s["ts"] is not None, s["ts"].timestamp() if s["ts"] else 0, s["session"]))
     if a.sessions is not None:
         sessions = sessions[-a.sessions:] if a.sessions > 0 else []
     rows = [row_json(s) for s in sessions]
@@ -422,7 +500,8 @@ def main(argv: list[str] | None = None) -> int:
             print()
         print_summary(summarize(rows))
     print(f"{len(rows)} session(s) counted; {left_out} run from inside the vault left out"
-          + (f"; {stats['malformed']} malformed line(s) skipped" if stats["malformed"] else ""),
+          + (f"; {stats['malformed']} malformed line(s) skipped" if stats["malformed"] else "")
+          + (f"; {stats['unreadable']} unreadable file(s) skipped" if stats["unreadable"] else ""),
           file=sys.stderr)
     return 0
 

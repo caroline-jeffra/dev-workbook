@@ -18,20 +18,20 @@ are minor.
 
 ### Added
 
-- **`dev-workbook tokens` measures what the plugin costs in real sessions.** It reads the local Claude Code transcripts (every repo by default, or one repo and its worktrees with `--repo`) and reports, per session and grouped by plugin version: skill text injected on load, the always-loaded skill descriptions, text re-injected after compaction, reference-file reads, calls into the vault and their results, SessionStart hook output, and token totals. It prints sizes, counts, dates, skill names and versions, and never transcript text.
-- **What the figures mean.** Every record is counted once by its ID, so resumed sessions and subagents add nothing. "In context" bytes are the bytes the transcript holds, which for a large tool result is the short preview that reached the model. Bytes are attributed by text size; token usage counts the whole context on every turn, so it is shown only as per-session totals. "est. tokens" is plugin bytes divided by 4. Hook output cannot be split by plugin, because the record names only the event, so it is the SessionStart total for all plugins. Sessions run from inside the vault are left out. The p90 is shown only when a group has 10 or more sessions.
+- **`dev-workbook tokens` measures what the plugin costs in real sessions.** It reads the local Claude Code transcripts (every repo by default, or one repo and its worktrees with `--repo`) and reports, per session: skill text injected on load, the always-loaded skill descriptions, text re-injected after compaction, reads of the plugin's skill files, calls into the vault and their results, SessionStart hook output, and token totals. `--by version` summarizes skill, description, skill-file-read, vault and hook figures by plugin version; re-injected text and token totals stay in the per-session rows and `--json`. It prints sizes, counts, dates, skill names and versions, and never transcript text.
+- **What the figures mean.** Every record is counted once by its ID, so the copies of earlier records that a resumed session or a subagent carries add nothing; sessions are read oldest first, so the original keeps what it did. Each distinct dev-workbook description line counts once per session, though subagents and resumes receive their own skill listing. "ref" bytes are reads of the installed skill files: reference files, and `SKILL.md` when the agent reads it again by path. "In context" bytes are the bytes the transcript holds, which for a large tool result is the short preview that reached the model. Bytes are attributed by text size; token usage counts the whole context on every turn, so it is shown only as per-session totals. "est. tokens" is plugin bytes divided by 4. Hook output cannot be split by plugin, because the record names only the event, so it is the SessionStart total for all plugins. Sessions run from inside the vault are left out. The p90 is shown only when a group has 10 or more sessions.
 - **`tests/test-session-tokens.py`** pins the counting rules against fixture transcripts, including that a planted secret never reaches stdout or stderr.
 
 ### Baseline
 
-Median per session, from this machine's transcripts on 2026-11-23, grouped by the plugin version the session loaded (`unknown` loaded no dev-workbook skill). Bytes in context, with p90 in brackets.
+Median per session, from this machine's transcripts on 2026-11-23, grouped by the plugin version of the session's first dev-workbook skill load (`unknown`: vault calls but no skill load). Bytes in context, with p90 in brackets.
 
 | Version | n | skill B | desc B | ref B | vault calls | vault result B | hook B (all plugins) | plugin B | est. tokens |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 3.0.2 | 50 | 30931 (p90 31186) | 1617 (p90 3234) | 3141 (p90 22862) | 9 (p90 25) | 13244 (p90 47817) | 33 (p90 397) | 36703 (p90 74343) | est. 9175 |
-| 3.1.0 | 37 | 31718 (p90 31843) | 2760 (p90 3274) | 3300 (p90 23066) | 7 (p90 25) | 13442 (p90 56504) | 33 (p90 445) | 39291 (p90 58391) | est. 9822 |
+| 3.0.2 | 51 | 30919 (p90 31121) | 1617 (p90 2760) | 3131 (p90 22862) | 9 (p90 25) | 12583 (p90 47817) | 33 (p90 397) | 36446 (p90 74343) | est. 9111 |
+| 3.1.0 | 37 | 31718 (p90 31843) | 2760 (p90 2760) | 3300 (p90 23066) | 6 (p90 17) | 9968 (p90 51893) | 33 (p90 434) | 38636 (p90 58391) | est. 9659 |
 | 3.4.0 | 17 | 34512 (p90 34820) | 2934 (p90 2934) | 0 (p90 60081) | 6 (p90 77) | 11430 (p90 212820) | 159 (p90 602) | 37671 (p90 83699) | est. 9417 |
-| unknown | 25 | 0 (p90 0) | 2760 (p90 2934) | 0 (p90 0) | 4 (p90 15) | 12850 (p90 48953) | 33 (p90 511) | 2934 (p90 21773) | est. 733 |
+| unknown | 29 | 0 (p90 0) | 2760 (p90 2934) | 0 (p90 0) | 4 (p90 18) | 8691 (p90 52031) | 33 (p90 511) | 2760 (p90 3274) | est. 690 |
 
 **This is instrumentation, not proof.** The groups differ by repo, task and month, and some are small. Sessions of 3.5.0 to 3.7.0 do not exist, because those versions were never installed here, so the baseline stops at 3.4.0. The static byte figures in the 3.6.0 and 3.7.0 entries stand as the headline until a rerun with 15 or more 3.8.0 sessions to compare. Rerun with `dev-workbook tokens --by version` after using 3.8.0 for a while.
 

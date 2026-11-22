@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import io
 import json
@@ -39,7 +40,8 @@ def check(cond: bool, name: str, detail: str = "") -> None:
 
 
 TMP = Path(tempfile.mkdtemp(prefix="devwb-tokens-")).resolve()
-VAULT = TMP / "Claudeville"
+atexit.register(shutil.rmtree, TMP, ignore_errors=True)  # cleaned up even if a check raises
+VAULT = TMP / "Vault"
 VAULT.mkdir()
 LINK = TMP / "vault-link"
 LINK.symlink_to(VAULT)
@@ -224,7 +226,7 @@ write(d, "s1", [
 ])
 r = only(d)
 check(r["vault_calls"] == 5 and r["vault_result_bytes"] == 1 + 2 + 3 + 7 + 1,
-      "Read, Edit, Bash, $DEVWB_VAULT and Grep calls count; a non-vault Bash and Claudeville2 do not", str(r))
+      "Read, Edit, Bash, $DEVWB_VAULT and Grep calls count; a non-vault Bash and Vault2 do not", str(r))
 
 d = fresh("link")
 write(d, "s1", [assistant([call("v1", "Read", file_path=f"{VAULT}/a.md")]), result("v1", "1"),
@@ -233,14 +235,56 @@ check(only(d, vault=LINK)["vault_calls"] == 2 and only(d, vault=VAULT)["vault_ca
       "a symlinked vault path counts, whichever form is given")
 
 d = fresh("tilde")
-tv = Path.home() / ".devwb-tokens-test-vault"
-tv.mkdir(exist_ok=True)
+home = TMP / "home"
+tv = home / "notes-vault"
+tv.mkdir(parents=True)
+old_home = os.environ.get("HOME")
+os.environ["HOME"] = str(home)  # a private home, so the test never touches the real one
 try:
-    write(d, "s1", [assistant([call("v1", "Read", file_path="~/.devwb-tokens-test-vault/a.md")]),
-                    assistant([call("v2", "Bash", command="cat ~/.devwb-tokens-test-vault/a.md")])])
+    write(d, "s1", [assistant([call("v1", "Read", file_path="~/notes-vault/a.md")]),
+                    assistant([call("v2", "Bash", command="cat ~/notes-vault/a.md")])])
     check(only(d, vault=tv)["vault_calls"] == 2, "a ~ path counts")
 finally:
-    shutil.rmtree(tv, ignore_errors=True)
+    if old_home is None:
+        os.environ.pop("HOME", None)
+    else:
+        os.environ["HOME"] = old_home
+
+d = fresh("boundary")
+spaced = TMP / "My Vault"
+spaced.mkdir()
+write(d, "s1", [
+    assistant([call("b1", "Bash", command=f"cat /backup{VAULT}/a.md")]),
+    assistant([call("b2", "Glob", pattern=f"{VAULT}/**/*.md")]),
+    assistant([call("b3", "Read", file_path=f"{VAULT}/a\x00.md")]),
+])
+check(only(d)["vault_calls"] == 1, "a Glob with an absolute pattern counts; a path ending in the vault's path and a NUL path do not")
+write(fresh("spaced"), "s1", [assistant([call("e1", "Bash", command=f"cat {str(spaced).replace(' ', chr(92) + ' ')}/a.md")])])
+check(only(TMP / "spaced", vault=spaced)["vault_calls"] == 1, "a backslash-escaped space in the vault path counts")
+
+print("\nResumed sessions and subagent listings")
+d = fresh("resume-order")
+orig = [meta(skill_text("3.4.0", "capture-notes")) | {"timestamp": "2026-03-01T09:00:00Z"},
+        vault_read("t1") | {"timestamp": "2026-03-01T09:01:00Z"}]
+write(d, "z-original", orig)
+write(d, "a-resume", orig + [vault_read("t2") | {"timestamp": "2026-03-03T09:00:00Z"}])
+r = {x["session"]: x for x in rows(d)}
+check(r["z-original"]["skill_loads"] == 1 and r["z-original"]["version"] == "3.4.0"
+      and r["a-resume"]["skill_loads"] == 0 and r["a-resume"]["vault_calls"] == 1,
+      "the earlier session keeps its records, whatever the file names", str(r))
+check(r["a-resume"]["date"] == "2026-03-03", "a resumed session is dated by its own records, not the copies", str(r))
+
+d = fresh("sub-listing")
+dw = "- dev-workbook:capture-notes: " + "d" * 50
+write(d, "s1", [attach("skill_listing", content=f"{dw}\n- other:a: x\n- other:b: y\n"), vault_read("t1")])
+write(d / "s1" / "subagents", "agent-a", [attach("skill_listing", content=f"{dw}\n- other:a: x\n")])
+check(only(d)["description_bytes"] == len(dw) + 1,
+      "a subagent listing with the same dev-workbook lines adds no description bytes")
+
+d = fresh("stream-max")
+write(d, "s1", [assistant([call("t1", "Read", file_path=f"{VAULT}/a.md")], mid="m1", usage={"output_tokens": 2}),
+                assistant([{"type": "text", "text": "x"}], mid="m1", usage={"output_tokens": 9})])
+check(only(d)["tokens"]["output"] == 9, "a streamed turn keeps the largest usage seen, not the first")
 
 print("\nWhich sessions count")
 d = fresh("idle")
@@ -262,6 +306,8 @@ write(d, "b", [vault_read("t2") | {"timestamp": "2026-02-05T10:00:00Z"}])
 write(d, "c", [vault_read("t3") | {"timestamp": "2026-03-05T10:00:00Z"}])
 check([x["session"] for x in rows(d, "--since", "2026-02-01")] == ["b", "c"], "--since filters by start date")
 check([x["session"] for x in rows(d, "--sessions", "2")] == ["b", "c"], "--sessions keeps the most recent")
+write(d, "undated", [{k: v for k, v in vault_read("t4").items() if k != "timestamp"}])
+check([x["session"] for x in rows(d, "--sessions", "2")] == ["b", "c"], "--sessions prefers dated sessions over undated ones")
 
 print("\n--repo")
 fake = TMP / "projects"
@@ -285,6 +331,10 @@ try:
     check(sorted(x["session"] for x in run_repo(["--repo", str(repo)])) == ["s1", "s2"],
           "--repo reads the repo and its worktrees only")
     check(sorted(x["session"] for x in run_repo([])) == ["s1", "s2", "s3"], "the default reads every repo")
+    err = io.StringIO()
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+        rc = st.main(["--vault", str(VAULT), "--repo", str(TMP / "no-such-repo")])
+    check(rc == 1 and "no-such-repo" in err.getvalue(), "--repo with no transcripts names the repo", err.getvalue())
 finally:
     st.PROJECTS = old[0]
     st.transcript_dirs.__globals__["PROJECTS"] = old[1]
@@ -304,6 +354,14 @@ write(d, "s", [vault_read(f"t{i}") for i in range(1)])
 for i in range(10):
     write(d, f"x{i}", [vault_read(f"p{i}")])
 check("(p90 " in run(["--by", "version"], d)[1], "the p90 appears at n >= 10")
+s10 = json.loads(run(["--json", "--by", "version"], d)[1])[0]
+check(s10["n"] == 11 and s10["vault_calls"] == {"median": 1, "p90": 1}, "the p90 value is computed", str(s10))
+d = fresh("p90-nine")
+for i in range(9):
+    write(d, f"x{i}", [vault_read(f"q{i}")])
+check(json.loads(run(["--json", "--by", "version"], d)[1])[0]["vault_calls"]["p90"] is None, "no p90 at n = 9")
+pv = st.p90(list(range(1, 11)))
+check(pv == 9, "p90 of 1..10 is 9", str(pv))
 
 print("\nRobustness and secrets")
 d = fresh("secret")
@@ -330,6 +388,21 @@ check("malformed" in err, "malformed lines are counted on stderr without their t
 r = json.loads(run(["--json"], d)[1])
 check(isinstance(r, list) and r[0]["vault_calls"] == 2, "--json output parses")
 
+d = fresh("odd")
+write(d, "s1", [
+    base("user", isMeta=True, message={"role": "user", "content": [{"type": "text", "text": 5}]}),
+    assistant([{"type": "tool_use", "id": {"x": 1}, "name": "Skill", "input": {"skill": "dev-workbook:x"}}]),
+    base("user", message={"role": "user", "content": [{"type": "tool_result", "tool_use_id": ["x"], "content": "z"}]}),
+    vault_read("t1") | {"timestamp": "99999-01-01T00:00:00Z"},
+])
+write(d, "s2", [vault_read("t2") | {"cwd": "/u/a|b"}])
+(d / "broken.jsonl").mkdir()  # a "transcript" that cannot be opened
+rc, out, err = run([], d)
+check(rc == 0 and "unreadable" in err, "odd record shapes and an unreadable file do not crash the run", err)
+check("a\\|b" in out, "a | in a repo name is escaped in the session table", out)
+rc, out, err = run([], TMP / "no-such-dir")
+check(rc == 2 and "not a directory" in err, "a missing --transcripts folder is an error, not empty data", err)
+
 print("\nCommand wiring")
 d = fresh("cli")
 write(d, "s1", [vault_read("t1"), result("t1", "12")])
@@ -345,7 +418,6 @@ check(h.returncode == 0 and all(o in h.stdout for o in ("--since", "--sessions",
                                                         "--vault", "--by", "--json")),
       "dev-workbook tokens --help lists the options")
 
-shutil.rmtree(TMP, ignore_errors=True)
 print(f"\n{PASS} passed, {len(FAIL)} failed")
 for f in FAIL:
     print(f"  - {f}")
