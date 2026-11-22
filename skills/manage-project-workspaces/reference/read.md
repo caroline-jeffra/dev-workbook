@@ -12,10 +12,12 @@ Before acting on a task or answering "what's the status", read the workspace's c
 
 First, check the question is the one this skill answers. "What's the status of this repo" usually means **git** — branch, uncommitted changes, whether it is pushed. Answer that from git and stop. This skill is for *where the work stands*: what to pick up next, what was decided, what is unfinished. If it is ambiguous, the cheapest resolution is to answer the git question and offer the other: "on `main`, clean, 2 commits ahead — want the work-in-progress picture from the vault too?"
 
+For a **ticket-scoped** question ("what's next on ACME-1234", "what's the status of ACME-1234"), locate the workspace (Step 1 of the router), then find the ticket's note with `ls "<workspace>"/Tickets/<number>-*.md` (or look the key up in `TicketsIndex.md`), grep its lines with `grep -E '^\*\*(Goal|Status|Next):\*\*' <note>`, and answer from those three lines alone, without reading the Overview. If there is no note, look for the key in the threads (`grep -rl <KEY> "<workspace>/Threads"`); only then use the tracker, and say you did.
+
 For a genuine next-work question the vault is the source of truth — check it **before** any issue tracker (`glab`/`gh`) or planning doc:
 
 1. Locate the workspace (Step 1 of the router). If the repo has **no** workspace yet (`match` is `new`, `no-index` or `unmatched`), say so and offer to bootstrap it with `ingest-project-docs` — do not silently fall back to the tracker. For `moved` and `unmatched`, the index matching rules are in [scaffold.md](scaffold.md).
-2. Read `Overview.md` — its `## Next up` section is the direct answer, and "current focus" frames it. Then `ThreadsIndex.md` for open threads and active playbooks, following the top items into their notes. `TopicIndex.md` answers "what do we have on X" directly.
+2. Read `Overview.md` — its `## Next up` section is the direct answer, and "current focus" frames it. Next up is a list of pointers to tickets and threads with their short state: answer with that list, and expand a ticket's `**Next:**` (grepped from its note) only when asked, or for the top item. Then `ThreadsIndex.md` for open threads and active playbooks, following the top items into their notes. `TopicIndex.md` answers "what do we have on X" directly.
    - **Legacy workspace with no `## Next up`:** fall back to the `Next:` line of the newest `Log/<date>.md`, say it came from an old log, and offer to move it into the Overview.
 3. Answer from that. Prioritize: `## Next up` first, then open threads and active playbooks.
 4. Only consult the tracker as a *supplement* — to enrich an item or if the vault is genuinely silent — and mention that you're going beyond the vault when you do.

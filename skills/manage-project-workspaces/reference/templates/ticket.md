@@ -17,6 +17,8 @@ tickets: [ACME-1234]
 
 **Status:** <one line — where it stands now>
 
+**Next:** <one line — the next planned step>
+
 ## Findings
 
 - <what was learned that outlives the ticket>

@@ -460,7 +460,8 @@ try:
           "---\ntype: playbook\nstatus: active\n---\n\n# Cutover to new host\n\n**Goal:** g\n\n"
           "**Done when:** d\n\n## Steps\n\n- [ ] **1. Copy**\n")
     write(ws / "Tickets" / "12-NaturalSortApi.md",
-          "---\ntype: ticket\nstatus: active\ntickets: [ACME-12]\n---\n\n# ACME-12 natural sort API\n\n**Goal:** g\n")
+          "---\ntype: ticket\nstatus: active\ntickets: [ACME-12]\n---\n\n# ACME-12 natural sort API\n\n**Goal:** g\n\n"
+          "**Status:** in review\n\n**Next:** merge once CI is green\n")
     write(ws / "TimeTracking.md",
           "---\ntype: time-tracking\nstatus: active\n---\n\n# Time tracking — demo\n\n**Budget:** 6 hrs/week\n\n"
           "## Phases\n\n| Phase | Status | Estimate | Actual |\n| --- | --- | --- | --- |\n| **0 Skeleton** | done | 12 | 7.89 |\n")
@@ -553,6 +554,11 @@ try:
     for name, want in expect.items():
         got = codes_for(findings, name)
         check(want <= got, f"{name}: reports {sorted(want)}", f"got {sorted(got)}")
+    lognext = [f for f in findings if "2026-10-02.md: log-next" in f]
+    check(len(lognext) == 1 and "ticket note or the Overview" in lognext[0],
+          "a log's Next line is reported and points at the ticket note or the Overview", "\n".join(lognext))
+    check(not [f for f in findings if "12-NaturalSortApi.md" in f],
+          "a ticket's **Next:** line raises no finding")
     alias = [f for f in findings if "TableAlias.md: table-alias" in f]
     check(len(alias) == 1 and "1 aliased" in alias[0],
           "table-alias counts only aliased links in table rows", "\n".join(alias))

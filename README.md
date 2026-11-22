@@ -194,7 +194,7 @@ Everything written to the vault is **scan-first**: written for someone looking f
 
 ### Note formats
 
-Every workspace note is either **current state** (rewritten in place so it is true today) or **history** (a day's log, append-only and never forward-looking). Next work is stated in exactly one place: the `## Next up` section of the workspace's `Overview.md`.
+Every workspace note is either **current state** (rewritten in place so it is true today) or **history** (a day's log, append-only and never forward-looking). Next work is stated at two levels: a ticket's own next step lives on the `**Next:**` line of its note, and the `## Next up` section of the workspace's `Overview.md` lists which tickets and threads are next, as pointers.
 
 Each type has a template, a naming pattern and — for the short types — a word budget: logs and decisions 150, overview 200, tickets 250, threads 300. Research opens with a TL;DR; playbooks follow a fixed Goal / Done when / Steps / Verify / Gotchas shape. The full contract is in [`structure.md`](skills/manage-project-workspaces/reference/structure.md) and the templates in [`templates.md`](skills/manage-project-workspaces/reference/templates.md), which links one file per note type.
 

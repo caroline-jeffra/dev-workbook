@@ -219,8 +219,29 @@ TEMPLATE_FILES = {
     "## Note \u2014": "note", "## Diagram \u2014": "diagram", "## TimeTracking.md": "time-tracking",
     "## `.vault-config.json`": "vault-config", "## `TasksArchive.md`": "tasks-archive",
 }
-# Types whose template step 5 changes on purpose: only lines that mention "next" may differ.
+# Types whose template 3.6.0 changes on purpose (tickets carry their own **Next:**, the Overview's
+# Next up becomes pointers): the lines about next work are cut from both sides before comparing.
 NEXT_CHANGED = ("overview", "ticket")
+
+
+def without_next_work(name, text):
+    lines = text.split("\n")
+    out, skipping = [], False
+    for i, ln in enumerate(lines):
+        if name == "overview":
+            if ln == "## Next up":
+                skipping = True
+            elif skipping and ln.startswith("## "):
+                skipping = False
+            if skipping or ln.startswith("`## Next up`"):
+                continue
+        elif name == "ticket":
+            if ln.startswith("**Next:**"):
+                if out and not out[-1].strip():
+                    out.pop()
+                continue
+        out.append(ln)
+    return "\n".join(out)
 
 
 def unfenced_headings(lines, prefix):
@@ -275,12 +296,8 @@ def check_templates(skill):
             got = f.read().rstrip("\n").replace("](../", "](")
         if got == expect:
             continue
-        if name in NEXT_CHANGED:
-            import difflib
-            diff = [d for d in difflib.unified_diff(expect.split("\n"), got.split("\n"), lineterm="", n=0)
-                    if d[:1] in "+-" and d[:3] not in ("+++", "---")]
-            if all("next" in d.lower() for d in diff):
-                continue
+        if name in NEXT_CHANGED and without_next_work(name, got) == without_next_work(name, expect):
+            continue
         fails.append(f"{name}.md differs from the {TAG} section")
     return fails
 

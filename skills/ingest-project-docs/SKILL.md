@@ -74,7 +74,7 @@ for the full contract.
   issue.
 - **Playbooks** — a runbook, setup or upgrade guide found in the repo becomes a note in `Playbooks/`
   (`type: playbook`, `status: reference`), summarised to the playbook template with a link back.
-- **Next up** — seed `Overview.md`'s `## Next up` with the milestone or thread to pick up first.
+- **Next up** — seed `Overview.md`'s `## Next up` with pointers to the milestone, ticket or thread to pick up first.
 - **The day's log** — write `Log/YYYY-MM-DD.md` with the ingestion summary, then add its one-line
   entry to the root `ProgressLog.md`.
 - **Decisions** — one note per decision in `Decisions/` (`type: decision`, `status: active`,
