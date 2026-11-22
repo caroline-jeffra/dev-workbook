@@ -12,11 +12,13 @@ Keep the vault lean and **true**. Two passes, one run:
 
 This is a routine, not a per-note judgement call — run it over the whole vault in one pass.
 
-**Vault location:** resolve in this order — (1) the `DEVWB_VAULT` environment variable (or the pre-3.0 `OBSIDIAN_VAULT`), (2) the config file `${XDG_CONFIG_HOME:-~/.config}/dev-workbook/vault` (or the pre-3.0 `…/claudesidion/vault`), (3) the legacy config file `~/.claude/obsidian-vault`, (4) the default `~/ObsidianVault`. A config file holds one line, the vault's path (whitespace trimmed, a leading `~/` or `$HOME/` expanded); `dev-workbook vault-path` prints the result. If none of them yields an existing directory, ask the user where their vault is and write the answer to `~/.config/dev-workbook/vault` (creating the folder) so every future session and hook finds it. Use the resolved absolute path (written below as `$DEVWB_VAULT`) for every read/write.
+**Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
-**Plugin tools** run through the `dev-workbook` command. If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook"` instead — the plugin root is two levels above this skill's base directory. A skill installed on its own, outside the plugin, needs the command on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
+This skill reads `vault`, `vault_ok` and `background`. `vault` is written below as `$DEVWB_VAULT` — use this absolute path for every read and write. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder).
 
-**Not in a background session.** If `CLAUDE_JOB_DIR` is set, stop and say the condense run needs an interactive session: it renames and deletes notes, which a background session cannot do safely.
+**Fallback** if the command is unavailable or prints no `vault=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask. Treat `background` as `yes` only when `CLAUDE_JOB_DIR` is set.
+
+**Not in a background session.** If `background=yes`, stop and say the condense run needs an interactive session: it renames and deletes notes, which a background session cannot do safely.
 
 ## Step 1 — Reconcile formats and names (every run, any age)
 
