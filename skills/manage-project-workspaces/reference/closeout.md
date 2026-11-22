@@ -7,7 +7,7 @@ Read these sections of structure.md before writing, each with `sed -n '/^## <Hea
 | Writing | `## <Heading>` to read (a prefix is enough) |
 |---|---|
 | Any note | `Two kinds`, `Writing style` |
-| A new note, or a rename | `Naming` |
+| A new note, or a rename | `Naming`, `Structured layout` (which folder, which type, whether a ticket earns its own note) |
 | A link | `Linking` |
 | Frontmatter or a `status` | `Frontmatter` |
 | Closing a thread | `Closing a thread` |
@@ -50,7 +50,7 @@ Follow the structure.md sections above. In short:
   - On a second close-out the same day, merge into the existing lines. Mention a new flag in the close-out report ("flagged a case-study candidate: scope-pushback"), without asking anything.
   `summarize-contribution` harvests these lines into the project's case studies.
 - **A ticket note** — rewrite each touched ticket's `**Status:**` and `**Next:**` so both are true today: `**Next:**` is the one planned next step, on one line. A ticket's next step lives only there, never in the log.
-- **Next up** — rewrite `Overview.md`'s `## Next up` as pointers, one per ticket or thread that is next, most urgent first and with no cap: `KEY — [[ticket note]]` plus at most a 2–3 word state, or a link to the thread or playbook for non-ticket work. Add, reorder, and remove a pointer when its ticket ships or closes. When the Overview you are editing still holds task text under `## Next up`, convert those bullets to pointers and move the task text into each ticket's `**Next:**` (the "bring it into the template" rule below).
+- **Next up** — rewrite `Overview.md`'s `## Next up` as pointers, one per ticket or thread that is next, most urgent first and with no cap: `KEY — [[ticket note]]` plus at most a 2–3 word state, or a link to the thread or playbook for non-ticket work. Add, reorder, and remove a pointer when its ticket ships or closes. When the Overview you are editing still holds task text under `## Next up`, convert those bullets to pointers and move the task text into each ticket's `**Next:**` (the "bring it into the template" rule below). A bullet whose ticket has no note, or that belongs to no ticket, moves to the open thread or playbook that holds that work as a `- [ ]` item, and the pointer links that thread; if no thread fits, keep it as an Overview bullet and ask. **Never drop a bullet**, and never create a ticket note just to hold a `**Next:**` line.
 - **A decision** — a **new note** in `Decisions/`, named for the decision as a PascalCase claim, with `type: decision`, `status: active`, `decided: YYYY-MM-DD`, and `tickets:`. Never append to a `Decisions.md` — in this layout that file does not exist and must not be created.
 - **Superseding a decision** — when the new decision replaces an old one, **edit the old note**: set `status: superseded`, add `superseded_by:`, and put a `> [!warning]` callout under its heading. Add the matching `supersedes:` and `> [!note]` callout on the new one. Skipping this is the single failure this layout exists to prevent — both notes then read as current.
 - **A thread** — one note per thread in `Threads/`, `type: thread`. Tick `- [x]` inside it as items finish — the item text stays one line, with no "done on <date>" or outcome narrative appended. When nothing is left — or the user says the thread is done or abandoned — **close it**: move its decisions, durable knowledge and leftover items to their own notes, then reduce it to the closing stub (`status: done`, `closed:`, Goal / Outcome / Moved to). See "Closing a thread" in [structure.md](structure.md).
@@ -148,7 +148,7 @@ Progress logging is **not** continuous. Do not append ProgressLog entries, Decis
 - **The user explicitly asks** — "log progress", "record what we did", "record this decision", "update the vault", "note this down".
 - **The user says to close out the session** — "close out the session", "wrap up", "we're done for the day", "end of session", or an equivalent.
 
-When one of those fires, do the whole write in one pass: write or merge the day's log (with any case-study flags) and its ProgressLog line, rewrite `## Next up`, update threads (closing any that finished), playbooks and decisions as needed, update `TimeTracking.md` if the workspace has one, and append the day's row to [[TasksArchive]] (see "Maintaining the TasksArchive" above).
+When one of those fires, do the whole write in one pass: write or merge the day's log (with any case-study flags) and its ProgressLog line, rewrite each touched ticket's `**Status:**` and `**Next:**`, rewrite `## Next up` as pointers, update threads (closing any that finished), playbooks and decisions as needed, update `TimeTracking.md` if the workspace has one, and append the day's row to [[TasksArchive]] (see "Maintaining the TasksArchive" above).
 
 Keep each write incremental — the golden rule above ("never overwrite; append or edit in place") governs *how*.
 

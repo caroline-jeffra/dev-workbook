@@ -77,7 +77,7 @@ Append/merge into the structured workspace; never overwrite. Dedupe on the key s
 | TODOs in temp files | `Threads/<NounPhrase>.md` | `- [ ] <action> (from <file>)` | action text |
 | Open PRs/MRs | `Threads/<NounPhrase>.md` | `- [ ] PR/MR !<n> <title> ([link](url))` | pr/mr number |
 | Runbooks, setup or upgrade guides | `Playbooks/<Area><Subject>.md` | Playbook template, `status: reference` | file path |
-| Milestones | `Overview.md` | `## Next up` bullets: title, due date, link | milestone title |
+| Milestones | `Overview.md` | `## Next up` pointers: milestone title and due date, linking the thread or epic that holds its work | milestone title |
 | graphify report (`graphify-out/GRAPH_REPORT.md`), when present | `Research/ArchitectureMap.md` | TL;DR, then one bullet per real area: its key files and god nodes; link `graphify-out/graph.html` by repo path | — (rewrite in place) |
 | Diagram files (`*.excalidraw`, `*.excalidraw.md`, `*.mmd`), when present | `Diagrams/<Area><Subject>.md` (or `.excalidraw.md` when the vault has the plugin) | Diagram template; Mermaid summarising the labels and arrows, linked back | file path |
 | Decisions in docs/ADRs | `Decisions/<Claim>.md` | One decision note each | decision title |
@@ -85,7 +85,7 @@ Append/merge into the structured workspace; never overwrite. Dedupe on the key s
 
 ## Ingestion log template
 
-`Log/YYYY-MM-DD.md` — merge into the day's note if it already exists. No `Next:` line; what to pick up first goes in `Overview.md`'s `## Next up`.
+`Log/YYYY-MM-DD.md` — merge into the day's note if it already exists. No `Next:` line; what to pick up first goes on the ticket note's `**Next:**` line, pointed at from `Overview.md`'s `## Next up`.
 
 ```markdown
 ---

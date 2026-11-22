@@ -218,7 +218,7 @@ A thread exists for unfinished work, so a finished thread must not keep reading 
    | --- | --- |
    | A decision made along the way | A note in `Decisions/` (if one does not already exist) |
    | A technique, gotcha or fact worth citing later | `Notes/` — or `Research/` if it took investigation |
-   | Items still open but no longer part of this thread | Another open thread, or `Overview.md`'s `## Next up` — **ask** before dropping one |
+   | Items still open but no longer part of this thread | Another open thread, or the ticket note's `**Next:**` when the item is a ticket's next step (with a pointer in `## Next up`) — **ask** before dropping one |
    | What the thread achieved | One clause in today's log `Did` |
 
 2. **Reduce the thread to a closing stub.** Replace the body with the template below and set `status: done` and `closed: YYYY-MM-DD`. The item lists go; git keeps them. The stub stays so links from old logs still resolve.
