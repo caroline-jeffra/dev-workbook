@@ -23,6 +23,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        # Full history and tags: tests/skill_rules.py compares the skill against a release tag
+        # (`git show v3.5.0:...`), and a shallow, tagless clone would skip those checks.
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
