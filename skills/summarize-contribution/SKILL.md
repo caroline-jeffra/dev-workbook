@@ -12,7 +12,7 @@ matched to the "tell me about a time when…" questions that reviews and intervi
 
 **Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
-This skill reads `vault`, `vault_ok` and `background`. `vault` is written below as `$DEVWB_VAULT` — use this absolute path for every read and write. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder).
+This skill reads `vault`, `vault_ok` and `background`. `vault` is written below as `$DEVWB_VAULT` — use this absolute path for every read and write. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder), then re-run `dev-workbook context` and act only on the new line (no key from the old line carries over).
 
 **Fallback** if the command is unavailable or prints no `vault=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask. Treat `background` as `yes` only when `CLAUDE_JOB_DIR` is set.
 

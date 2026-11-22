@@ -172,6 +172,18 @@ check(r["structured"] == "no", "a workspace without .vault-config.json is not st
 check(run(v, spaced, CODE)["workspace"] == "Projects/SpacedRepo", "a path with a space matches")
 check(run(v, budgeter, CODE)["workspace"] == "Projects/Budgeter", "budgeter matches Budgeter")
 check(run(v, home_budgeter, CODE)["workspace"] == "Projects/HomeBudgeter", "home-budgeter does not collide with budgeter")
+# the same pair where the path stage misses, so the basename comparison itself decides
+bud_root = TMP / "budgeter-root"
+(bud_root / "old" / "budgeter").mkdir(parents=True)
+(bud_root / "old" / "home-budgeter").mkdir(parents=True)
+v_bud = make_vault("budgeter-basename", "| old/budgeter | [[Budgeter/Overview]] |\n"
+                   "| old/home-budgeter | [[HomeBudgeter/Overview]] |\n")
+r = run(v_bud, budgeter, bud_root)
+check(r["match"] == "basename" and r["workspace"] == "Projects/Budgeter",
+      "basename stage: budgeter matches only Budgeter", str(r))
+r = run(v_bud, home_budgeter, bud_root)
+check(r["match"] == "basename" and r["workspace"] == "Projects/HomeBudgeter",
+      "basename stage: home-budgeter matches only HomeBudgeter", str(r))
 
 # renamed clone: same repo, different folder name, no row → unmatched
 clone = git_repo(CODE / "alpha-renamed-clone")
@@ -289,6 +301,14 @@ c = TMP / "consent-index"
 (c / "TasksArchive.md").write_text("x")
 check(run(c, alpha, CODE)["consent"] == "ok", "TasksArchive present: ok even with other notes")
 check(run(v, alpha, CODE)["consent"] == "ok", "index present: ok")
+for name, marker in (("consent-wsindex", "Projects/WorkspaceIndex.md"), ("consent-legacy", "Projects/_index.md"),
+                     ("consent-tasks-archive", "Tasks Archive.md")):
+    c = TMP / name
+    (c / "Projects").mkdir(parents=True)
+    (c / "Stray.md").write_text("x")
+    (c / marker).write_text("x")
+    check(run(c, alpha, CODE)["consent"] == "ok",
+          f"{marker} present, no version file, a stray note: ok")
 
 # ---------------------------------------------------------------------------
 section("Sync and background")
