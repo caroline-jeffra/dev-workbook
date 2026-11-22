@@ -100,7 +100,7 @@ no "done on <date>" or outcome narrative appended	reference/closeout.md
 not open a thread that repeats them	reference/closeout.md
 **Overview** — update "current focus"	reference/closeout.md
 **Time tracking** — only if `TimeTracking.md` exists	reference/closeout.md
-and never repeats what the	reference/closeout.md
+and never repeats what the	reference/structure.md
 Every note except a log is **current state**	reference/closeout.md
 delete finished or wrong lines, do not annotate them	reference/closeout.md
 bring it into the template as part of the same edit	reference/closeout.md
@@ -112,16 +112,16 @@ retired flat-layout files	reference/closeout.md
 **Do not hand-write `project:`, `topics:` or `tags:`.**	reference/closeout.md
 explicitly only when you know the derived guess would be wrong	reference/closeout.md
 **Never hand-edit `TopicIndex.md` or `TicketsIndex.md`.**	reference/closeout.md
-# --- wikilinks (closeout at step 2, structure.md at step 3)
-Every markdown viewer resolves	reference/closeout.md
-**A uniquely-named note → link it bare.**	reference/closeout.md
-**A name another workspace also uses → prefix it with the workspace.**	reference/closeout.md
-**A per-workspace structural file → always prefix it with the workspace**	reference/closeout.md
-**A log day → prefix it with the workspace's `Log/` path	reference/closeout.md
-**Inside a table cell → never alias.**	reference/closeout.md
-There is **no same-folder exception.**	reference/closeout.md
-**Never disambiguate by rewriting a bare link to a vault-wide search result.**	reference/closeout.md
-Cross-link between notes	reference/closeout.md
+# --- wikilinks, naming and writing style: merged into structure.md at step 3
+Every markdown viewer resolves	reference/structure.md
+**A uniquely-named note → link it bare.**	reference/structure.md
+**A name another workspace also uses → prefix it with the workspace.**	reference/structure.md
+**A per-workspace structural file → always prefix it with the workspace**	reference/structure.md
+**A log day → prefix it with the workspace's `Log/` path	reference/structure.md
+**Inside a table cell → never alias.**	reference/structure.md
+There is **no same-folder exception.**	reference/structure.md
+**Never disambiguate by rewriting a bare link to a vault-wide search result.**	reference/structure.md
+Cross-link between notes	reference/structure.md
 # --- when the vault contradicts -> closeout.md
 The vault is older than this skill	reference/closeout.md
 **Two workspaces claim the same repo**	reference/closeout.md
@@ -169,12 +169,12 @@ Vault notes are long prose	SKILL.md
 **Reporting** — after writing, say what you did	SKILL.md
 **Verification** — if you must confirm a write landed	SKILL.md
 # --- vault writing style (closeout at step 2, structure.md at step 3)
-The full rules and per-type length budgets are in	reference/closeout.md
-setup comes after, if at all	reference/closeout.md
-over paragraphs** — a paragraph is at most three short sentences	reference/closeout.md
-never the story of getting there	reference/closeout.md
-link the specific note that owns a fact	reference/closeout.md
-Remove references to finished, superseded or deleted things	reference/closeout.md
+The full rules and per-type length budgets are in	reference/closeout.md	replaced
+setup comes after, if at all	reference/structure.md
+**Bullets and `**Key:** value` pairs over paragraphs	reference/structure.md
+never the story of getting there	reference/structure.md
+link the specific note that owns a fact	reference/structure.md
+Remove references to finished, superseded or deleted things	reference/structure.md
 **One continuous line per block** — no hard line breaks	reference/structure.md	home
 # --- sync / background
 Act on `sync`. The plugin's hooks pull the vault	SKILL.md
@@ -220,3 +220,7 @@ Say so, name the root you resolved and where it came from	reference/scaffold.md
 ](scaffold.md)	reference/read.md	pointer
 ](templates.md)	reference/closeout.md	pointer
 ](templates.md)	reference/scaffold.md	pointer
+**Answer first.**	reference/structure.md
+Answer first	reference/structure.md
+area first, kind last	reference/structure.md	home
+two kinds of note	reference/structure.md	home
