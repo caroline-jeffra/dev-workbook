@@ -1,6 +1,6 @@
 ---
 name: capture-notes
-description: Saves an idea, fact or reference as a durable note in the user's markdown vault (Obsidian, Foam, …). Use for "make a note", "capture this", "save this to my vault/Obsidian". Not for repo dev work — that is manage-project-workspaces.
+description: Saves an idea, fact or reference as a durable note in the user's markdown vault. Use for "make a note", "capture this", "save this to my vault". Not for repo dev work — that is manage-project-workspaces.
 ---
 
 # Capturing notes

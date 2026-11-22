@@ -1,6 +1,6 @@
 ---
 name: ingest-project-docs
-description: Bootstraps a repo's workspace in the user's markdown vault (Obsidian, Foam, …) from its existing docs (README, docs/, CLAUDE.md, AGENTS.md, scratch files), open issues, milestones and PRs/MRs, summarized with links back. Use when starting to track a repo, or for "ingest this project", "bootstrap the workspace".
+description: Bootstraps a repo's workspace in the user's markdown vault from its existing docs (README, docs/, CLAUDE.md, AGENTS.md, scratch files), open issues, milestones and PRs/MRs, summarized with links back. Use when starting to track a repo, or for "ingest this project", "bootstrap the workspace".
 ---
 
 # Ingesting project docs

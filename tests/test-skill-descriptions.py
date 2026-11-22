@@ -16,11 +16,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Every kept trigger and exclusion, per skill (case-insensitive substring of the description).
+# The pinned triggers and exclusions, per skill (case-insensitive substring of the description).
 PINS: dict[str, list[str]] = {
     "manage-project-workspaces": [
         "where did we leave off", "what's next", "status of <ticket>", "log progress", "record this decision",
-        "close this thread", "how many hours", "issue tracker", "come from git", "Obsidian",
+        "close this thread", "how many hours", "issue tracker", "come from git",
         "ADRs", "open threads",
     ],
     "capture-notes": ["make a note", "capture this", "manage-project-workspaces"],
@@ -31,6 +31,9 @@ PINS: dict[str, list[str]] = {
     "condense-vault": ["condense the vault", "SessionStart"],
     "ingest-project-docs": ["ingest this project", "bootstrap the workspace"],
 }
+
+# The vault is platform agnostic: descriptions never name a markdown viewer.
+NEUTRAL = ["Obsidian", "Foam"]
 
 TOTAL_BUDGET = 2000  # bytes of description across all skills
 EACH_BUDGET = 600    # bytes per description
@@ -64,6 +67,8 @@ def results(skills_dir: Path) -> list[tuple[bool, str, str]]:
             out.append((value[:1] not in YAML_INDICATORS, f"{skill}: no leading YAML indicator", value[:1]))
         size = len(value.encode("utf-8"))
         out.append((size <= EACH_BUDGET, f"{skill}: description is within {EACH_BUDGET} bytes", f"{size} bytes"))
+        for name in NEUTRAL:
+            out.append((name.lower() not in value.lower(), f"{skill}: names no viewer ('{name}')", ""))
         for phrase in PINS.get(skill, []):
             out.append((phrase.lower() in value.lower(), f"{skill}: keeps '{phrase}'", ""))
     total = sum(len(description_of(p / "SKILL.md")[1][0][len("description:"):].strip().encode("utf-8"))
