@@ -79,12 +79,14 @@ Not every ticket needs one. A ticket gets a note when there is something to say 
 
 **Names are built to be skimmed in a sorted, truncated file list.** The folder already says which project and which type a note is, so the name spends its first characters on what tells notes apart: **area first, kind last** — `<Area><Subject><Kind>`. The area is the subsystem or feature (`Currency`, `CrossSell`, `Docker`), so related notes sort together across folders and a truncated name still shows it.
 
+In short: every note is PascalCase, **area first, kind last**, and never repeats what the folder already says — no project name, no `Playbook` suffix, no ticket key. The `# Heading` is the readable sentence-case form.
+
 | Type | Pattern | Example |
 | --- | --- | --- |
 | decision, convention | a **claim**, 4–8 words, **subject first** | `FrameworkIsFastapiOverDjango`, `LiveUpdatesStreamOverSse` |
 | thread | `<Area><Subject>`, 2–4 words, optionally ending `FollowUps` · `Blocker` · `Backlog` | `VaultPushReliability`, `CurrencyCacheFollowUps` |
 | playbook | `<Area><Subject>`, no suffix | `DataModelAndCrud`, `RelaySetup` |
-| research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `RepoStateAudit` |
+| research | `<Area><Subject><Kind>`, Kind ∈ `Audit · Analysis · Plan · Spec · Review · Map · Reference` | `RepoStateAudit`, `GoPublicAudit` |
 | note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `PromptSkillAuthoringGotchas` |
 | diagram | `<Area><Subject>` — a drawing adds `.excalidraw` before `.md` | `CheckoutFlow`, `SystemContext.excalidraw` |
 | ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
@@ -112,11 +114,11 @@ Not every ticket needs one. A ticket gets a note when there is something to say 
 
 Every note is written for **someone scanning for one fact**, not someone reading start to finish.
 
-- **The first line under any heading is the answer.** Setup and reasoning come after, if at all.
+- **Answer first.** The first line under any heading is the answer; setup comes after, if at all, and so does reasoning.
 - **Bullets and `**Key:** value` pairs over paragraphs.** A paragraph is at most three short sentences. Never stack `**Key:**` lines directly under each other: CommonMark viewers join them into one paragraph. Make each a list item, or separate them with a blank line.
-- **Outcome, not process.** Write what is true or what was decided — never "first I tried X, then Y". Dead ends earn one bullet in a log's `Learned`, not a narrative.
-- **One fact, one place.** Link the note that owns a fact instead of restating it. Link the **specific** note — `[[FrameworkIsFastapiOverDjango]]`, never `[[DecisionsIndex|the decisions]]`.
-- **No stale pointers.** When something is finished, superseded or deleted, remove references to it from current-state notes rather than annotating them ("~~old plan~~", "now done", "see update below").
+- **Outcome, not process.** Write what is true or what was decided, never the story of getting there — never "first I tried X, then Y". Dead ends earn one bullet in a log's `Learned`, not a narrative.
+- **One fact, one place.** Link the specific note that owns a fact instead of restating it — `[[FrameworkIsFastapiOverDjango]]`, never `[[DecisionsIndex|the decisions]]`.
+- **No stale pointers.** Remove references to finished, superseded or deleted things from current-state notes rather than annotating them ("~~old plan~~", "now done", "see update below").
 - **No commit SHAs, step numbers or session narration** in current-state notes. Link a PR if the provenance matters.
 - **One continuous line per block** — no hard line breaks inside a paragraph, bullet or blockquote. Viewers soft-wrap.
 - **Bold only the load-bearing claim.** If everything is bold, nothing is.
@@ -140,19 +142,19 @@ Templates for every type are in [templates.md](templates.md).
 
 ## Linking between notes
 
-`[[target]]` names every note whose vault path ends with `target`, compared case-insensitively — Obsidian, Foam, Quartz and the markdown language servers all agree on that. **Write the shortest path that names exactly one note.**
+Every markdown viewer resolves `[[target]]` the same way: it names each note whose vault path ends with `target`, compared case-insensitively — Obsidian, Foam, Quartz and the markdown language servers all agree on that. One match is a link; two or more is ambiguous, and viewers disagree about what an ambiguous link means — Obsidian silently picks one, often another project's, and Foam refuses to. So the rule is: **write the shortest path that names exactly one note.**
 
-| Target | Write | Why |
-| --- | --- | --- |
-| A note in any type folder | `[[NoteName]]` | Names are unique within a workspace; a bare link survives a workspace rename |
-| A note whose name another workspace also uses | `[[Workspace/NoteName]]` | The bare name is ambiguous vault-wide |
-| `Overview`, `ProgressLog`, or any generated index | `[[Workspace/Overview]]`, even from inside that workspace | These exist once per workspace by design, so the bare name is ambiguous vault-wide |
-| A log day whose date another workspace also logged | `[[Workspace/Log/2026-10-04\|2026-10-04]]` | Workspaces often log the same day; the alias keeps the date readable |
-| Any link inside a table cell | `[[Workspace/Log/2026-10-04]]` — no alias | An alias pipe splits the row in viewers that ignore the `\|` escape |
+- **A uniquely-named note → link it bare.** `[[UseTokenBucketOverFixedWindow]]`. This is the normal case: names are unique within a workspace and rarely repeat across them. A bare link is readable and survives the workspace being renamed or moved.
+- **A name another workspace also uses → prefix it with the workspace.** `[[Orchard/CompletedItems]]`. Check with `find "$DEVWB_VAULT/Projects" -name '<Name>.md'` when a name is generic.
+- **A per-workspace structural file → always prefix it with the workspace**, even from inside that workspace. `[[Juniper/Overview]]`, `[[Juniper/ProgressLog]]`, `[[Juniper/DecisionsIndex]]`. These names — `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `ThreadsIndex`, `DecisionsIndex`, `TimeTracking` — exist once per workspace **by design**, so a bare link to one is ambiguous across the vault.
+- **A log day → prefix it with the workspace's `Log/` path when the date is not unique**, and show the date: `[[Juniper/Log/2026-10-04|2026-10-04]]`. Several workspaces often log the same day. The `vault-maintain` lint reports a bare one as `ambiguous-link`.
+- **Inside a table cell → never alias.** Write `[[Juniper/Log/2026-10-04]]`, not `[[…|2026-10-04]]`: the alias pipe splits the row into phantom columns in any viewer that ignores the `\|` escape. The lint reports one as `table-alias`.
 
-Wikilinks have **no `../` syntax** — a vault-relative path is the only disambiguator. There is no same-folder exception: viewers disagree on tie-breaks, so an ambiguous link is wrong even where it happens to land right. The lint reports one as `ambiguous-link`; `scripts/qualify_links.py` fixes them in bulk.
+Wikilinks have **no `../` syntax** — a vault-relative path is the only disambiguator. There is **no same-folder exception.** A bare `[[Overview]]` in a workspace's own notes is still ambiguous, and it is often written from a different folder (`ProgressLog.md` links into `Log/`), so even Obsidian's same-folder preference does not apply: viewers disagree on tie-breaks, so an ambiguous link is wrong even where it happens to land right. `scripts/qualify_links.py` fixes ambiguous links in bulk.
 
-**The failure this prevents.** A bare `[[Decisions]]` resolved against the whole vault binds to whichever workspace matches first. It resolves *successfully*, so "do the links work?" reports healthy while the link points at a different project's notes. Silent cross-project links are worse than broken ones: a broken link is noticed, a wrong one is trusted.
+**Never disambiguate by rewriting a bare link to a vault-wide search result.** A `[[Decisions]]` looked up across the whole vault binds to whichever workspace matches first, and the result *resolves cleanly* — so a link check calls it healthy while it silently points at another project's notes. That is corrupted provenance, and it is harder to spot than a broken link. If a bare link is ambiguous, resolve it against the file that contains it, not against the vault. Silent cross-project links are worse than broken ones: a broken link is noticed, a wrong one is trusted.
+
+Cross-link between notes and to general `[[notes]]` (from the `capture-notes` skill) so the workspace stays navigable in the vault's graph.
 
 ## Frontmatter contract
 

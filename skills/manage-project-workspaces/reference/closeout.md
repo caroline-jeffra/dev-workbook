@@ -4,17 +4,17 @@ Applies to every write — logging progress, recording a decision or thread, clo
 
 Read these sections of structure.md before writing, each with `sed -n '/^## <Heading>/,/^## /p' "<skill dir>/reference/structure.md"` (`<skill dir>` is this skill's base directory) rather than reading the whole file:
 
-| Writing | `## <Heading>` to read |
+| Writing | `## <Heading>` to read (a prefix is enough) |
 |---|---|
-| Any note | `Two kinds of note`, `Writing style` |
-| A new note, or a rename | `Naming notes` |
-| A link | `Linking between notes` |
-| Frontmatter or a `status` | `Frontmatter contract` |
+| Any note | `Two kinds`, `Writing style` |
+| A new note, or a rename | `Naming` |
+| A link | `Linking` |
+| Frontmatter or a `status` | `Frontmatter` |
 | Closing a thread | `Closing a thread` |
-| Superseding a decision | `Superseding a decision` |
-| A log or its index line | `The two-altitude log` |
+| Superseding a decision | `Superseding` |
+| A log or its index line | `The two-altitude` |
 
-The full contract is in [structure.md](structure.md); take the template for each type from [templates.md](templates.md).
+The rest of the contract is in [structure.md](structure.md); take the template for each type from [templates.md](templates.md).
 
 ## Step 4 — Write back (on trigger only)
 
@@ -24,7 +24,7 @@ Golden rule: **never overwrite existing content.** Read the file, then append or
 
 ### Write one note per fact
 
-Follow the sections of structure.md above. In short:
+Follow the structure.md sections above. In short:
 
 - **The day's log** — write `Log/YYYY-MM-DD.md` (`type: log`, `date:` matching the filename) as **one** `Did` / `Decided` / `Learned` / `Links` block. If the day's note already exists, **merge into its sections** — never add a second block or a `###` sub-entry, and fix any earlier line the day's later work made wrong. **No `Next:` line.** Then add or update that day's one-line entry in the root `ProgressLog.md`, newest first. Never append a dated entry to the root `ProgressLog.md` itself — it is an index.
 - **Case-study flags** — reviews and interviews ask for specific examples, and the session is often the only record of the best ones. Before writing the log, check the session's work against the prompts in `$DEVWB_VAULT/Contributions/CaseStudyPrompts.md` (if the vault has none, read the bundled list at `<plugin root>/skills/summarize-contribution/reference/case-study-prompts.md`; do not create the vault copy from here). For each real match, add one line to the day's log: ``- **Case study:** <what happened, one clause> — `slug` `slug` · <success | failure | mixed>``.
@@ -41,11 +41,11 @@ Follow the sections of structure.md above. In short:
 - **A playbook** — an ordered procedure goes in `Playbooks/` as `<Area><Subject>.md` (no suffix), `type: playbook`. While it is being executed it is the tracker: tick its steps in place and do not open a thread that repeats them.
 - **Overview** — update "current focus" when the direction of the work shifts.
 - **Time tracking** — only if `TimeTracking.md` exists: measure the sittings since `tracked_through:` and update the table, per [time-tracking.md](time-tracking.md).
-- **Names** — every note is PascalCase, **area first, kind last**, and never repeats what the folder already says — no project name, no `Playbook` suffix, no ticket key: `FrameworkIsFastapiOverDjango`, `VaultPushReliability`, `GoPublicAudit`, `1701-NaturalSortAdApprovals`; logs stay `YYYY-MM-DD`. The `# Heading` is the readable sentence-case form. Full table: "Naming notes" in [structure.md](structure.md).
+- **Names** — name each note by the pattern in the `Naming` section of structure.md, never by the project, the folder's type or a ticket key.
 
 ### Current-state notes are rewritten, not appended
 
-Every note except a log is **current state** — see "Two kinds of note" in [structure.md](structure.md). When the work changes one, **rewrite it in place so it is true today**: delete finished or wrong lines, do not annotate them ("~~X~~", "update:", "now done"). Git holds the history. When you touch a current-state note that already breaks its template, bring it into the template as part of the same edit.
+Every note except a log is **current state** (the first structure.md section above says why). When the work changes one, **rewrite it in place so it is true today**: delete finished or wrong lines, do not annotate them ("~~X~~", "update:", "now done"). Git holds the history. When you touch a current-state note that already breaks its template, bring it into the template as part of the same edit.
 
 **Removing something? Remove its references too.** When a decision is superseded, a thread closes or a note is deleted or renamed, grep the workspace for links and mentions of it and fix every current-state note that still points at it. Logs are history and keep their links.
 
@@ -57,21 +57,9 @@ Templates for every type, and the naming table, are in [templates.md](templates.
 
 **Never hand-edit `TopicIndex.md` or `TicketsIndex.md`.** They are generated; edits are lost.
 
-### How to write a wikilink
+### Links
 
-Every markdown viewer resolves `[[target]]` the same way: it names each note whose vault path ends with `target`. One match is a link; two or more is ambiguous, and viewers disagree about what an ambiguous link means — Obsidian silently picks one, often another project's, and Foam refuses to. So the rule is: **write the shortest path that names exactly one note.**
-
-- **A uniquely-named note → link it bare.** `[[UseTokenBucketOverFixedWindow]]`. This is the normal case: names are unique within a workspace and rarely repeat across them. A bare link is readable and survives the workspace being renamed or moved.
-- **A name another workspace also uses → prefix it with the workspace.** `[[Orchard/CompletedItems]]`. Check with `find "$DEVWB_VAULT/Projects" -name '<Name>.md'` when a name is generic.
-- **A per-workspace structural file → always prefix it with the workspace**, even from inside that workspace. `[[Juniper/Overview]]`, `[[Juniper/ProgressLog]]`, `[[Juniper/DecisionsIndex]]`. These names — `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `ThreadsIndex`, `DecisionsIndex`, `TimeTracking` — exist once per workspace **by design**, so a bare link to one is ambiguous across the vault.
-- **A log day → prefix it with the workspace's `Log/` path when the date is not unique**, and show the date: `[[Juniper/Log/2026-10-04|2026-10-04]]`. Several workspaces often log the same day. The `vault-maintain` lint reports a bare one as `ambiguous-link`.
-- **Inside a table cell → never alias.** Write `[[Juniper/Log/2026-10-04]]`, not `[[…|2026-10-04]]`: the alias pipe splits the row into phantom columns in any viewer that ignores the `\|` escape. The lint reports one as `table-alias`.
-
-There is **no same-folder exception.** A bare `[[Overview]]` in a workspace's own notes is still ambiguous, and it is often written from a different folder (`ProgressLog.md` links into `Log/`), so even Obsidian's same-folder preference does not apply.
-
-**Never disambiguate by rewriting a bare link to a vault-wide search result.** A `[[Decisions]]` looked up across the whole vault binds to whichever workspace matches first, and the result *resolves cleanly* — so a link check calls it healthy while it silently points at another project's notes. That is corrupted provenance, and it is harder to spot than a broken link. If a bare link is ambiguous, resolve it against the file that contains it, not against the vault.
-
-Cross-link between notes and to general `[[notes]]` (from the `capture-notes` skill) so the workspace stays navigable in the vault's graph.
+Write every `[[wikilink]]` by the `Linking` section of structure.md: the shortest path that names exactly one note.
 
 ## When the vault contradicts these instructions
 
@@ -156,10 +144,4 @@ Keep each write incremental — the golden rule above ("never overwrite; append 
 
 ## Vault writing style
 
-Write for **someone scanning for one fact**, not someone reading start to finish. The full rules and per-type length budgets are in "Writing style" in [structure.md](structure.md); in short:
-
-- **Answer first.** The first line under any heading is the answer; setup comes after, if at all.
-- **Bullets and `**Key:** value` pairs over paragraphs** — a paragraph is at most three short sentences.
-- **Outcome, not process.** What is true or was decided, never the story of getting there.
-- **One fact, one place.** Link the specific note that owns a fact instead of restating it.
-- **No stale pointers.** Remove references to finished, superseded or deleted things from current-state notes.
+Write prose by the `Writing style` section of structure.md, which also holds the per-type length budgets.
