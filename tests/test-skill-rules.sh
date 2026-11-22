@@ -3,6 +3,7 @@
 # every rule of the v3.5.0 skill to exactly one home (tests/skill-rules.tsv), keeps the router
 # within its byte budget and the frozen router text identical to v3.5.0, and mutation-tests
 # the checks themselves. The logic is in tests/skill_rules.py.
+# A check that skips (v3.5.0 tag absent) passes locally but fails when $CI is set.
 #
 # Usage: tests/test-skill-rules.sh [--self-test]
 
@@ -17,7 +18,9 @@ run_check() {
   out="$(python3 "$CHECK" "$1" "${split[@]}" 2>&1)"
   rc=$?
   case "$out" in
-    SKIP*) ok "$2 (skipped: $out)"; return 0 ;;
+    SKIP*)
+      if [ -n "${CI-}" ]; then nope "$2" "$out"; else ok "$2 (skipped: $out)"; fi
+      return 0 ;;
   esac
   if [ "$rc" -eq 0 ]; then ok "$2"; else nope "$2" "$(printf '%s' "$out" | head -n 8)"; fi
 }
