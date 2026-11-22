@@ -18,7 +18,7 @@ Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, 
 
 Decide the intent first, then read only the files its route names.
 
-1. **Read** (what's next, where we left off, status) → [reference/read.md](reference/read.md). Reads never scaffold or write: if `match` is `new`, `no-index` or `unmatched`, say there is no workspace and offer `ingest-project-docs`.
+1. **Read** (what's next, where we left off, status) → [reference/read.md](reference/read.md). Reads never scaffold or write: if `match` is `new`, `no-index` or `unmatched` (after the `unmatched` row's own check below), say there is no workspace and offer `ingest-project-docs`.
 2. **Write** (log, record, close out, make a workspace) → when a workspace or vault-level file is missing, read [reference/scaffold.md](reference/scaffold.md) first; a declined consent stops all writes. Then read [reference/closeout.md](reference/closeout.md), which also holds the `background=yes` staging procedure.
 3. **Time tracking** (set it up, hours per phase), on request only → [reference/time-tracking.md](reference/time-tracking.md).
 4. A request can need several routes ("where did we leave off, then log this"): read each route's file in the order scaffold.md first, then read.md, then closeout.md.
@@ -73,7 +73,7 @@ Reading the vault is unrestricted — read it freely whenever you need context (
 
 Two tools help when they're installed; nothing here depends on them. Detection, rules and formats: [reference/integrations.md](reference/integrations.md).
 
-- **graphify** — when the repo has `graphify-out/graph.json`, answer structural questions while working ("where does X live", "what calls Y") with `graphify query` / `path` before a text search; never build or update a graph yourself.
+- **graphify** — when the repo has `graphify-out/graph.json`, answer structural questions while working ("where does X live", "what calls Y") with `graphify query` / `path` before a text search, after checking the graph isn't far behind `HEAD`; never build or update a graph yourself.
 
 ## Conventions
 

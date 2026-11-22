@@ -220,8 +220,9 @@ TEMPLATE_FILES = {
     "## `.vault-config.json`": "vault-config", "## `TasksArchive.md`": "tasks-archive",
 }
 # Types whose template 3.6.0 changes on purpose (tickets carry their own **Next:**, the Overview's
-# Next up becomes pointers): the lines about next work are cut from both sides before comparing.
-NEXT_CHANGED = ("overview", "ticket")
+# Next up becomes pointers, the log's pointer to where next work goes): the lines about next work
+# are cut from both sides before comparing.
+NEXT_CHANGED = ("overview", "ticket", "log")
 
 
 def without_next_work(name, text):
@@ -234,6 +235,9 @@ def without_next_work(name, text):
             elif skipping and ln.startswith("## "):
                 skipping = False
             if skipping or ln.startswith("`## Next up`"):
+                continue
+        elif name == "log":
+            if "**No `Next:` line**" in ln:
                 continue
         elif name == "ticket":
             if ln.startswith("**Next:**"):

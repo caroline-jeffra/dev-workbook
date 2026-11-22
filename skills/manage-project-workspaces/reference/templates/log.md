@@ -1,6 +1,6 @@
 ## Log — `Log/YYYY-MM-DD.md`
 
-History. One block per day; a later close-out the same day **merges into these sections**. Budget: 150 words. **No `Next:` line** — next work goes in `Overview.md`'s `## Next up`.
+History. One block per day; a later close-out the same day **merges into these sections**. Budget: 150 words. **No `Next:` line** — a ticket's next step goes on its note's `**Next:**` line, and `Overview.md`'s `## Next up` points at it.
 
 ```markdown
 ---

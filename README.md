@@ -333,7 +333,7 @@ regenerates index notes, described below.
 - **You close out the session** — "close out the session", "wrap up", "we're done for the day".
 
 On either trigger it does the whole write in one pass: the day's log (merged into one block if the
-day already has one), the Overview's `## Next up`, any thread, playbook and decision updates, and the
+day already has one), each touched ticket's `**Status:**` and `**Next:**`, the Overview's `## Next up` pointers, any thread, playbook and decision updates, and the
 day's row in `TasksArchive.md`. Nothing is written mid-session while you
 work, and no hook nags for it — earlier versions reminded on every `Stop` (i.e. every turn), which
 interrupted the coding work it was meant to record. Reading the vault is unrestricted.
