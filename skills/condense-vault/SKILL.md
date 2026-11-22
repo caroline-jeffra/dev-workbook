@@ -1,6 +1,6 @@
 ---
 name: condense-vault
-description: Weekly cleanup routine for the user's markdown vault (Obsidian, Foam, …) — reconciles project workspaces against their note formats (strips stale "Next" pointers, dead references and stacked log entries, renames off-pattern notes, trims over-length notes, whatever their age), condenses stale content (untouched >3 months) down to bullet points everywhere, and outside project workspaces also deletes records of finished work older than that. Use when the user says "condense the vault", "clean up the vault", "run the vault cleanup", or when a SessionStart reminder from this plugin says the weekly condense run is due.
+description: Weekly vault cleanup — reconciles project workspaces with their note formats, condenses notes untouched >3 months to bullets, and deletes old finished-work records outside projects. Use for "condense the vault", "clean up the vault", "run the vault cleanup", or when this plugin's SessionStart reminder says the weekly run is due.
 ---
 
 # Condensing the vault

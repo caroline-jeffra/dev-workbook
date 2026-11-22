@@ -1,6 +1,6 @@
 ---
 name: capture-notes
-description: Creates well-formed notes in the user's markdown vault (Obsidian, Foam, …) with YAML frontmatter, hyphenated tags, and wikilinks, placed in the right folder. Use when the user says "make a note", "capture this", "save this to my vault/Obsidian", or wants an idea, fact, or reference saved as a durable note (not repo-specific dev work — that is manage-project-workspaces).
+description: Saves an idea, fact or reference as a durable note in the user's markdown vault (Obsidian, Foam, …). Use for "make a note", "capture this", "save this to my vault/Obsidian". Not for repo dev work — that is manage-project-workspaces.
 ---
 
 # Capturing notes
