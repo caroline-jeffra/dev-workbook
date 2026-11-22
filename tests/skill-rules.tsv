@@ -89,7 +89,14 @@ the session is often	reference/closeout.md
 On a second close-out the same day, merge into the existing lines	reference/closeout.md
 `summarize-contribution` harvests these lines	reference/closeout.md
 **Next up** — rewrite `Overview.md`'s `## Next up`	reference/closeout.md
-at most five bullets, each linking	reference/closeout.md
+still holds task text under `## Next up`	reference/closeout.md	new
+**A ticket note** — rewrite each touched ticket's `**Status:**` and `**Next:**`	reference/closeout.md	new
+**Ticket-scoped** question	reference/read.md	new
+Add, reorder, and remove a pointer when its ticket ships or closes	reference/closeout.md	new
+convert those bullets to pointers	reference/closeout.md	new
+**Next:** <one line — the next planned step>	reference/templates/ticket.md	new
+`## Next up` says *which* tickets and threads are next	reference/templates/overview.md	new
+lives at two levels, each owned by one place	reference/structure.md	new
 **A decision** — a **new note** in `Decisions/`	reference/closeout.md
 in this layout that file does not exist	reference/closeout.md
 **Superseding a decision** — when the new decision replaces an old one	reference/closeout.md

@@ -1152,7 +1152,7 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
         if n.doctype == "log":
             nexts = len(NEXT_LINE.findall(prose))
             if nexts:
-                report(n, "log-next", f"{nexts} Next line(s) — next work belongs in the Overview")
+                report(n, "log-next", f"{nexts} Next line(s) — next work belongs in the ticket note or the Overview")
             blocks = len(DID_LINE.findall(prose))
             subs = len(SUBHEADING.findall(prose))
             if blocks > 1 or subs:

@@ -46,7 +46,7 @@ Each line is `<workspace>/<path>: <code> — <detail>`. Work through them by cod
 
 | Code | Fix |
 | --- | --- |
-| `log-next` | For each `Next:` line, check whether the step is done (later logs, threads, git). **Still open** → make sure it is in `Overview.md`'s `## Next up` or an open thread, adding it if not. Then **delete the line** from the log. |
+| `log-next` | For each `Next:` line, check whether the step is done (later logs, threads, git). **Still open** → when it belongs to a ticket, make sure it is in that ticket note's `**Next:**`; otherwise in `Overview.md`'s `## Next up` or an open thread, adding it if not. Then **delete the line** from the log. |
 | `log-stacked` | Merge the day's blocks into one `Did` / `Decided` / `Learned` / `Links` block, keeping every `Case study:` line. Where an earlier entry was overtaken later that day ("1.3 not yet done" … "1.3 done"), keep only the final state. |
 | `over-budget` | Rewrite the note to its template: cut process narrative, dates on ticked items, commit SHAs and restated context; link out to the note that owns a fact. If it still will not fit, it is two notes — split it. |
 | `stale-link` | A current-state note links a superseded decision or a finished thread. Repoint to the successor (`superseded_by`), or delete the line if it only existed to point at finished work. |
@@ -58,7 +58,7 @@ Each line is `<workspace>/<path>: <code> — <detail>`. Work through them by cod
 | `root-stray` | A plan, roadmap or guide → move into `Playbooks/` or `Research/` with the rename script, then set the right `type:`. A `Home.md` or other duplicate of `Overview.md` → merge anything unique into the Overview, then `git rm` it. A CV summary → `Contributions/` (merge into the project's existing summary if there is one). |
 | `legacy-name` | A pre-2.0 name. A generated index (`Topic Index.md` and the like) → `git rm` it; the hook regenerates it under its new name. Anything else → rename as for `bad-name`. |
 | `unclosed-thread` | Close the thread as in "Closing a thread" in [structure.md](../manage-project-workspaces/reference/structure.md): move decisions, durable knowledge and leftover items to their own notes, then reduce it to the closing stub. Leftover items that fit nowhere go in the report for the user to decide on — never drop them silently. |
-| `missing-section` | Add the section the template requires: `## Next up` in an Overview (seed it from open threads and the newest log), `## TL;DR` in research, the playbook headings in a playbook. |
+| `missing-section` | Add the section the template requires: `## Next up` in an Overview (seed it with pointers to the open tickets and threads, from the newest log), `## TL;DR` in research, the playbook headings in a playbook. |
 | `hard-wrap` | Join the wrapped lines into one line per block. |
 | `stacked-keys` | Turn the run of `**Key:** value` lines into list items (`- **Key:** value`), or put a blank line between them. Without one, CommonMark viewers join them into a single paragraph. |
 | `table-alias` | Rewrite each `[[Target\|text]]` in a table cell as plain `[[Target]]`. An alias pipe splits the row in viewers that ignore the escape; if the cell then reads badly, move the link out of the table. |

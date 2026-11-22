@@ -16,8 +16,8 @@ status: active
 
 ## Next up
 
-- <the next concrete step> — [[<ThreadOrPlaybook>]]
-- <at most five bullets, most urgent first; remove a bullet the moment it is done>
+- ACME-1234 — [[1234-NaturalSortAdApprovals]] — awaiting review
+- <non-ticket work> — [[<ThreadOrPlaybook>]]
 
 ## What this is
 
@@ -33,4 +33,4 @@ status: active
 - [[<Workspace>/ProgressLog|ProgressLog]] · [[<Workspace>/TopicIndex|TopicIndex]] · [[<Workspace>/DecisionsIndex|DecisionsIndex]] · [[<Workspace>/ThreadsIndex|ThreadsIndex]]
 ```
 
-`## Next up` is **the only place next work is stated** in a workspace. Each bullet names one action and links the thread or playbook holding the detail.
+`## Next up` says *which* tickets and threads are next, as pointers with no cap, most urgent first: `KEY — [[ticket note]]` plus at most a 2–3 word state such as "awaiting review"; non-ticket work points at its thread or playbook. A ticket's next step lives in its note's `**Next:**` line, not here. Remove a pointer the moment its ticket ships or closes.

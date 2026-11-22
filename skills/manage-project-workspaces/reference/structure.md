@@ -23,7 +23,7 @@ Never guess from the presence of a folder — only `.vault-config.json` marks a 
 | **Current state** | overview, thread, playbook, decision, convention, research, note, ticket, epic, diagram | **Rewrite in place** so the note is true today. No dated history inside — git keeps that. Remove what is finished or wrong; do not annotate it. |
 | **History** | log | **Append-only and backward-looking.** Records what happened that day. Never carries `Next:` or any other forward-looking line. |
 
-**"What's next" lives in exactly one place:** the `## Next up` section of `Overview.md`, each bullet linking the thread or playbook that holds the detail. Nothing else states next work — not logs, not research, not decisions.
+**"What's next" lives at two levels, each owned by one place.** A ticket's next step lives in its own note, on the `**Next:**` line under `**Status:**`. The `## Next up` section of `Overview.md` owns the ordering: pointers to the tickets and threads that are next, most urgent first, with no cap. A ticket with no note of its own (a checkbox in a thread) is pointed at through that thread. Nothing else states next work — not logs, which never carry `Next:`, not research, not decisions.
 
 ---
 
