@@ -65,16 +65,25 @@ def resolve_code_root(explicit: str | None = None) -> Path:
     return _resolve(explicit, ("CODE_ROOT",), "code-root", "code-root", "code")
 
 
+def _source(envs: tuple[str, ...], name: str, legacy: str) -> str:
+    if any(os.environ.get(env, "") for env in envs):
+        return "env"
+    if read_path_file(config_dir() / name):
+        return "config"
+    if read_path_file(config_dir("claudesidion") / name):
+        return "legacy-config"
+    if read_path_file(Path.home() / ".claude" / legacy):
+        return "legacy"
+    return "default"
+
+
+def vault_source() -> str:
+    """Which tier of `resolve_vault` (no explicit argument) supplied the vault — see `code_root_source`."""
+    return _source(("DEVWB_VAULT", "OBSIDIAN_VAULT"), "vault", "obsidian-vault")
+
+
 def code_root_source() -> str:
     """Which tier of `resolve_code_root` supplied the code root, in the same order as `_resolve`:
     `env`, `config`, `legacy-config` (the pre-3.0 claudesidion dir), `legacy` (~/.claude/code-root)
     or `default`."""
-    if os.environ.get("CODE_ROOT", ""):
-        return "env"
-    if read_path_file(config_dir() / "code-root"):
-        return "config"
-    if read_path_file(config_dir("claudesidion") / "code-root"):
-        return "legacy-config"
-    if read_path_file(Path.home() / ".claude" / "code-root"):
-        return "legacy"
-    return "default"
+    return _source(("CODE_ROOT",), "code-root", "code-root")

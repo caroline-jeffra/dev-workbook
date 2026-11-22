@@ -265,7 +265,7 @@ check(run(make_vault("nonotes", "| alpha | [[Alpha/Overview]] |\n"), alpha, CODE
       "no prose after the table: index_notes=no")
 hostile = make_vault("hostile", '| alpha | [[A"b c=d/Overview]] |\n| beta | [[B/Overview]] |\n')
 r = run(hostile, alpha, CODE)
-check(r["workspace"] == 'Projects/A"b c=d', "a hostile workspace name round-trips through quoting", str(r))
+check(r["workspace"] == "-" and r["match"] == "unmatched", "a workspace name with quotes or `=` is not a workspace", str(r))
 
 # ---------------------------------------------------------------------------
 section("Consent")
@@ -371,6 +371,68 @@ check(run(empty, alpha, CODE)["error"] == "-", "no error: error=-")
 check(run(TMP / "nope", TMP / "nope2", CODE)["repo"] == str(TMP / "nope2"), "a non-git, missing --repo falls back to that directory")
 
 # ---------------------------------------------------------------------------
+section("Unreadable index rows ask instead of scaffolding")
+# ---------------------------------------------------------------------------
+
+v_home = make_vault("home-links", "| alpha | [[Alpha/Home]] |\n| beta | [[Beta/Home]] |\n")
+r = run(v_home, alpha, CODE)
+check(r["match"] == "unmatched", "rows with no …/Overview link: unmatched, not new", str(r))
+v_md = make_vault("md-links", "| alpha | [[Alpha/Overview.md]] |\n")
+r = run(v_md, alpha, CODE)
+check(r["match"] == "path" and r["workspace"] == "Projects/Alpha", "a [[X/Overview.md]] link is read", str(r))
+v_trial_first = TMP / "trial-first"
+(v_trial_first / "Projects").mkdir(parents=True)
+(v_trial_first / "Projects" / "WorkspaceIndex.md").write_text(
+    "# Project Workspaces\n\n## Trial workspaces\n\n| Repo path | Workspace |\n|---|---|\n"
+    "| alpha | [[Alpha/Overview]] |\n")
+r = run(v_trial_first, beta, CODE)
+check(r["match"] == "unmatched", "trial section above the only table: unmatched, not new", str(r))
+
+# ---------------------------------------------------------------------------
+section("A wrong code root is misconfigured, not moved")
+# ---------------------------------------------------------------------------
+
+wrong_root = TMP / "wrong-root"
+wrong_root.mkdir()
+v_two = make_vault("two-rows", "| alpha | [[Alpha/Overview]] |\n| beta | [[Beta/Overview]] |\n")
+r = run(v_two, alpha, wrong_root)
+check(r["match"] == "misconfigured" and r["indexed"] == "-", "every row missing + basename hit: misconfigured", str(r))
+v_one = make_vault("one-row", "| alpha | [[Alpha/Overview]] |\n")
+r = run(v_one, alpha, wrong_root)
+check(r["match"] == "moved", "a lone missing row with a basename hit stays moved (skill confirms)", str(r))
+gamma = git_repo(CODE / "gamma")
+r = run(v_two, gamma, CODE)
+check(r["match"] == "unmatched", "rows exist on this machine, no hit: unmatched", str(r))
+r = run(v_two, gamma, wrong_root)
+check(r["match"] == "misconfigured", "no row exists on this machine, no hit: misconfigured", str(r))
+
+# ---------------------------------------------------------------------------
+section("Unsafe workspace names are not workspaces")
+# ---------------------------------------------------------------------------
+
+v_evil = make_vault("evil", "| alpha | [[$(touch pwned)/Overview]] |\n| beta | [[../Escape/Overview]] |\n"
+                    "| gamma | [[Gamma`id`/Overview]] |\n")
+for repo, label in ((alpha, "$( )"), (beta, ".."), (gamma, "backtick")):
+    r = run(v_evil, repo, CODE)
+    check(r["match"] == "unmatched" and r["workspace"] == "-", f"{label} in a workspace name: unmatched", str(r))
+check("$(" not in run(v_evil, alpha, CODE)["candidates"], "no shell syntax reaches the output")
+v_ok_names = make_vault("ok-names", "| alpha | [[bert.report/Overview]] |\n| beta | [[My Notes_2-x/Overview]] |\n")
+check(run(v_ok_names, alpha, CODE)["workspace"] == "Projects/bert.report", "dots in a name are fine")
+check(run(v_ok_names, beta, CODE)["workspace"] == "Projects/My Notes_2-x", "spaces, underscores, dashes are fine")
+
+# ---------------------------------------------------------------------------
+section("vault_from")
+# ---------------------------------------------------------------------------
+
+check(run(v, alpha, CODE)["vault_from"] == "arg", "--vault: vault_from=arg")
+os.environ["DEVWB_VAULT"] = str(TMP / "missing-vault")
+try:
+    r = run(None, alpha, CODE)
+finally:
+    os.environ.pop("DEVWB_VAULT")
+check(r["vault_from"] == "env" and r["vault_ok"] == "no", "DEVWB_VAULT at a missing folder: vault_from=env vault_ok=no", str(r))
+
+# ---------------------------------------------------------------------------
 section("code_root_source agrees with resolve_code_root")
 # ---------------------------------------------------------------------------
 
@@ -396,6 +458,12 @@ os.environ["CODE_ROOT"] = "/from-env"
 tier("env", "CODE_ROOT")
 check(str(paths.resolve_code_root()) == "/from-env", "env tier value")
 os.environ.pop("CODE_ROOT")
+check(paths.vault_source() == "default", "vault_source: nothing set")
+(TMP / "xdg" / "dev-workbook" / "vault").write_text("/v\n")
+check(paths.vault_source() == "config" and str(paths.resolve_vault()) == "/v", "vault_source: config")
+os.environ["OBSIDIAN_VAULT"] = "/legacy-env"
+check(paths.vault_source() == "env", "vault_source: OBSIDIAN_VAULT is env")
+os.environ.pop("OBSIDIAN_VAULT")
 
 print(f"\n{PASS} passed, {len(FAIL)} failed")
 sys.exit(1 if FAIL else 0)

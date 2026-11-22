@@ -163,8 +163,8 @@ def main(argv: list[str]) -> int:
     if cmd == "context":
         import workspace_context
 
-        vault, rest = take_vault(args)
-        return workspace_context.main(["--vault", vault, *rest])
+        # It resolves --vault itself, so it can report which tier supplied the vault.
+        return workspace_context.main(args)
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)
