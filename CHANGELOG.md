@@ -14,6 +14,17 @@ are minor.
 
 ## [Unreleased]
 
+## [3.5.0] — 2026-11-22
+
+### Added
+
+- **`dev-workbook context`.** One read-only command that prints, on a single `key=value` line, what every skill used to work out from prose: the vault and code root (and which config tier supplied it), the repo's workspace match (`path`, `basename`, `moved`, `ambiguous`, `unmatched`, `misconfigured`, `new`, `no-index`, `no-vault`), whether the workspace is structured, a trial workspace, whether to ask before writing to the vault, who syncs it (`hooks`, `self`, `none`) and whether this is a background session. Values with spaces or quotes are JSON-quoted, and a failure still prints every key plus `error=`.
+
+### Changed
+
+- **The skills read it instead of repeating the rules.** `manage-project-workspaces`, `capture-notes`, `ingest-project-docs`, `summarize-contribution` and `condense-vault` start from `dev-workbook context` and keep a short prose fallback for standalone installs. `manage-project-workspaces` is about 3 KB smaller.
+- **A repo with no row in a populated index now asks before scaffolding.** The skill used to say stop and the templates reference said scaffold; both now say ask first, and scaffold only on a yes.
+
 ## [3.4.0] — 2026-11-15
 
 ### Added

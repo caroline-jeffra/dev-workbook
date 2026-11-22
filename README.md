@@ -50,6 +50,8 @@ folder Obsidian opens works fine). If none of these locations yields an existing
 skills ask where your vault is and write the answer to the config file for you; the hooks stay
 silent until it's set.
 
+`dev-workbook context` prints the result of this lookup (plus the repo's workspace) on one line; the skills run it first instead of repeating these rules.
+
 ### 1b. Point at your code (optional)
 
 The workspace index records where each repo lives **relative to a code root**, so one entry is correct on every machine you sync the vault to. The root resolves like the vault path: the `CODE_ROOT` environment variable, then `~/.config/dev-workbook/code-root` (one line), then the pre-3.0 `~/.config/claudesidion/code-root`, then the legacy `~/.claude/code-root`, then the default `~/code`.
@@ -104,6 +106,7 @@ The skills are plain Agent Skills and work in any harness that reads them. The s
 | --- | --- | --- |
 | `dev-workbook start --format <claude\|cursor\|plain>` | session start | Relays what the last session's exit reported, commits changes an earlier session left uncommitted, flushes stranded commits, pulls, then runs the size check and the condense reminder. Prints the session context once, in the harness's format. |
 | `dev-workbook end` | session end, if the harness has one | Refreshes indexes, commits the plugin's folders, pushes. |
+| `dev-workbook context [--vault P] [--repo PATH]` | what the skills run first | Prints one `key=value` line: the resolved vault and code root, which workspace the current repo maps to, whether to ask before writing, who syncs the vault and whether this is a background session. Read-only. |
 
 A harness with no session-end event still works: the next `start` commits what the last session left. Whatever `end` reports is also relayed by the next `start`, since few harnesses show session-end output.
 
