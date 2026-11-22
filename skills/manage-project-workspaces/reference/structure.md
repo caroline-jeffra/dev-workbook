@@ -136,7 +136,7 @@ Body words, excluding frontmatter and fenced code. The `vault-maintain` lint fla
 | thread | 300 |
 | playbook, research, note, epic | no budget — but research must open with a `## TL;DR` and a playbook must follow its template |
 
-Templates for every type are in [templates.md](templates.md).
+Templates for every type are in [templates.md](templates.md), one file per type under `templates/`.
 
 ---
 
