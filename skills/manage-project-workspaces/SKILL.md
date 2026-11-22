@@ -9,7 +9,7 @@ Keep a durable, per-repo workspace in the user's markdown vault (Obsidian, Foam,
 
 **Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
-Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, as the working directory is usually another repo), `vault_ok`, `code_root`, `code_root_from`, `repo`, `index`, `index_notes`, `match`, `workspace`, `indexed`, `candidates`, `structured`, `trial`, `consent`, `sync`, `background`. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder).
+Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, as the working directory is usually another repo), `vault_ok`, `code_root`, `code_root_from`, `repo`, `index`, `index_notes`, `match`, `workspace`, `indexed`, `candidates`, `structured`, `trial`, `consent`, `sync`, `background`. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder), then re-run `dev-workbook context` and act only on the new line (no key from the old line carries over).
 
 **Fallback** if the command is unavailable or prints no `match=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask; read the index yourself; ask before any first write or scaffold.
 
@@ -41,7 +41,7 @@ The same applies in Step 2: scaffolding a **workspace** into an existing `Projec
 | `unmatched` | Say `repo`, `code_root` and `code_root_from`, and **ask before scaffolding**: a second workspace for an existing repo is the split-brain the index prevents. On a yes, scaffold (Step 2) and add a row. |
 | `misconfigured` | No index path exists under `code_root`: the root is wrong or unset. **Stop**, naming `code_root` and `code_root_from`; do not scaffold. |
 | `new`, `no-index` | Scaffold (Step 2) and add a row, subject to Step 0 consent; for `no-index` create `WorkspaceIndex.md` first, with the header from [reference/templates.md](reference/templates.md). |
-| `no-vault` | Ask where the vault is, as above. |
+| `no-vault` | Ask where the vault is and re-run, as above. |
 
 If `index_notes=yes` and `match` is not `path`, read the index's notes first.
 
