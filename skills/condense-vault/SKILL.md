@@ -22,7 +22,7 @@ This skill reads `vault`, `vault_ok`, `vault_from` and `background`. `vault` is 
 
 ## Step 1 — Reconcile formats and names (every run, any age)
 
-The format rules are in [manage-project-workspaces/reference/structure.md](../manage-project-workspaces/reference/structure.md) — read "Two kinds of note", "Naming notes" and "Writing style" first, and use [templates.md](../manage-project-workspaces/reference/templates.md) for the target shape of each type.
+The format rules are in [manage-project-workspaces/reference/structure.md](../manage-project-workspaces/reference/structure.md) — read "Two kinds of note", "Naming notes" and "Writing style" first, and use [templates.md](../manage-project-workspaces/reference/templates.md), which links one file per type, for the target shape of each.
 
 **Start from a clean tree.** In a versioned vault, commit or stash any uncommitted changes before editing anything (see Step 5 for why), so this run's edits land in their own commit.
 
@@ -183,7 +183,7 @@ Drop: narrative prose, restated context, hedging, worked examples, anything reco
 linked source. A good condensed note is the bullet list you'd want when the topic resurfaces in a
 year. Target well under half the original length; a long note may become five bullets.
 
-**Project workspaces** (`Projects/<repo>/`) condense each stale note **to its type's template** (see [templates.md](../manage-project-workspaces/reference/templates.md)) rather than to free bullets:
+**Project workspaces** (`Projects/<repo>/`) condense each stale note **to its type's template** (see [templates.md](../manage-project-workspaces/reference/templates.md), one file per type) rather than to free bullets:
 - `Log/<date>.md` — one `Did` / `Decided` / `Learned` / `Links` block; `Did` down to the outcomes that still matter. Keep every `Case study:` line word for word — `summarize-contribution` harvests them, and they are often the only record of the story.
 - Decisions — keep every one; condense `Why` and `Rejected` to a line each.
 - Threads — collapse `## Done` to one line per item; a `status: done` thread keeps only its goal and done list.

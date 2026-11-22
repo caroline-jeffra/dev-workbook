@@ -73,7 +73,7 @@ Read the top of the list, drop vendored communities, and use the rest as evidenc
 
 | Form | When | File |
 | --- | --- | --- |
-| **Mermaid note** (default) | Always available; renders in Obsidian and on GitHub with no plugin | `Diagrams/<Name>.md`, `type: diagram` — template in [templates.md](templates.md) |
+| **Mermaid note** (default) | Always available; renders in Obsidian and on GitHub with no plugin | `Diagrams/<Name>.md`, `type: diagram` — template in [templates/diagram.md](templates/diagram.md) |
 | **Excalidraw drawing** | Excalidraw is present **and** the user wants a drawing they can edit by hand | `Diagrams/<Name>.excalidraw.md`, embedded with `![[<Name>.excalidraw]]` |
 
 **Reading a drawing.** In an `.excalidraw.md` file, read the `## Text Elements` section: every label in the drawing, one per paragraph, each ending in a ` ^blockid` to ignore. That is enough to pull component names and arrow labels out of a system diagram. Ignore the `## Drawing` block; the plugin usually stores it compressed. A raw `.excalidraw` file found in a repo is plain JSON:

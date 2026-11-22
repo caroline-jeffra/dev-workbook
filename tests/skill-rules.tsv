@@ -218,8 +218,12 @@ Say so, name the root you resolved and where it came from	reference/scaffold.md
 ](structure.md)	reference/closeout.md	pointer
 ](structure.md)	reference/scaffold.md	pointer
 ](scaffold.md)	reference/read.md	pointer
-](templates.md)	reference/closeout.md	pointer
-](templates.md)	reference/scaffold.md	pointer
+](templates/overview.md)	reference/closeout.md	pointer
+](templates/log.md)	reference/closeout.md	pointer
+](templates/tasks-archive.md)	reference/closeout.md	pointer
+](templates/vault-config.md)	reference/scaffold.md	pointer
+](templates/index.md)	reference/scaffold.md	pointer
+](templates/overview.md)	reference/scaffold.md	pointer
 **Answer first.**	reference/structure.md
 Answer first	reference/structure.md
 area first, kind last	reference/structure.md	home

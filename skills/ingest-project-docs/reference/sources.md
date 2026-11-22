@@ -66,7 +66,7 @@ Read each doc; summarize its purpose in 1–3 bullets. For temp files, extract a
 
 ## Source → workspace mapping
 
-Append/merge into the structured workspace; never overwrite. Dedupe on the key shown. Formats follow the templates in [manage-project-workspaces/reference/templates.md](../../manage-project-workspaces/reference/templates.md).
+Append/merge into the structured workspace; never overwrite. Dedupe on the key shown. Formats follow the templates in [manage-project-workspaces/reference/templates.md](../../manage-project-workspaces/reference/templates.md), one file per type.
 
 | Source | Lands in | Form | Dedupe key |
 |---|---|---|---|

@@ -14,7 +14,22 @@ Read these sections of structure.md before writing, each with `sed -n '/^## <Hea
 | Superseding a decision | `Superseding` |
 | A log or its index line | `The two-altitude` |
 
-The rest of the contract is in [structure.md](structure.md); take the template for each type from [templates.md](templates.md).
+The rest of the contract is in [structure.md](structure.md). Read the template file for each type you write, and only that one:
+
+| Writing | Template |
+|---|---|
+| The day's log | [templates/log.md](templates/log.md) |
+| A `ProgressLog.md` line | [templates/progress-log.md](templates/progress-log.md) |
+| `Overview.md` | [templates/overview.md](templates/overview.md) |
+| A thread, or closing one | [templates/thread.md](templates/thread.md) |
+| A playbook | [templates/playbook.md](templates/playbook.md) |
+| Research | [templates/research.md](templates/research.md) |
+| A ticket note | [templates/ticket.md](templates/ticket.md) |
+| A decision or convention | [templates/decision.md](templates/decision.md) |
+| A note | [templates/note.md](templates/note.md) |
+| A diagram | [templates/diagram.md](templates/diagram.md) |
+| `TimeTracking.md` | [templates/time-tracking.md](templates/time-tracking.md) |
+| A `TasksArchive.md` row, or the file | [templates/tasks-archive.md](templates/tasks-archive.md) |
 
 ## Step 4 — Write back (on trigger only)
 
@@ -49,7 +64,7 @@ Every note except a log is **current state** (the first structure.md section abo
 
 **Removing something? Remove its references too.** When a decision is superseded, a thread closes or a note is deleted or renamed, grep the workspace for links and mentions of it and fix every current-state note that still points at it. Logs are history and keep their links.
 
-Templates for every type, and the naming table, are in [templates.md](templates.md) and [structure.md](structure.md).
+Templates for every type, and the naming table, are in [templates.md](templates.md) (one file per type) and [structure.md](structure.md).
 
 - **Never create** `Decisions.md`, `Open Threads.md`, or a dated section inside the root `ProgressLog.md`. Those are retired flat-layout files; creating them produces two contradictory sources of truth in one workspace.
 

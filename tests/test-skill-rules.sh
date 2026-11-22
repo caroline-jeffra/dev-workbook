@@ -37,6 +37,10 @@ run_check frozen 'match table, index_notes, trial rule and Step 1b are identical
 run_check budget 'the router body is within 8192 bytes'
 run_check fences 'every code block of the v3.5.0 skill survives verbatim'
 
+section 'templates and links'
+run_check templates 'the per-type template files are the v3.5.0 sections, verbatim'
+run_check links 'every relative link and named section under skills/ resolves'
+
 section 'the mutation self-test'
 run_check selftest 'deleting one sentence per destination file turns the rules check red'
 

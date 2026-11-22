@@ -2,11 +2,11 @@
 
 Applies to a write when a workspace or one of the vault-level files is missing: read this before [closeout.md](closeout.md). In a `background=yes` session every note you create is staged first — see [closeout.md](closeout.md).
 
-Read the sections of structure.md that scaffolding needs — `## Structured layout` and `## Naming notes` — with `sed -n '/^## <Heading>/,/^## /p' "<skill dir>/reference/structure.md"`, and take the template for each file from [templates.md](templates.md).
+Read the sections of structure.md that scaffolding needs — `## Structured layout` and `## Naming notes` — with `sed -n '/^## <Heading>/,/^## /p' "<skill dir>/reference/structure.md"`, and take the template for each file from the `templates/` folder named below.
 
 ## Step 0 — Ensure the vault-level files exist (once per vault)
 
-Two files live at the **vault root**: `Projects/WorkspaceIndex.md` (the repo → workspace map) and `TasksArchive.md` (see "Maintaining the TasksArchive" in [closeout.md](closeout.md); template in [templates.md](templates.md)). A vault from before 2.0 has them as `Projects/_index.md` and `Tasks Archive.md`: read and update the old file in place until `condense-vault` renames it, and never create the new name beside the old one.
+Two files live at the **vault root**: `Projects/WorkspaceIndex.md` (the repo → workspace map) and `TasksArchive.md` (see "Maintaining the TasksArchive" in [closeout.md](closeout.md); template in [templates/tasks-archive.md](templates/tasks-archive.md)). A vault from before 2.0 has them as `Projects/_index.md` and `Tasks Archive.md`: read and update the old file in place until `condense-vault` renames it, and never create the new name beside the old one.
 
 **Ask before the first write to a vault that already has content in it.** "What should I work on" is a request to *read*, not consent to create folders in a vault the user may have curated for years. Act on `consent`:
 
@@ -26,13 +26,13 @@ The same applies in Step 2: scaffolding a **workspace** into an existing `Projec
 To scaffold:
 
 1. Create `$DEVWB_VAULT/Projects/<Repo>/` — the repo's name in PascalCase (`garden-planner` → `GardenPlanner`) — and, inside it, the folders from [structure.md](structure.md): `Tickets/`, `Epics/`, `Playbooks/`, `Research/`, `Notes/`, `Decisions/`, `Threads/`, `Diagrams/`, `Log/`. **Create each on first use, never empty** — an empty folder is noise in the sidebar and tells the reader nothing.
-2. Create `Overview.md` from the template in [templates.md](templates.md) — what the repo is, current focus, next up, the repo path relative to the code root, links to external trackers.
-3. Create `ProgressLog.md` as a **one-line-per-day index**, not a stack of entries. The detail lives in `Log/<date>.md`.
-4. Write `.vault-config.json` from the template in [templates.md](templates.md) — this file is what marks the workspace structured; nothing else does. A new workspace has no content to derive topics from, so start with `"topics": {}` and add them as subjects emerge. The indexes work from day one; the TopicIndex is simply empty until there are topics.
+2. Create `Overview.md` from the template in [templates/overview.md](templates/overview.md) — what the repo is, current focus, next up, the repo path relative to the code root, links to external trackers.
+3. Create `ProgressLog.md` (template: [templates/progress-log.md](templates/progress-log.md)) as a **one-line-per-day index**, not a stack of entries. The detail lives in `Log/<date>.md`.
+4. Write `.vault-config.json` from the template in [templates/vault-config.md](templates/vault-config.md) — this file is what marks the workspace structured; nothing else does. A new workspace has no content to derive topics from, so start with `"topics": {}` and add them as subjects emerge. The indexes work from day one; the TopicIndex is simply empty until there are topics.
 
 The folder skeleton is **fixed by the contract**, not configured here — every workspace uses the same folder names and the same document types, and skills may rely on that. What stays per-project is the **vocabulary**: `topics`, `min_hits`, `title_weight`, and optionally `root_notes`.
 
-5. Add the row to `WorkspaceIndex.md`. Record the repo's path **relative to the code root** (just `<repo>` for a repo sitting directly in it); use an absolute path only for a repo outside the root.
+5. Add the row to `WorkspaceIndex.md` (format: [templates/index.md](templates/index.md)). Record the repo's path **relative to the code root** (just `<repo>` for a repo sitting directly in it); use an absolute path only for a repo outside the root.
 
 **Growing the topic vocabulary.** Add a topic once three or four notes would carry it — earlier and it is noise, later and the index has a gap. Each topic needs specific patterns; one matching a common English word tags half the workspace and makes the index useless. After editing `.vault-config.json`, the next session-end hook run re-derives topics across every note.
 
