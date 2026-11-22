@@ -14,6 +14,20 @@ are minor.
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-11-22
+
+### Changed
+
+- **Shorter skill descriptions.** Every skill's `description:` sits in context in every session, so the five now say what the skill is in one clause, keep one or two phrases per intent and every exclusion between skills, and drop the prose about what the skill writes. Description bytes, 3.6.0 to 3.7.0: `capture-notes` 376 to 236, `condense-vault` 624 to 332, `ingest-project-docs` 512 to 314, `manage-project-workspaces` 813 to 553, `summarize-contribution` 931 to 550, total 3,256 to 1,985 (about 39% smaller).
+- **Dropped near-synonym triggers.** Gone: "track open threads", "update my contribution summary", "what should I put on my CV for this", "what did I accomplish on this project", "what were we doing on this", "record what we did", "pull in the docs/issues", "import existing context", "LinkedIn" and "going on pause". "what's the next task" is now "what's next". Every exclusion between skills is kept.
+- **New ticket trigger.** `manage-project-workspaces` also answers "status of <ticket>", matching the ticket-scoped reads added in 3.6.0.
+
+### Added
+
+- **`tests/test-skill-descriptions.py`** checks that each `SKILL.md` has one `name:` and one single-line `description:`, that an unquoted description has no `: `, no ` #` and no leading YAML indicator, that every kept trigger and exclusion is still present, and that the descriptions stay within 600 bytes each and 2,000 together. It mutation-tests itself with `--self-test`. It applies the plain-scalar rules rather than parsing YAML, so it needs no dependency.
+
+This release makes no claim about the blank `ingest-project-docs` entry in the skill listing, which looks like a budget shared by every installed skill rather than a per-skill cap.
+
 ## [3.6.0] — 2026-11-22
 
 ### Changed
