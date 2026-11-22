@@ -10,7 +10,11 @@ hard, and what it demonstrates — written so it can be lifted into a CV, a Link
 review, or a blog-post outline without being rewritten each time — and with its stories already
 matched to the "tell me about a time when…" questions that reviews and interviews ask.
 
-**Vault location:** resolve in this order — (1) the `DEVWB_VAULT` environment variable (or the pre-3.0 `OBSIDIAN_VAULT`), (2) the config file `${XDG_CONFIG_HOME:-~/.config}/dev-workbook/vault` (or the pre-3.0 `…/claudesidion/vault`), (3) the legacy config file `~/.claude/obsidian-vault`, (4) the default `~/ObsidianVault`. A config file holds one line, the vault's path (whitespace trimmed, a leading `~/` or `$HOME/` expanded); `dev-workbook vault-path` prints the result. If none of them yields an existing directory, ask the user where their vault is and write the answer to `~/.config/dev-workbook/vault` (creating the folder) so every future session and hook finds it. Use the resolved absolute path (written below as `$DEVWB_VAULT`) for every read/write.
+**Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
+
+This skill reads `vault`, `vault_ok` and `background`. `vault` is written below as `$DEVWB_VAULT` — use this absolute path for every read and write. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder).
+
+**Fallback** if the command is unavailable or prints no `vault=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask. Treat `background` as `yes` only when `CLAUDE_JOB_DIR` is set.
 
 You normally run this while the working directory is *the project's repo*, not the vault. Address the
 vault by absolute path; derive the project from the working directory.
@@ -339,7 +343,7 @@ colleagues, absolute figures, internal hostnames, verbatim internal text. Anythi
 either gets generalised in place or moves to the `Confidential context` section; what it must not
 do is sit unmarked in prose the user will later paste into an application.
 
-In a background session (`CLAUDE_JOB_DIR` is set) run `dev-workbook stage "Contributions/<project>.md"` first and read and write the path it prints instead; the session-end hook merges it into the vault.
+In a background session (`background=yes`) run `dev-workbook stage "Contributions/<project>.md"` first and read and write the path it prints instead; the session-end hook merges it into the vault.
 
 Write to `$DEVWB_VAULT/Contributions/<project>.md` using the structure in
 [reference/template.md](reference/template.md): light frontmatter, then **Context → Major efforts →
