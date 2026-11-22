@@ -42,7 +42,7 @@ Ingest progress:
 
 **Step 1 — Locate/scaffold the workspace.**
 Use `manage-project-workspaces`: find the repo in
-`$DEVWB_VAULT/Projects/WorkspaceIndex.md`, or scaffold `Projects/<Repo>/` (PascalCase) and add a row.
+`$DEVWB_VAULT/Projects/WorkspaceIndex.md`, or scaffold `Projects/<Repo>/` (PascalCase) and add a row, following [manage-project-workspaces/reference/scaffold.md](../manage-project-workspaces/reference/scaffold.md).
 
 **Step 2 — Detect the forge.**
 Inspect `git remote -v`. A `github.com` remote → use `gh`. A `gitlab.com` or self-hosted GitLab

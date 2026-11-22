@@ -2,6 +2,14 @@
 
 Optional, per workspace: hours actually spent per phase, against the estimates the plan made. **Create it only when the user asks** — "set up time tracking", "track my hours on this", "how long has phase 2 taken". Never scaffold it by default.
 
+## Setting it up
+
+Some projects track hours per phase against their estimates. It is **opt-in per workspace**: set it up only when the user asks ("set up time tracking", "track my hours on this project"). Never create `TimeTracking.md` unprompted, and never suggest it as part of an ordinary logging pass.
+
+To set it up: create `TimeTracking.md` from the template in [templates.md](templates.md), with one row per phase (and subphase, where the plan estimates one) taken from the project's playbooks. Then measure the time already spent, as far back as the transcripts go, with the method below. Tell the user how far back that reached: transcripts expire after 30 days by default, so anything earlier can only come from the user's own records.
+
+Once the file exists, every close-out updates it (the update line is in [closeout.md](closeout.md)).
+
 ## The file
 
 `TimeTracking.md` in the workspace root, from the template in [templates.md](templates.md). It is **a summary table and nothing else**:
