@@ -14,6 +14,18 @@ are minor.
 
 ## [Unreleased]
 
+## [3.6.0] — 2026-11-22
+
+### Changed
+
+- **`manage-project-workspaces` is a router plus reference files.** `SKILL.md` shrinks from 32,436 to 8,659 bytes and every request loads it; the rest moved to `reference/read.md` (what's next, status), `reference/closeout.md` (every write), `reference/scaffold.md` (vault-level files, new workspaces and the index matching rules that used to sit in `templates.md`) and `reference/time-tracking.md` (now also holds the setup text). The naming, wikilink and writing-style copies that `SKILL.md` carried are merged into `reference/structure.md`, its single home. `templates.md` is now an index of one file per note type under `reference/templates/`, each split verbatim. The match table, trial rule, `index_notes` and Step 1b text are unchanged, and no rule was dropped: `tests/skill-rules.tsv` pins every rule of 3.5.0 to exactly one file.
+- **Bytes loaded per request, 3.5.0 to 3.6.0.** Read path (router plus `read.md`): 32,436 to 12,746. Ticket-scoped read (the same plus a ticket's Goal, Status and Next lines, about 440 bytes): 32,436 to about 13,200. Close-out path (router, `closeout.md`, the eight `structure.md` sections it names, the overview, progress-log, log, tasks-archive and decision templates, and the case-study prompts): 72,292 to 50,029. Worst case, every file in the skill: 80,552 to 84,679, because the index files and pointers are new.
+- **Next work is stated at two levels (additive format change).** A ticket note carries a `**Next:**` line under `**Status:**`, and a "what's next" or "what's the status of ACME-1234" question is answered from the note's Goal, Status and Next lines alone. The Overview's `## Next up` is now a list of pointers with no cap (`KEY — [[ticket note]]` plus at most a 2–3 word state, or a thread or playbook for non-ticket work) instead of at most five task bullets. Existing Overviews convert on their next close-out: the task text moves into each ticket's `**Next:**`. `condense-vault` sends a still-open `log-next` step to the ticket's `**Next:**` when it belongs to a ticket, and the `log-next` lint message now says the step belongs in the ticket note or the Overview.
+
+### Added
+
+- **`tests/test-skill-rules.sh`** pins every rule to one home, keeps the router body under 8,192 bytes, checks the frozen router text against `v3.5.0`, checks the per-type templates against the 3.5.0 sections, checks every relative link and named section under `skills/`, and mutation-tests itself.
+
 ## [3.5.0] — 2026-11-22
 
 ### Added
