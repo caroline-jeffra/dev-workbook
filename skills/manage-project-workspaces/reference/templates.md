@@ -60,7 +60,7 @@ the path **relative to the root**, otherwise record it absolute.
        that wrote it, or looking at a second checkout; rewriting is how the row ends up
        ping-ponging between machines on every sync. Use the workspace and change nothing.
    - **Several basename matches** → ask which, listing them. Do not guess.
-   - **No basename match** → genuinely new. Scaffold and append a row.
+   - **No basename match** → with no repo rows in the index, genuinely new: scaffold and append a row. With rows that exist on this machine, ask before scaffolding (`dev-workbook context` reports this as `match=unmatched`).
 
 ### Never scaffold on a total miss
 
