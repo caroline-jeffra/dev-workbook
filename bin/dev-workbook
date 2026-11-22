@@ -13,6 +13,8 @@
                                                  print one key=value line: vault, code root, which
                                                  workspace this repo maps to, consent, sync mode
     dev-workbook hours [session_hours options]   measure time spent from session transcripts
+    dev-workbook tokens [session_tokens options] measure what the plugin costs in context per
+                                                 session, from transcripts (sizes only, no text)
     dev-workbook stage [--vault P] PATH          background sessions: stage a vault note to edit
                                                  outside the vault; prints the path to edit
     dev-workbook staged [--vault P]              list staged notes not yet merged into the vault
@@ -168,6 +170,9 @@ def main(argv: list[str]) -> int:
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)
+    if cmd == "tokens":
+        import session_tokens
+        return session_tokens.main(args)
 
     print(f"dev-workbook: unknown command '{cmd}' (see dev-workbook --help)", file=sys.stderr)
     return 2
