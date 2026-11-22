@@ -11,6 +11,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -328,6 +329,21 @@ rc, out, err = run([], d)
 check("malformed" in err, "malformed lines are counted on stderr without their text", err)
 r = json.loads(run(["--json"], d)[1])
 check(isinstance(r, list) and r[0]["vault_calls"] == 2, "--json output parses")
+
+print("\nCommand wiring")
+d = fresh("cli")
+write(d, "s1", [vault_read("t1"), result("t1", "12")])
+p = subprocess.run([str(ROOT / "bin" / "dev-workbook"), "tokens", "--transcripts", str(d),
+                    "--vault", str(VAULT), "--json"], capture_output=True, text=True)
+try:
+    cli = json.loads(p.stdout)
+except json.JSONDecodeError:
+    cli = None
+check(p.returncode == 0 and cli and cli[0]["vault_calls"] == 1, "dev-workbook tokens runs the measurement", p.stderr)
+h = subprocess.run([str(ROOT / "bin" / "dev-workbook"), "tokens", "--help"], capture_output=True, text=True)
+check(h.returncode == 0 and all(o in h.stdout for o in ("--since", "--sessions", "--repo", "--transcripts",
+                                                        "--vault", "--by", "--json")),
+      "dev-workbook tokens --help lists the options")
 
 shutil.rmtree(TMP, ignore_errors=True)
 print(f"\n{PASS} passed, {len(FAIL)} failed")

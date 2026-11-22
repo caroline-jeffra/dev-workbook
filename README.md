@@ -204,6 +204,8 @@ Each type has a template, a naming pattern and — for the short types — a wor
 
 **Time tracking is optional, per project, and only on request.** `TimeTracking.md` is a phases table (estimate vs actual hours, variance, sittings, dates, links) plus a weekly-hours table. `dev-workbook hours` measures active hours from Claude Code transcripts; see [`time-tracking.md`](skills/manage-project-workspaces/reference/time-tracking.md).
 
+`dev-workbook tokens` measures what the plugin costs in context per session (skill text, descriptions, reference and vault reads, hook output), grouped by plugin version, from your local transcripts; it prints sizes and counts only, never transcript text.
+
 `dev-workbook lint` reports every note that breaks the contract, without changing anything; `condense-vault` works through the findings. Renames go through `dev-workbook rename`, which moves a note and rewrites every link and supersession reference to it; `dev-workbook qualify` rewrites ambiguous links to log days and structural files with their workspace path.
 
 ### Workspace layout
