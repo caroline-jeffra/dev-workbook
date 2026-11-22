@@ -27,50 +27,6 @@ tags: [index]
 
 The Workspace cell is a plain link to the workspace's `Overview` — never aliased, since an alias pipe splits the row in viewers that ignore the `\|` escape.
 
-### Paths are machine-relative
-
-The vault syncs between machines, and an absolute path is only ever correct on one of them. So a
-row's path is recorded **relative to that machine's code root**.
-
-**Resolving the code root**, in order: the `CODE_ROOT` environment variable, then
-`${XDG_CONFIG_HOME:-~/.config}/dev-workbook/code-root` (or the pre-3.0 `…/claudesidion/code-root`), then the legacy `~/.claude/code-root` (one
-line each, the root's path — whitespace trimmed, a leading `~/` or `$HOME/` expanded), then the
-default `~/code`; `dev-workbook code-root` prints the result. This is deliberately the same shape as
-the vault path, for the same reason: profile exports do not reach hook shells.
-
-- **A relative row** (`some-repo`, `nested/some-repo`) resolves against the root. This is the normal
-  form and what you write when adding a repo.
-- **An absolute row** (`/opt/src/odd-one`) is matched literally, and is the escape hatch for a repo
-  that does not live under the root. Never rewrite one into a relative path.
-
-When adding a repo, take `git rev-parse --show-toplevel`; if it sits under the resolved root, record
-the path **relative to the root**, otherwise record it absolute.
-
-### Matching is two-stage
-
-1. **Path match** — resolve each row (relative rows against the root, absolute rows as-is) and
-   compare against the repo's absolute path.
-2. **No match** → compare the repo's **basename** against each row's basename and the workspace
-   names.
-   - **Exactly one basename match** → check whether that row's recorded path resolves to something
-     that **exists on this machine**.
-     - **It does not exist** → the repo moved. Confirm in one line — "`app` is indexed at
-       `code/app`, which is not here — same repo, moved?" — and on confirmation update the row.
-     - **It does exist** → do **not** rewrite the row. You are on a different machine from the one
-       that wrote it, or looking at a second checkout; rewriting is how the row ends up
-       ping-ponging between machines on every sync. Use the workspace and change nothing.
-   - **Several basename matches** → ask which, listing them. Do not guess.
-   - **No basename match** → with no repo rows in the index, genuinely new: scaffold and append a row. With rows that exist on this machine, ask before scaffolding (`dev-workbook context` reports this as `match=unmatched`).
-
-### Never scaffold on a total miss
-
-If **no row resolves at all** and the index is not empty, the code root is wrong or unset — every
-relative row misses at once. That is a configuration problem, not a new repo.
-
-Say so, name the root you resolved and where it came from, and **stop**. Do not scaffold: creating a
-workspace here is exactly the split-brain this index exists to prevent, and it is unrecoverable
-without a manual merge.
-
 ## Overview.md
 
 Current state. Rewrite in place on every close-out so it is true today. Budget: 200 words.
