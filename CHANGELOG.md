@@ -18,12 +18,12 @@ are minor.
 
 ### Added
 
-- **`dev-workbook context`.** One read-only command that prints, on a single `key=value` line, what every skill used to work out from prose: the vault and code root (and which config tier supplied it), the repo's workspace match (`path`, `basename`, `moved`, `ambiguous`, `unmatched`, `misconfigured`, `new`, `no-index`, `no-vault`), whether the workspace is structured, a trial workspace, whether to ask before writing to the vault, who syncs it (`hooks`, `self`, `none`) and whether this is a background session. Values with spaces or quotes are JSON-quoted, and a failure still prints every key plus `error=`.
+- **`dev-workbook context`.** One read-only command that prints, on a single `key=value` line, what every skill used to work out from prose: the vault and code root and which config tier supplied each (`vault_from`, `code_root_from`), the repo's workspace match (`path`, `basename`, `moved`, `ambiguous`, `unmatched`, `misconfigured`, `new`, `no-index`, `no-vault`), whether the workspace is structured, a trial workspace, whether to ask before writing to the vault, who syncs it (`hooks`, `self`, `none`) and whether this is a background session. Values with spaces or quotes are JSON-quoted, and a failure still prints every key plus `error=`. Index rows it cannot read, or a workspace name with anything beyond letters, digits, dots, dashes, underscores and spaces, are never matched, so they lead to a question rather than a scaffold or a shell command.
 
 ### Changed
 
-- **The skills read it instead of repeating the rules.** `manage-project-workspaces`, `capture-notes`, `ingest-project-docs`, `summarize-contribution` and `condense-vault` start from `dev-workbook context` and keep a short prose fallback for standalone installs. `manage-project-workspaces` is about 3 KB smaller.
-- **A repo with no row in a populated index now asks before scaffolding.** The skill used to say stop and the templates reference said scaffold; both now say ask first, and scaffold only on a yes.
+- **The skills read it instead of repeating the rules.** `manage-project-workspaces`, `capture-notes`, `ingest-project-docs`, `summarize-contribution` and `condense-vault` start from `dev-workbook context` and keep a short prose fallback for standalone installs. When `DEVWB_VAULT` names a missing folder they say so and stop, instead of writing a config file the variable would override. `manage-project-workspaces` is about 3 KB smaller.
+- **A repo with no row in a populated index now asks before scaffolding** (`match=unmatched`). The skill used to say stop and the templates reference said scaffold; both now say ask first, and scaffold only on a yes. When no indexed path exists on this machine the code root is wrong, and the skill still stops (`match=misconfigured`), now even when the repo's name matches a row.
 
 ## [3.4.0] — 2026-11-15
 

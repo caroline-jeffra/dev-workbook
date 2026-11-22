@@ -9,6 +9,7 @@ cell cannot break the line. Exits 0 always; an unexpected exception still prints
 unknown ones `-`) plus `error=<short>`.
 
     vault, vault_ok          the resolved vault, and whether it is an existing directory
+    vault_from               arg | env | config | legacy-config | legacy | default — which tier said so
     code_root, code_root_from  where repos live, and which config tier said so
     repo                     the git toplevel of --repo / the working directory
     index, index_notes       the workspace index (vault-relative), and whether prose follows its table
@@ -38,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 
 import dev_workbook_paths as paths  # noqa: E402
 
-KEYS = ("vault", "vault_ok", "code_root", "code_root_from", "repo", "index", "index_notes", "match",
+KEYS = ("vault", "vault_ok", "vault_from", "code_root", "code_root_from", "repo", "index", "index_notes", "match",
         "workspace", "indexed", "candidates", "structured", "trial", "consent", "sync", "background",
         "error")
 INDEXES = ("Projects/WorkspaceIndex.md", "Projects/_index.md")
@@ -72,6 +73,9 @@ class Row(NamedTuple):
 WIKILINK = re.compile(r"\[\[([^\]]*)\]\]")
 SEPARATOR = re.compile(r"^:?-+:?$")
 TRIAL_HEADING = re.compile(r"^##\s+trial workspaces\b", re.I)
+# A workspace name is one folder under Projects/. Skills splice it into shell commands and paths,
+# so anything beyond word characters, dots, dashes and spaces (or a `..`) is not a workspace.
+SAFE_NAME = re.compile(r"^\w[\w. -]*$")
 
 
 def workspace_of(cells_text: str) -> str | None:
@@ -79,12 +83,13 @@ def workspace_of(cells_text: str) -> str | None:
     found = None
     for m in WIKILINK.finditer(cells_text):
         target = re.split(r"\\?\|", m.group(1))[0].split("#")[0].strip()
+        if target.lower().endswith(".md"):
+            target = target[:-3]
         if target.lower().endswith("/overview"):
             name = target[: -len("/overview")].strip("/")
             if name.startswith("Projects/"):
                 name = name[len("Projects/"):]
-            if name:
-                found = f"Projects/{name}"
+            found = f"Projects/{name}" if SAFE_NAME.match(name) and ".." not in name else None
     return found
 
 
@@ -100,15 +105,16 @@ def is_placeholder(path: str) -> bool:
     return path == "" or path[0] in "_(*"
 
 
-def first_table(lines: list[str], start: int, stop: int) -> tuple[list[Row], int, int]:
-    """Rows of the first table in lines[start:stop], and the span [begin, end) it covers."""
+def first_table(lines: list[str], start: int, stop: int) -> tuple[list[Row], int, int, int]:
+    """Rows of the first table in lines[start:stop], the span [begin, end) it covers, and how many
+    of its data rows could not be read (no safe `…/Overview` link)."""
     i = start
     while i < stop and not lines[i].lstrip().startswith("|"):
         i += 1
     begin = i
     while i < stop and lines[i].lstrip().startswith("|"):
         i += 1
-    rows = []
+    rows, unread = [], 0
     for line in lines[begin + 1:i]:                     # the first line is the header
         cells = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
         if all(SEPARATOR.match(c) for c in cells if c) and any(cells):
@@ -116,11 +122,14 @@ def first_table(lines: list[str], start: int, stop: int) -> tuple[list[Row], int
         row = parse_row(line)
         if row:
             rows.append(row)
-    return rows, begin, i
+        else:
+            unread += 1
+    return rows, begin, i, unread
 
 
-def parse_index(text: str) -> tuple[list[Row], list[Row], bool]:
-    """(main rows, trial rows, whether prose follows the main table)."""
+def parse_index(text: str) -> tuple[list[Row], list[Row], bool, bool]:
+    """(main rows, trial rows, whether prose follows the main table, whether the index has rows
+    this parser could not read — a row without a usable link, or a table it could not place)."""
     lines = text.splitlines()
     start = 0
     if lines and lines[0].strip() == "---":
@@ -133,11 +142,15 @@ def parse_index(text: str) -> tuple[list[Row], list[Row], bool]:
             start = i + 1
             break
     trial_at = next((i for i in range(start, len(lines)) if TRIAL_HEADING.match(lines[i])), len(lines))
-    main, begin, end = first_table(lines, start, trial_at)
+    main, begin, end, unread = first_table(lines, start, trial_at)
     notes = begin < end and any(l.strip() for l in lines[end:trial_at])
     trial = first_table(lines, trial_at + 1, len(lines))[0] if trial_at < len(lines) else []
+    # No main table, yet a table somewhere (say the trial section sits above it): the index has a
+    # shape this parser does not know, and reading it as empty would scaffold a duplicate.
+    if begin == end and any(l.lstrip().startswith("|") for l in lines[start:]):
+        unread += 1
     return [r for r in main if not is_placeholder(r.path)], \
-        [r for r in trial if not is_placeholder(r.path)], notes
+        [r for r in trial if not is_placeholder(r.path)], notes, unread > 0
 
 
 # --- matching --------------------------------------------------------------------------------
@@ -173,17 +186,25 @@ def locate(rows: list[Row], cands: list[str], code_root: str) -> tuple[str, list
     return ("moved" if moved else "basename"), hit
 
 
-def classify(rows: list[Row], cands: list[str], code_root: str) -> dict[str, str]:
+def classify(rows: list[Row], cands: list[str], code_root: str, unread: bool = False) -> dict[str, str]:
     kind, hit = locate(rows, cands, code_root)
+    # Every row missing at once means the code root is wrong, not that this repo moved: rewriting a
+    # row against a wrong root would corrupt it. A lone row cannot tell the two apart, so it stays
+    # `moved` and the skill confirms before touching it.
+    total_miss = not any(os.path.exists(resolve_row(r.path, code_root)) for r in rows)
+    if kind in ("moved", "ambiguous") and len(rows) >= 2 and total_miss:
+        return {"match": "misconfigured"}
     if kind in ("path", "basename"):
         return {"match": kind, "workspace": hit[0].workspace}
     if kind == "moved":
         return {"match": kind, "workspace": hit[0].workspace, "indexed": hit[0].path}
     if kind == "ambiguous":
         return {"match": kind, "candidates": ",".join(sorted({r.workspace for r in hit}))}
+    if unread:
+        return {"match": "unmatched"}       # rows we could not read may be this repo's: ask
     if not rows:
         return {"match": "new"}
-    if not any(os.path.exists(resolve_row(r.path, code_root)) for r in rows):
+    if total_miss:
         return {"match": "misconfigured"}
     return {"match": "unmatched"}
 
@@ -256,6 +277,7 @@ def gather(out: dict[str, str], explicit_vault: str | None, repo_arg: str | None
     vault = Path(os.path.abspath(paths.resolve_vault(explicit_vault)))
     out["vault"] = str(vault)
     out["vault_ok"] = "yes" if vault.is_dir() else "no"
+    out["vault_from"] = "arg" if explicit_vault else paths.vault_source()
     out["background"] = "yes" if os.environ.get("CLAUDE_JOB_DIR", "") else "no"
     code_root = str(os.path.abspath(paths.resolve_code_root()))
     out["code_root"] = code_root
@@ -272,9 +294,9 @@ def gather(out: dict[str, str], explicit_vault: str | None, repo_arg: str | None
         out["match"] = "no-index"
         return
     out["index"] = rel
-    main, trial, notes = parse_index(text)
+    main, trial, notes, unread = parse_index(text)
     out["index_notes"] = "yes" if notes else "no"
-    out.update(classify(main, cands, code_root))
+    out.update(classify(main, cands, code_root, unread))
     t_kind, t_hit = locate(trial, cands, code_root)
     if t_kind in ("path", "basename", "moved"):
         out["trial"] = t_hit[0].workspace

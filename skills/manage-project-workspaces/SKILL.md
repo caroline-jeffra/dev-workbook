@@ -9,7 +9,7 @@ Keep a durable, per-repo workspace in the user's markdown vault (Obsidian, Foam,
 
 **Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
-Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, as the working directory is usually another repo), `vault_ok`, `code_root`, `code_root_from`, `repo`, `index`, `index_notes`, `match`, `workspace`, `indexed`, `candidates`, `structured`, `trial`, `consent`, `sync`, `background`. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder), then re-run `dev-workbook context` and act only on the new line (no key from the old line carries over).
+Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, as the working directory is usually another repo), `vault_ok`, `vault_from`, `code_root`, `code_root_from`, `repo`, `index`, `index_notes`, `match`, `workspace`, `indexed`, `candidates`, `structured`, `trial`, `consent`, `sync`, `background`. `vault_ok=no` → if `vault_from=env`, say that `DEVWB_VAULT` (or `OBSIDIAN_VAULT`) names a folder that does not exist and stop, since a config file cannot override it; otherwise ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder), then re-run `dev-workbook context` and act only on the new line (no key from the old line carries over).
 
 **Fallback** if the command is unavailable or prints no `match=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask; read the index yourself; ask before any first write or scaffold.
 
@@ -38,7 +38,7 @@ The same applies in Step 2: scaffolding a **workspace** into an existing `Projec
 | `path`, `basename` | Use `workspace` and **change nothing** — rewriting a row on another machine is what makes rows ping-pong. |
 | `moved` | The recorded path (`indexed`) is missing here, so the repo moved. **Confirm**, then update the row. |
 | `ambiguous` | **Ask** which, listing `candidates`. Do not guess. |
-| `unmatched` | Say `repo`, `code_root` and `code_root_from`, and **ask before scaffolding**: a second workspace for an existing repo is the split-brain the index prevents. On a yes, scaffold (Step 2) and add a row. |
+| `unmatched` | Also reported when the index has rows the command could not read — then read the index yourself first. Say `repo`, `code_root` and `code_root_from`, and **ask before scaffolding**: a second workspace for an existing repo is the split-brain the index prevents. On a yes, scaffold (Step 2) and add a row. |
 | `misconfigured` | No index path exists under `code_root`: the root is wrong or unset. **Stop**, naming `code_root` and `code_root_from`; do not scaffold. |
 | `new`, `no-index` | Scaffold (Step 2) and add a row, subject to Step 0 consent; for `no-index` create `WorkspaceIndex.md` first, with the header from [reference/templates.md](reference/templates.md). |
 | `no-vault` | Ask where the vault is and re-run, as above. |
