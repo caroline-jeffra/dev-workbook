@@ -1,6 +1,6 @@
 ---
 name: manage-project-workspaces
-description: Per-repo workspace in the user's markdown vault, the source of truth for ongoing dev work — overview, progress log, decisions/ADRs, open threads, tickets. Use for "what's next", "what should I work on", "where did we leave off", "status of <ticket>", "log progress", "record this decision", "close this thread", and only on request time tracking ("how many hours has this phase taken"). Check it before an issue tracker (Jira/GitHub/GitLab) for next work. Not git status — uncommitted changes, branches and diffs come from git.
+description: Per-repo workspace in the user's markdown vault, the source of truth for ongoing dev work — overview, progress log, decisions/ADRs, open threads, tickets. Use for "what's next", "what should I work on", "where did we leave off", "status of <ticket>", "log progress", "record this decision", "close this thread", and time tracking only if asked ("set up time tracking", "how many hours has this phase taken"). Check it before an issue tracker (Jira/GitHub/GitLab) for next work. Not git status — uncommitted changes, branches and diffs come from git.
 ---
 
 
