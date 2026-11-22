@@ -5,119 +5,56 @@ description: Maintains a per-repository workspace in the user's markdown vault (
 
 # Managing project workspaces
 
-Keep a durable, per-repo workspace in the user's markdown vault (Obsidian, Foam, …) so ongoing development work has one
-findable home — simpler than scattering context across ticket trackers, issues, and code comments.
+Keep a durable, per-repo workspace in the user's markdown vault (Obsidian, Foam, …) so ongoing development work has one findable home, not scattered across trackers, issues and code comments.
 
-**Vault location:** resolve in this order — (1) the `DEVWB_VAULT` environment variable (or the pre-3.0 `OBSIDIAN_VAULT`), (2) the config file `${XDG_CONFIG_HOME:-~/.config}/dev-workbook/vault` (or the pre-3.0 `…/claudesidion/vault`), (3) the legacy config file `~/.claude/obsidian-vault`, (4) the default `~/ObsidianVault`. A config file holds one line, the vault's path (whitespace trimmed, a leading `~/` or `$HOME/` expanded); `dev-workbook vault-path` prints the result. If none of them yields an existing directory, ask the user where their vault is and write the answer to `~/.config/dev-workbook/vault` (creating the folder) so every future session and hook finds it. Use the resolved absolute path (written below as `$DEVWB_VAULT`) for every read/write.
+**Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
-**Plugin tools** run through the `dev-workbook` command. If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook"` instead — the plugin root is two levels above this skill's base directory. A skill installed on its own, outside the plugin, needs the command on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
+Keys used below: `vault` (written as `$DEVWB_VAULT` — use this absolute path, as the working directory is usually another repo), `vault_ok`, `code_root`, `code_root_from`, `repo`, `index`, `index_notes`, `match`, `workspace`, `indexed`, `candidates`, `structured`, `trial`, `consent`, `sync`, `background`. `vault_ok=no` → ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder).
 
-You typically run this skill while the user's working directory is *a different repo*. Always address
-the vault by its absolute path; derive the current repo from the working directory, not the vault.
+**Fallback** if the command is unavailable or prints no `match=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask; read the index yourself; ask before any first write or scaffold.
 
 ## Step 0 — Ensure the vault-level files exist (once per vault)
 
-Two files live at the **vault root**, not inside any workspace:
+Two files live at the **vault root**: `Projects/WorkspaceIndex.md` (the repo → workspace map) and `TasksArchive.md` (see "Maintaining the TasksArchive"; template in [reference/templates.md](reference/templates.md)). A vault from before 2.0 has them as `Projects/_index.md` and `Tasks Archive.md`: read and update the old file in place until `condense-vault` renames it, and never create the new name beside the old one.
 
-- `$DEVWB_VAULT/Projects/WorkspaceIndex.md` — the repo → workspace map (see Step 1).
-  A vault from before 2.0 has it as `Projects/_index.md`, and its archive as `Tasks Archive.md`:
-  read and update the old file in place until `condense-vault` renames it. Never create the new
-  name beside the old one.
-- `$DEVWB_VAULT/TasksArchive.md` — the human-friendly day-by-day summary (see
-  "Maintaining the TasksArchive" below). Create it from the template in
-  [reference/templates.md](reference/templates.md).
+**Ask before the first write to a vault that already has content in it.** "What should I work on" is a request to *read*, not consent to create folders in a vault the user may have curated for years. Act on `consent`:
 
-**Ask before the first write to a vault that already has content in it.** A question like
-"what should I work on" is a request to *read*; it is not consent to create folders in a
-directory the user may have been curating for years, and `Projects/` is a common enough name
-that theirs may already mean something else.
-
-Decide with one check — does the vault contain notes this plugin did not put there?
-
-```bash
-# Any markdown outside the paths this plugin owns?
-find "$DEVWB_VAULT" -name '*.md' -not -path '*/.git/*' \
-  -not -path "$DEVWB_VAULT/Projects/*" \
-  -not -path "$DEVWB_VAULT/Resources/*" \
-  -not -path "$DEVWB_VAULT/Contributions/*" \
-  -not -path "$DEVWB_VAULT/Archived/*" | head -5
-```
-
-- **Empty vault, or nothing but this plugin's own folders** → create the two files without asking.
-  There is nothing to disturb, and prompting on an empty vault is noise.
-- **Existing notes, or a `Projects/` folder this plugin did not create** → stop and ask once,
-  naming exactly what you would create and where:
+- **`ok`** → create the two files without asking.
+- **`ask`** → ask once, naming what you would create and where:
 
   > This vault has notes in it already. To track work per repo I'd create
   > `Projects/WorkspaceIndex.md` and `TasksArchive.md` at the vault root. Create them?
 
-  If they decline, answer their question from what you can read and do not write anything. Do not
-  re-ask in the same session.
+  If they decline, answer read-only and write nothing. Do not re-ask in the same session.
 
-The same applies in Step 2: scaffolding a **workspace** into an existing `Projects/` folder is a
-first write to space the user may already be using. Name the folder you are about to create and
-confirm, unless this plugin created `Projects/` itself.
-
-Once either file exists, this step is done and never asks again.
+The same applies in Step 2: scaffolding a **workspace** into an existing `Projects/` folder is a first write to space the user may already be using. Name the folder you are about to create and confirm, unless this plugin created `Projects/` itself. Once either file exists, this step is done and never asks again.
 
 ## Step 1 — Locate the workspace
 
-The vault holds an index that maps each repo to its workspace folder, by a path **relative to this machine's code root**:
-`$DEVWB_VAULT/Projects/WorkspaceIndex.md`
+**`WorkspaceIndex.md` is the only way to choose a workspace.** Never pick one by browsing `Projects/` or grepping for a term — a trial or archived copy can look more relevant than the live workspace, because it is the one that has been reorganised. The context line already matched the repo against the index (see "Paths are machine-relative" in [reference/templates.md](reference/templates.md)). Act on `match`:
 
-**`WorkspaceIndex.md` is the only way to choose a workspace.** Never pick one by browsing `Projects/` or by
-grepping for a term — a trial or archived copy can look more relevant than the live workspace,
-because it is the one that has been reorganised. Read the index first, every time.
+| `match` | Do |
+|---|---|
+| `path`, `basename` | Use `workspace` and **change nothing** — rewriting a row on another machine is what makes rows ping-pong. |
+| `moved` | The recorded path (`indexed`) is missing here, so the repo moved. **Confirm**, then update the row. |
+| `ambiguous` | **Ask** which, listing `candidates`. Do not guess. |
+| `unmatched` | Say `repo`, `code_root` and `code_root_from`, and **ask before scaffolding**: a second workspace for an existing repo is the split-brain the index prevents. On a yes, scaffold (Step 2) and add a row. |
+| `misconfigured` | No index path exists under `code_root`: the root is wrong or unset. **Stop**, naming `code_root` and `code_root_from`; do not scaffold. |
+| `new`, `no-index` | Scaffold (Step 2) and add a row, subject to Step 0 consent; for `no-index` create `WorkspaceIndex.md` first, with the header from [reference/templates.md](reference/templates.md). |
+| `no-vault` | Ask where the vault is, as above. |
 
-1. Determine the current repo's absolute path: `git rev-parse --show-toplevel` (fall back to the cwd
-   if not a git repo). Call its basename `<repo>`.
+If `index_notes=yes` and `match` is not `path`, read the index's notes first.
 
-   **Resolve the code root**, which is what index rows are relative to: the `CODE_ROOT` environment
-   variable, then `${XDG_CONFIG_HOME:-~/.config}/dev-workbook/code-root` (or the pre-3.0 `…/claudesidion/code-root`), then the legacy
-   `~/.claude/code-root` (one line each, whitespace trimmed, leading `~/` or `$HOME/` expanded),
-   then the default `~/code`. `dev-workbook code-root` prints the result.
-
-2. Read `WorkspaceIndex.md` and match. Rows hold paths **relative to the code root**; a row starting with
-   `/` is absolute and matched literally. See "Paths are machine-relative" in
-   [reference/templates.md](reference/templates.md).
-   - **Path match** → use the workspace it names.
-   - **No path match** → fall back to **basename**. On a single match, check whether that row's
-     recorded path exists on this machine. If it does **not**, the repo moved: confirm and update
-     the row. If it **does**, you are simply on a different machine — use the workspace and
-     **change nothing**. Rewriting there is what makes rows ping-pong between machines.
-   - **Several basename matches** → ask which. Do not guess.
-   - **No match at all, and the index has rows** → **stop.** Every relative row missing at once
-     means the code root is wrong or unset, not that this is a new repo. Say which root you
-     resolved and where it came from, and do not scaffold — a second workspace for an existing repo
-     is the split-brain this index exists to prevent.
-   - **No match, and the index is empty** → genuinely new. Scaffold (Step 2) and add a row.
-   - **`WorkspaceIndex.md` missing** → create it with the header from
-     [reference/templates.md](reference/templates.md), then scaffold — subject to the Step 0
-     consent gate if this is the first write to a vault that already has content.
-
-3. **Check for a trial workspace.** `WorkspaceIndex.md` may carry a `## Trial workspaces` section listing a
-   second, not-yet-adopted workspace for the same repo. If the repo you matched appears there:
-   - The **main table's row is authoritative**. Write there, not to the trial.
-   - Say so in one line — "note that `<trial>` also exists as a trial copy; writing to the live
-     workspace" — so the user can redirect you if they meant the trial.
-   - **Never write to both.** Two workspaces receiving the same entry is exactly the split-brain the
-     trial section exists to prevent.
-
-   Write to a trial workspace only when the user names it explicitly.
+**Trial workspace.** If `trial` is not `-`, the repo also appears under the index's `## Trial workspaces`: the **main table's row is authoritative**, so write there. Say in one line that `<trial>` also exists as a trial copy and you are writing to the live workspace, so the user can redirect you. **Never write to both**: two workspaces receiving the same entry is the split-brain the trial section exists to prevent. Write to a trial workspace only when the user names it.
 
 ## Step 1b — Confirm the workspace is structured
 
-A workspace is structured if it contains `.vault-config.json`. Every workspace this version creates
-or writes to is structured; the flat layout was retired in 1.0.
-
-If a workspace has **no** `.vault-config.json`, it predates 1.0 and this version cannot read or
-write it. Say so plainly and stop:
+A workspace is structured if it contains `.vault-config.json`; every workspace this version writes to is, since the flat layout was retired in 1.0. If `structured=no`, it predates 1.0 and this version cannot read or write it. Say so plainly and stop:
 
 > `Projects/<name>/` uses the flat layout, which this version no longer supports. Pin the plugin to
 > `v0.4.x` and run `migrate-workspace` to convert it, then upgrade again.
 
-Do not attempt to read it, do not offer to convert it, and above all do not scaffold a second
-workspace alongside it.
+Do not read it, do not offer to convert it, and above all do not scaffold a second workspace alongside it.
 
 The full contract — folders, frontmatter fields, legal `status` values, how to supersede a decision —
 is in [reference/structure.md](reference/structure.md). **Read it before writing.**
@@ -491,18 +428,14 @@ Write for **someone scanning for one fact**, not someone reading start to finish
 
 ## Vault git sync
 
-**Check who syncs first.** The plugin's hooks sync the vault at the session boundaries — on session start one pulls it to latest, and on session end one regenerates the indexes, then commits and pushes everything as a single commit. Each start writes a heartbeat to `.git/dev-workbook-hooks` inside the vault:
+Act on `sync`. The plugin's hooks pull the vault at session start and commit and push it at session end.
 
-```bash
-find "$(git -C "$DEVWB_VAULT" rev-parse --absolute-git-dir)" -maxdepth 1 -name dev-workbook-hooks -mmin -1440
-```
+- **`hooks`** → **do not run `git pull`, `git add`, `git commit` or `git push` on the vault**; write the files and move on.
+- **`self`** → no hooks here, so sync yourself: `git -C "$DEVWB_VAULT" pull --ff-only` before your first read, and when the user closes out the session run `dev-workbook maintain`, stage only the paths the plugin owns (`git -C "$DEVWB_VAULT" add -- Projects Resources Contributions Home.md TasksArchive.md WorkPlanning.md`, skipping any that do not exist), commit them as one single-line commit (`vault: session updates YYYY-MM-DD`) and push. Never `git add -A`, and never commit mid-merge or on a detached HEAD. If the push fails, leave the commit and tell the user.
+- **`none`** → not under version control: nothing to sync, and never `git init` it.
 
-- **Heartbeat less than a day old** → the hooks are installed. **Do not run `git pull`, `git add`, `git commit` or `git push` on the vault**; write the files and move on.
-- **No heartbeat, or an old one** → this harness runs no hooks, so sync yourself: `git -C "$DEVWB_VAULT" pull --ff-only` before your first read, and when the user closes out the session run `dev-workbook maintain`, then stage only the paths the plugin owns (`git -C "$DEVWB_VAULT" add -- Projects Resources Contributions Home.md TasksArchive.md WorkPlanning.md`, skipping any that do not exist), commit them as one single-line commit (`vault: session updates YYYY-MM-DD`) and push. Never `git add -A`, and never commit mid-merge or on a detached HEAD. If the push fails, leave the commit and tell the user.
+**Background sessions** (`background=yes`) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and read and write it at the path it prints. Stage each note once. The hooks merge staged notes into the vault three ways when the session ends, so edits made meanwhile survive; a conflicting edit stays staged and the next session reports it (`dev-workbook staged` lists them). Skip renames and deletions in a background session.
 
-**Background sessions** (`CLAUDE_JOB_DIR` is set) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there, and a Bash write would sidestep the protection that block exists for. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and do all reading and writing for that note at the path it prints: an existing note is copied there, a new one does not exist yet. Stage each note once. When the session ends, the hooks merge the staged notes into the vault three ways, so edits made there meanwhile survive; a conflicting edit stays staged and the next session reports it. `dev-workbook staged` lists what is waiting. Skip renames and deletions in a background session — leave them for an interactive one.
-
-If the vault is not under version control, there is nothing to sync (and you should never `git init` it).
 ## Conventions
 
 - Dates: `YYYY-MM-DD`. Tags (if used in frontmatter): lowercase, hyphenated.
