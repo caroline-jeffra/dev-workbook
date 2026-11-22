@@ -1,0 +1,222 @@
+# phrase	expected file	flag (none | new | home | pointer | replaced)
+# --- router: intro, start block, fallback
+Keep a durable, per-repo workspace	SKILL.md
+prints one `key=value` line	SKILL.md
+Keys used below:	SKILL.md
+Fallback** if the command is unavailable	SKILL.md
+# --- router: intent-first routing (new)
+Decide the intent first	SKILL.md	new
+Reads never scaffold or write	SKILL.md	new
+scaffold.md first, then read.md, then closeout.md	SKILL.md	new
+# --- Step 0 -> scaffold.md
+Two files live at the **vault root**	reference/scaffold.md
+never create the new name beside the old one	reference/scaffold.md
+Ask before the first write to a vault that already has content in it	reference/scaffold.md
+create the two files without asking	reference/scaffold.md
+ask once, naming what you would create and where	reference/scaffold.md
+This vault has notes in it already	reference/scaffold.md
+If they decline, answer read-only and write nothing	reference/scaffold.md
+The same applies in Step 2: scaffolding a **workspace**	reference/scaffold.md
+# --- Step 1 -> router (frozen text)
+is the only way to choose a workspace	SKILL.md
+Never pick one by browsing	SKILL.md
+| `match` | Do |	SKILL.md
+rewriting a row on another machine is what makes rows ping-pong	SKILL.md
+The recorded path (`indexed`) is missing here	SKILL.md
+**Ask** which, listing `candidates`	SKILL.md
+Also reported when the index has rows the command could not read	SKILL.md
+a second workspace for an existing repo is the split-brain the index prevents	SKILL.md
+No index path exists under `code_root`	SKILL.md
+subject to Step 0 consent; for `no-index` create	SKILL.md
+| `no-vault` | Ask where the vault is	SKILL.md
+If `index_notes=yes` and `match` is not `path`	SKILL.md
+**Trial workspace.** If `trial` is not `-`	SKILL.md
+Never write to both	SKILL.md
+# --- Step 1b -> router (frozen text)
+A workspace is structured if it contains `.vault-config.json`	SKILL.md
+uses the flat layout, which this version no longer supports	SKILL.md
+Do not read it, do not offer to convert it	SKILL.md
+# --- the "read structure.md before writing" line
+The full contract — folders, frontmatter fields	reference/closeout.md	replaced
+Read these sections of structure.md before writing	reference/closeout.md	new
+Read the sections of structure.md that scaffolding needs	reference/scaffold.md	new
+# --- Step 2 -> scaffold.md
+is no longer created, read	reference/scaffold.md
+the repo's name in PascalCase	reference/scaffold.md
+Create each on first use, never empty	reference/scaffold.md
+Create `Overview.md` from the template	reference/scaffold.md
+as a **one-line-per-day index**	reference/scaffold.md
+nothing else does	reference/scaffold.md
+A new workspace has no content to derive topics from	reference/scaffold.md
+every workspace uses the same	reference/scaffold.md
+just `<repo>` for a repo sitting directly in it	reference/scaffold.md
+**Growing the topic vocabulary.**	reference/scaffold.md
+Add a topic once three or four notes would carry it	reference/scaffold.md
+# --- Step 3 -> read.md
+read the workspace's current state	reference/read.md
+(its `## Next up` is the queued work)	reference/read.md
+# --- "what's next" -> read.md
+First, check the question is the one this skill answers	reference/read.md
+Answer that from git and stop	reference/read.md
+the cheapest resolution is to answer the git question	reference/read.md
+the vault is the source of truth	reference/read.md
+offer to bootstrap	reference/read.md
+do not silently fall back to the tracker	reference/read.md
+its `## Next up` section is the direct answer	reference/read.md
+**Legacy workspace with no `## Next up`:**	reference/read.md
+Answer from that. Prioritize	reference/read.md
+Only consult the tracker as a *supplement*	reference/read.md
+**Check the workspace is current before trusting it over a tracker.**	reference/read.md
+**Workspace within a few days of the last commit**	reference/read.md
+**Workspace materially behind the repo**	reference/read.md
+**Workspace exists but is effectively empty**	reference/read.md
+# --- Step 4 -> closeout.md
+This step runs only when one of the triggers	reference/closeout.md
+It is not something to do as work happens	reference/closeout.md
+Golden rule: **never overwrite existing content.**	reference/closeout.md
+Create a file (with its header) only if it is absent	reference/closeout.md
+Read [reference/structure.md](reference/structure.md) first	reference/closeout.md	replaced
+(`type: log`, `date:` matching the filename)	reference/closeout.md
+never add a second block or a `###` sub-entry	reference/closeout.md
+**No `Next:` line.**	reference/closeout.md
+Never append a dated entry to the root `ProgressLog.md`	reference/closeout.md
+**Case-study flags**	reference/closeout.md
+the session is often	reference/closeout.md
+**Tag every prompt it answers**	reference/closeout.md
+**Watch hardest for the `Commits: low` prompts**	reference/closeout.md
+**Flag failures as readily as successes**	reference/closeout.md
+**Do not flag routine work.**	reference/closeout.md
+On a second close-out the same day, merge into the existing lines	reference/closeout.md
+`summarize-contribution` harvests these lines	reference/closeout.md
+**Next up** — rewrite `Overview.md`'s `## Next up`	reference/closeout.md
+at most five bullets, each linking	reference/closeout.md
+**A decision** — a **new note** in `Decisions/`	reference/closeout.md
+in this layout that file does not exist	reference/closeout.md
+**Superseding a decision** — when the new decision replaces an old one	reference/closeout.md
+both notes then read as current	reference/closeout.md
+**A thread** — one note per thread in `Threads/`	reference/closeout.md
+no "done on <date>" or outcome narrative appended	reference/closeout.md
+**A playbook** — an ordered procedure goes in `Playbooks/`	reference/closeout.md
+not open a thread that repeats them	reference/closeout.md
+**Overview** — update "current focus"	reference/closeout.md
+**Time tracking** — only if `TimeTracking.md` exists	reference/closeout.md
+and never repeats what the	reference/closeout.md
+Every note except a log is **current state**	reference/closeout.md
+delete finished or wrong lines, do not annotate them	reference/closeout.md
+bring it into the template as part of the same edit	reference/closeout.md
+**Removing something? Remove its references too.**	reference/closeout.md
+Logs are history and keep their links	reference/closeout.md
+and the naming table, are in	reference/closeout.md
+**Never create** `Decisions.md`, `Open Threads.md`	reference/closeout.md
+retired flat-layout files	reference/closeout.md
+**Do not hand-write `project:`, `topics:` or `tags:`.**	reference/closeout.md
+explicitly only when you know the derived guess would be wrong	reference/closeout.md
+**Never hand-edit `TopicIndex.md` or `TicketsIndex.md`.**	reference/closeout.md
+# --- wikilinks (closeout at step 2, structure.md at step 3)
+Every markdown viewer resolves	reference/closeout.md
+**A uniquely-named note → link it bare.**	reference/closeout.md
+**A name another workspace also uses → prefix it with the workspace.**	reference/closeout.md
+**A per-workspace structural file → always prefix it with the workspace**	reference/closeout.md
+**A log day → prefix it with the workspace's `Log/` path	reference/closeout.md
+**Inside a table cell → never alias.**	reference/closeout.md
+There is **no same-folder exception.**	reference/closeout.md
+**Never disambiguate by rewriting a bare link to a vault-wide search result.**	reference/closeout.md
+Cross-link between notes	reference/closeout.md
+# --- when the vault contradicts -> closeout.md
+The vault is older than this skill	reference/closeout.md
+**Two workspaces claim the same repo**	reference/closeout.md
+**The superseded decision has no note**	reference/closeout.md
+**An existing file breaks the format this skill documents**	reference/closeout.md
+**The workspace predates 2.0 names**	reference/closeout.md
+**A note carries frontmatter this contract does not list**	reference/closeout.md
+**The workspace is `status: paused` but the user is doing work in it**	reference/closeout.md
+Stop and ask only when writing would **destroy or contradict**	reference/closeout.md
+# --- TasksArchive -> closeout.md
+is the quick-reference the user scans before a personal update	reference/closeout.md
+**Append today's row when the session is closed out**	reference/closeout.md
+Newest year first (`# 2026`)	reference/closeout.md
+**Exactly two columns**	reference/closeout.md
+**Date column**	reference/closeout.md
+**Month's Projects** — every project touched that month	reference/closeout.md
+**New month** → add a new	reference/closeout.md
+Rows are **terse by design**	reference/closeout.md
+Name the project when the clause needs the context	reference/closeout.md
+Bold a genuine milestone	reference/closeout.md
+Several projects in one day → one clause each	reference/closeout.md
+A wikilink's alias pipe breaks the table row	reference/closeout.md
+Write it as a cell that renders in one line	reference/closeout.md
+Book work under the date it **started**	reference/closeout.md
+# --- integrations
+Two tools help when they're installed	SKILL.md
+**graphify** — when the repo has `graphify-out/graph.json`	SKILL.md
+**Diagrams** — when the user asks for a diagram	reference/closeout.md
+# --- time tracking setup -> time-tracking.md
+Some projects track hours per phase against their estimates	reference/time-tracking.md
+To set it up: create `TimeTracking.md` from the template	reference/time-tracking.md
+transcripts expire after 30 days by default	reference/time-tracking.md
+Once the file exists, every close-out updates it	reference/time-tracking.md
+# --- when to log progress
+Progress logging is **not** continuous	reference/closeout.md
+**The user explicitly asks**	reference/closeout.md
+**The user says to close out the session**	reference/closeout.md
+do the whole write in one pass	reference/closeout.md
+Reading the vault is unrestricted	SKILL.md
+Keep each write incremental	reference/closeout.md
+# --- vault I/O (router, full)
+Vault notes are long prose	SKILL.md
+**Reading** — prefer targeted Bash extraction	SKILL.md
+**Writing** — append and edit with Bash	SKILL.md
+**Reporting** — after writing, say what you did	SKILL.md
+**Verification** — if you must confirm a write landed	SKILL.md
+# --- vault writing style (closeout at step 2, structure.md at step 3)
+The full rules and per-type length budgets are in	reference/closeout.md
+setup comes after, if at all	reference/closeout.md
+over paragraphs** — a paragraph is at most three short sentences	reference/closeout.md
+never the story of getting there	reference/closeout.md
+link the specific note that owns a fact	reference/closeout.md
+Remove references to finished, superseded or deleted things	reference/closeout.md
+**One continuous line per block** — no hard line breaks	reference/structure.md	home
+# --- sync / background
+Act on `sync`. The plugin's hooks pull the vault	SKILL.md
+do not run `git pull`, `git add`, `git commit` or `git push` on the vault	SKILL.md
+no hooks here, so sync yourself	SKILL.md
+stage only the paths the plugin owns	reference/closeout.md
+Never `git add -A`	reference/closeout.md
+If the push fails, leave the commit and tell the user	reference/closeout.md
+not under version control: nothing to sync, and never `git init` it	SKILL.md
+**Background sessions** (`background=yes`)	reference/closeout.md
+Skip renames and deletions in a background session	reference/closeout.md
+# --- conventions, templates
+Dates: `YYYY-MM-DD`. Tags (if used in frontmatter)	SKILL.md
+The vault links *out* to Jira/GitHub/GitLab	SKILL.md
+The index-note format and a template for every note type	SKILL.md
+# --- templates.md:30-72 -> scaffold.md
+an absolute path is only ever correct on one of them	reference/scaffold.md
+**Resolving the code root**, in order	reference/scaffold.md
+the pre-3.0 `…/claudesidion/code-root`	reference/scaffold.md
+This is deliberately the same shape as	reference/scaffold.md
+**A relative row** (`some-repo`	reference/scaffold.md
+**An absolute row** (`/opt/src/odd-one`)	reference/scaffold.md
+When adding a repo, take `git rev-parse --show-toplevel`	reference/scaffold.md
+**Path match** — resolve each row	reference/scaffold.md
+**No match** → compare the repo's **basename**	reference/scaffold.md
+**Exactly one basename match** → check whether	reference/scaffold.md
+**It does not exist** → the repo moved	reference/scaffold.md
+**It does exist** → do **not** rewrite the row	reference/scaffold.md
+**Several basename matches** → ask which	reference/scaffold.md
+**No basename match** → with no repo rows	reference/scaffold.md
+If **no row resolves at all** and the index is not empty	reference/scaffold.md
+Say so, name the root you resolved and where it came from	reference/scaffold.md
+# --- pointers (flag pointer: the phrase must appear in that file)
+](reference/read.md)	SKILL.md	pointer
+](reference/closeout.md)	SKILL.md	pointer
+](reference/scaffold.md)	SKILL.md	pointer
+](reference/time-tracking.md)	SKILL.md	pointer
+](reference/integrations.md)	SKILL.md	pointer
+](scaffold.md)	reference/closeout.md	pointer
+](closeout.md)	reference/scaffold.md	pointer
+](structure.md)	reference/closeout.md	pointer
+](structure.md)	reference/scaffold.md	pointer
+](scaffold.md)	reference/read.md	pointer
+](templates.md)	reference/closeout.md	pointer
+](templates.md)	reference/scaffold.md	pointer
