@@ -63,3 +63,18 @@ def resolve_vault(explicit: str | None = None) -> Path:
 
 def resolve_code_root(explicit: str | None = None) -> Path:
     return _resolve(explicit, ("CODE_ROOT",), "code-root", "code-root", "code")
+
+
+def code_root_source() -> str:
+    """Which tier of `resolve_code_root` supplied the code root, in the same order as `_resolve`:
+    `env`, `config`, `legacy-config` (the pre-3.0 claudesidion dir), `legacy` (~/.claude/code-root)
+    or `default`."""
+    if os.environ.get("CODE_ROOT", ""):
+        return "env"
+    if read_path_file(config_dir() / "code-root"):
+        return "config"
+    if read_path_file(config_dir("claudesidion") / "code-root"):
+        return "legacy-config"
+    if read_path_file(Path.home() / ".claude" / "code-root"):
+        return "legacy"
+    return "default"

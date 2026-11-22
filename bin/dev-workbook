@@ -9,6 +9,9 @@
     dev-workbook rename [--vault P] [--dry-run] OLD NEW
                                                  rename a note and rewrite every link to it
     dev-workbook qualify [--vault P] [--dry-run] qualify ambiguous wikilinks
+    dev-workbook context [--vault P] [--repo PATH]
+                                                 print one key=value line: vault, code root, which
+                                                 workspace this repo maps to, consent, sync mode
     dev-workbook hours [session_hours options]   measure time spent from session transcripts
     dev-workbook stage [--vault P] PATH          background sessions: stage a vault note to edit
                                                  outside the vault; prints the path to edit
@@ -157,6 +160,11 @@ def main(argv: list[str]) -> int:
                 return 2
             return vault_spool.main(["stage", vault, rest[0]])
         return vault_spool.main(["list", vault])
+    if cmd == "context":
+        import workspace_context
+
+        vault, rest = take_vault(args)
+        return workspace_context.main(["--vault", vault, *rest])
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)
