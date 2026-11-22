@@ -1,6 +1,6 @@
 ---
 name: summarize-contribution
-description: Writes or updates a career-facing summary of the user's contribution to a project, stored one-file-per-project in the vault's top-level Contributions folder, including case studies matched to the questions reviews and interviews ask for examples of. Evidence comes from git history, the project's vault workspace, and any tracker the user has CLI access to. Use when the user says "summarize my contribution", "write a CV summary for this project", "update my contribution summary", "what should I put on my CV for this", "what did I accomplish on this project", "find me case studies", "what examples do I have for <interview question>", or when a project is wrapping up, going on pause, or a review/CV/LinkedIn update is due. Not for status or next-work questions — "where did we leave off", "what's the status", "what have I been working on" belong to manage-project-workspaces; this skill is only for career-facing write-ups.
+description: Writes or updates a career-facing summary of the user's contribution to a project (one file per project in the vault's Contributions folder), with case studies for review and interview questions. Use for "summarize my contribution", "write a CV summary for this project", "find me case studies", "what examples do I have for <interview question>", or when a project wraps up or a review/CV update is due. Not for status or next work ("where did we leave off", "what's the status", "what have I been working on") — that is manage-project-workspaces.
 ---
 
 # Summarizing a contribution

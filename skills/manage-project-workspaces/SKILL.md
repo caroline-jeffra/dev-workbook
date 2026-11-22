@@ -1,6 +1,6 @@
 ---
 name: manage-project-workspaces
-description: Maintains a per-repository workspace in the user's markdown vault (Obsidian, Foam, …) as the source of truth for ongoing development work — overview, dated progress log, decisions/ADRs, and open threads. Use when the user asks what to work on next or where a body of work stands — "what's the next task", "what should I work on", "where did we leave off", "what were we doing on this" — as well as "log progress", "record what we did", "record this decision", "track open threads", "close this thread", and — only on request — "set up time tracking", "how many hours has this phase taken". Consult this vault before an issue tracker (Jira/GitHub/GitLab) for next-work questions. Not for "what's the status" in the git sense — uncommitted changes, branch state and diffs come from git, not from here.
+description: Per-repo workspace in the user's markdown vault (Obsidian, Foam, …), the source of truth for ongoing dev work — overview, progress log, decisions/ADRs, open threads, tickets. Use for "what's next", "what should I work on", "where did we leave off", "status of <ticket>", "log progress", "record this decision", "close this thread", and only on request time tracking ("how many hours has this phase taken"). Check it before an issue tracker (Jira/GitHub/GitLab) for next work. Not git status — uncommitted changes, branches and diffs come from git.
 ---
 
 

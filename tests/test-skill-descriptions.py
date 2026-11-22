@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Every kept trigger and exclusion, per skill (case-insensitive substring of the description).
 PINS: dict[str, list[str]] = {
     "manage-project-workspaces": [
-        "where did we leave off", "what's the next task", "log progress", "record this decision",
+        "where did we leave off", "what's next", "status of <ticket>", "log progress", "record this decision",
         "close this thread", "how many hours", "issue tracker", "come from git", "Obsidian",
         "ADRs", "open threads",
     ],
@@ -31,6 +31,9 @@ PINS: dict[str, list[str]] = {
     "condense-vault": ["condense the vault", "SessionStart"],
     "ingest-project-docs": ["ingest this project", "bootstrap the workspace"],
 }
+
+TOTAL_BUDGET = 2000  # bytes of description across all skills
+EACH_BUDGET = 600    # bytes per description
 
 YAML_INDICATORS = "'\"[{&*!|>%@`"
 
@@ -59,8 +62,13 @@ def results(skills_dir: Path) -> list[tuple[bool, str, str]]:
             out.append((": " not in value, f"{skill}: no ': ' in the plain scalar", ""))
             out.append((" #" not in value, f"{skill}: no ' #' in the plain scalar", ""))
             out.append((value[:1] not in YAML_INDICATORS, f"{skill}: no leading YAML indicator", value[:1]))
+        size = len(value.encode("utf-8"))
+        out.append((size <= EACH_BUDGET, f"{skill}: description is within {EACH_BUDGET} bytes", f"{size} bytes"))
         for phrase in PINS.get(skill, []):
             out.append((phrase.lower() in value.lower(), f"{skill}: keeps '{phrase}'", ""))
+    total = sum(len(description_of(p / "SKILL.md")[1][0][len("description:"):].strip().encode("utf-8"))
+                for p in skills_dir.iterdir() if (p / "SKILL.md").is_file() and description_of(p / "SKILL.md")[1])
+    out.append((total <= TOTAL_BUDGET, f"all descriptions together are within {TOTAL_BUDGET} bytes", f"{total} bytes"))
     for skill in PINS:
         out.append(((skills_dir / skill / "SKILL.md").is_file(), f"{skill}: skill exists", ""))
     return out
@@ -113,8 +121,7 @@ def main() -> int:
     items = results(ROOT / "skills")
     bad = run("skill descriptions", items)
     bad += run("the checks themselves", self_test())
-    total = len(items) + sum(len(v) for v in PINS.values())
-    print(f"\n{total - bad} passed, {bad} failed")
+    print(f"\n{'FAIL' if bad else 'PASS'}: {bad} failed")
     return 1 if bad else 0
 
 
