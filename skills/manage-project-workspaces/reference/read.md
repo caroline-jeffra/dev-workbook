@@ -6,7 +6,7 @@ Applies to a read request — "what's next", "where did we leave off", "what's t
 
 Before acting on a task or answering a workspace-wide "what's the status", read the workspace's current state (a question about one ticket is answered from that ticket's note instead — see below). This is the context that would otherwise be lost.
 
-- Run `dev-workbook brief`: it prints the Overview's current focus and `## Next up`, the open threads, the newest progress lines and the latest log. Answer from it, and open a note only for what it lacks (a ticket's `**Next:**`, a thread's items). Fall back to reading the files when it is unavailable, exits non-zero, sets `error=` or prints no `## end`; with `workspace=-`, follow the router's `match` table.
+- Run `dev-workbook brief`: it prints the Overview's current focus and `## Next up`, the open threads, the newest progress lines and the latest log. Answer from it, and open a note only for what it lacks (a ticket's `**Next:**`, a thread's items). Fall back to reading the files when it is unavailable, exits non-zero, sets `error=` or prints no `## end`; with `body=no`, follow the router's `match` table, or its `structured=no` stop rule.
 - The files: `Overview.md` (its `## Next up` is the queued work), `ThreadsIndex.md` (open threads and active playbooks with their counts), and the newest lines of `ProgressLog.md`, following the top one or two dates into `Log/<date>.md` for the detail.
 
 ## Answering "what's next" / status questions

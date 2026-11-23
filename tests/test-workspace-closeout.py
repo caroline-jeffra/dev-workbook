@@ -179,10 +179,34 @@ check(got == (f"---\ntype: log\ndate: {DATE}\n---\n\n# {DATE}\n\n- **Did:** buil
 check("did=+1 decided=+1 learned=+1 case_study=+1 links=+1 skipped=2" in r.stdout and "merged" in r.stdout, "the counts include skipped", r.stdout)
 check(got.startswith(LOG_OLD.split("# 2026")[0]), "the frontmatter stays byte-identical")
 
-v = vault("log-bold", log=f"---\ntype: log\ndate: {DATE}\n---\n\n# {DATE}\n\n- **Did:** **Built brief** and more\n")
+v = vault("log-bold", log=f"---\ntype: log\ndate: {DATE}\n---\n\n# {DATE}\n\n- **Did:** **Built brief**; and more\n")
 r = run(v, pay(did=["built BRIEF"]))
-check("unchanged" in r.stdout and text(v, f"Projects/Alpha/Log/{DATE}.md").endswith("**Built brief** and more\n"),
+check("unchanged" in r.stdout and text(v, f"Projects/Alpha/Log/{DATE}.md").endswith("**Built brief**; and more\n"),
       "a clause differing only in case or bold is a duplicate", r.stdout)
+
+v = vault("log-whole", log=f"---\ntype: log\ndate: {DATE}\n---\n\n# {DATE}\n\n- **Did:** wrote tests for X\n- **Links:** PR #12\n")
+r = run(v, pay(did=["tests"], links=["PR #1"], archive=None))
+got = text(v, f"Projects/Alpha/Log/{DATE}.md")
+check("- **Did:** wrote tests for X; tests\n" in got and "- **Links:** PR #12, PR #1\n" in got,
+      "a clause is compared whole: a substring of an existing clause is still added", got)
+run(v, pay(did=["one; two"], archive=None))
+r = run(v, pay(did=["one; two"], archive=None))
+check(f"Log/{DATE}.md unchanged" in r.stdout and text(v, f"Projects/Alpha/Log/{DATE}.md").count("one; two") == 1,
+      "a clause holding its line's separator is still idempotent", r.stdout)
+
+v = vault("log-nolabels", log=f"---\ntype: log\ndate: {DATE}\n---\n\n# {DATE}\n\n## Notes\n\n- a note\n")
+run(v, pay(did=["x"], learned=["y"], archive=None))
+got = text(v, f"Projects/Alpha/Log/{DATE}.md")
+check(got.endswith(f"# {DATE}\n\n- **Did:** x\n- **Learned:** y\n\n## Notes\n\n- a note\n"),
+      "in a log with no label lines the labels go right after the # <date> heading, not after a trailing section", got)
+
+v = vault("crlf", log=LOG_OLD.replace("\n", "\r\n"), progress=PROGRESS.replace("\n", "\r\n"), archive=ARCHIVE.replace("\n", "\r\n"))
+r = run(v, pay(learned=["crlf"]))
+files = [v / f"Projects/Alpha/Log/{DATE}.md", v / "Projects/Alpha/ProgressLog.md", v / "TasksArchive.md"]
+check(r.returncode == 0 and all(b"\n" not in f.read_bytes().replace(b"\r\n", b"") for f in files),
+      "a CRLF file is written back with CRLF line endings only", r.stderr + str([f.read_bytes()[-80:] for f in files]))
+r = run(v, pay(learned=["crlf"]))
+check(all(" unchanged" in ln for ln in r.stdout.splitlines()), "and a rerun on CRLF files is unchanged", r.stdout)
 
 v = vault("log-other", log=f"---\ntype: log\ndate: {DATE}\ntags: [x]\n---\n\n# {DATE}\n\nHand-written prose {MARKER}.\n\n- **Did:** a\n- **Links:** l\n\nTail.\n")
 before_log = text(v, f"Projects/Alpha/Log/{DATE}.md")
@@ -206,6 +230,11 @@ check(text(v, "Projects/Alpha/ProgressLog.md").rstrip().endswith("Oldest"), "an 
 run(v, pay(headline="Reworded headline"))
 got = text(v, "Projects/Alpha/ProgressLog.md")
 check(got.count("Log/2026-11-23|") == 1 and "Reworded headline" in got and "Shipped the thing" not in got, "a same-day line is replaced, not duplicated")
+v = vault("progress-mention", progress=PROGRESS.replace("— twentieth", f"— follow-up in [[Alpha/Log/{DATE}|later]] and **{DATE}**"))
+run(v, pay())
+got = text(v, "Projects/Alpha/ProgressLog.md")
+check("— Shipped the thing" in got and "follow-up in" in got,
+      "a date mentioned later in another day's bullet is not a same-day line", got)
 v = vault("progress-missing", progress=None)
 r = run(v, pay())
 got = text(v, "Projects/Alpha/ProgressLog.md")
@@ -253,6 +282,22 @@ r = run(v, pay(date="2026-11-20", archive="alpha REVIEWED"))
 check("row=unchanged" in r.stdout and text(v, "TasksArchive.md").count("Alpha reviewed") == 1, "an existing clause is not added twice (case-folded)")
 r = run(vault("arch-extend-bold"), pay(date="2026-11-03", archive="bert milestone"))
 check("row=unchanged" in r.stdout, "a clause differing from a bold one only in bold is a duplicate", r.stdout)
+
+v = vault("arch-whole")
+r = run(v, pay(date="2026-11-20", archive="Bert"))
+check("| 20   | Bert thing, Bert |" in text(v, "TasksArchive.md") and "row=extended" in r.stdout,
+      "a clause that is only a substring of the row's clause is added", r.stdout)
+v = vault("arch-okt", archive=ARCHIVE.replace("## Oct 2026", "## Okt 2026"))
+r = run(v, pay(date="2026-08-10", archive="Alpha august"))
+got = text(v, "TasksArchive.md")
+check(r.returncode == 0 and "## Okt 2026" in got and got.index("## Sep 2026") < got.index("## Aug 2026"),
+      "an unparseable month heading is skipped when placing, never a crash", r.stderr)
+BOM_ARCH = "\ufeff# 2026\n\n## Nov 2026\n\n### Month's Projects\n[[Alpha/Overview|alpha]]\n\n| Date | Tasks |\n| ---- | ----- |\n| 20   | x |\n"
+v = vault("arch-bom", archive=BOM_ARCH)
+r = run(v, pay())
+got = text(v, "TasksArchive.md")
+check(got.startswith("\ufeff# 2026\n") and got.count("# 2026") == 1 and "| 23   | Alpha brief built |\n| 20   | x |" in got,
+      "a leading BOM is kept and the year heading after it still matches", got)
 
 v = vault("arch-link")
 run(v, pay(date="2026-11-21", archive="Alpha link"))
@@ -302,14 +347,17 @@ cases = [
     ("a link in archive", pay(archive="a [[b]]")), ("an unsafe project", pay(project="a|b")),
     ("a non-list clause field", pay(did="oops")), ("an unknown field", {**PAYLOAD, "didd": []}),
     ("not JSON", "{nope"), ("a JSON array", "[1]"), ("empty stdin", ""),
+    ("a C1 control", pay(did=["a\x9bb"])), ("a NEL", pay(did=["a\x85b"])), ("a line separator", pay(headline="a\u2028b")),
+    ("a paragraph separator", pay(learned=["a\u2029b"])), ("a bidi override", pay(archive="a\u202eb")),
+    ("a bidi isolate", pay(links=["a\u2066b"])), ("a bidi mark", pay(did=["a\u200fb"])),
 ]
 for label, payload in cases:
     r = run(v, payload)
-    check(r.returncode == 3 and r.stderr.startswith("closeout: ") and r.stdout == "" and tree(v) == base,
+    check(r.returncode == 3 and r.stderr.startswith("closeout: input: ") and r.stdout == "" and tree(v) == base,
           f"refuses {label}", f"rc={r.returncode} {r.stderr!r}")
 for label, ws in (("a workspace outside Projects/", "Resources/Alpha"), ("a traversal", "Projects/../x"), ("a missing workspace", "Projects/Nope")):
     r = run(v, pay(), ws=ws)
-    check(r.returncode == 3 and tree(v) == base, f"refuses {label}", r.stderr)
+    check(r.returncode == 3 and r.stderr.startswith("closeout: workspace: ") and tree(v) == base, f"refuses {label}", r.stderr)
 r = run(vault("refuse-unstructured", structured=False), pay())
 check(r.returncode == 3 and "structured" in r.stderr, "refuses an unstructured workspace", r.stderr)
 r = run(v, pay(), ws=None)
@@ -320,12 +368,26 @@ r = run(v2, pay())
 check(r.returncode == 3 and "TasksArchive.md is missing" in r.stderr and tree(v2) == b2, "refuses a missing TasksArchive.md when archive is set", r.stderr)
 r = run(v2, pay(archive=None))
 check(r.returncode == 0, "a missing TasksArchive.md is fine without an archive clause", r.stderr)
+v2 = vault("refuse-legacy", archive=None)
+(v2 / "Tasks Archive.md").write_text(ARCHIVE)
+b2 = tree(v2)
+r = run(v2, pay())
+check(r.returncode == 3 and "Tasks Archive.md" in r.stderr and "is missing" not in r.stderr and tree(v2) == b2,
+      "only a legacy Tasks Archive.md: refuses naming it, writes nothing", r.stderr)
 v3 = vault("refuse-link")
 import shutil  # noqa: E402
 shutil.rmtree(v3 / "Projects" / "Alpha" / "Log")
 (v3 / "Projects" / "Alpha" / "Log").symlink_to(TMP / "outside-log")
 r = run(v3, pay())
 check(r.returncode == 3 and "outside the vault" in r.stderr and not list((TMP / "outside-log").iterdir()), "refuses a target that resolves outside the vault", r.stderr)
+v4 = vault("refuse-inner-link")
+(v4 / "Projects" / "Other" / "Log").mkdir(parents=True)
+shutil.rmtree(v4 / "Projects" / "Alpha" / "Log")
+(v4 / "Projects" / "Alpha" / "Log").symlink_to(v4 / "Projects" / "Other" / "Log")
+b4 = tree(v4)
+r = run(v4, pay())
+check(r.returncode == 3 and "symlink" in r.stderr and tree(v4) == b4 and not list((v4 / "Projects" / "Other" / "Log").iterdir()),
+      "refuses a target reached through a symlink inside the vault", r.stderr)
 r = run(v, pay(), "--bogus")
 check(r.returncode == 3, "refuses an unknown argument")
 
@@ -355,6 +417,12 @@ check("bg thing" in (spool / "Projects/Alpha/Log" / f"{DATE}.md").read_text() an
       and (spool / "Projects/Alpha/ProgressLog.md").is_file(), "and writes all three files to the spool")
 r = run(v, pay(learned=["bg thing"]), env=bg)
 check(r.returncode == 0 and all(" unchanged" in ln for ln in r.stdout.splitlines()), "a background rerun merges into the staged copies: unchanged", r.stdout)
+r = run(v, pay(learned=["bg thing"]), "--dry-run", env=bg)
+check(r.returncode == 0 and all(" unchanged" in ln and "dry-run" in ln for ln in r.stdout.splitlines()),
+      "a background --dry-run reads the staged copies", r.stdout)
+r = run(v, pay(learned=["dry bg"]), "--dry-run", env={**bg, "CLAUDE_CODE_SESSION_ID": "sess-dry"})
+check(r.returncode == 0 and not (TMP / "state" / "dev-workbook" / "spool" / "sess-dry").exists() and tree(v) == base,
+      "and stages nothing new", r.stdout + r.stderr)
 r = run(v, pay(), env={"CLAUDE_JOB_DIR": str(TMP / "job")})
 check(r.returncode == 3 and "cannot stage" in r.stderr and tree(v) == base, "background without a session id refuses, never writes the vault", r.stderr)
 
@@ -398,6 +466,12 @@ check(r.stdout.strip().splitlines()[-1] == "commit=none pushed=yes", "with nothi
 r = run(git_vault("commit-local", remote=False), pay(), "--commit")
 check(r.stdout.strip().splitlines()[-1].endswith("commit=" + git(TMP / "commit-local", "rev-parse", "--short", "HEAD") + " pushed=no-remote"),
       "a vault with no remote: pushed=no-remote", r.stdout)
+v = git_vault("commit-merge")
+(v / ".git" / "MERGE_HEAD").write_text(git(v, "rev-parse", "HEAD") + "\n")
+head = git(v, "rev-parse", "HEAD")
+r = run(v, pay(learned=["merging"]), "--commit")
+check(r.stdout.strip().splitlines()[-1] == "commit=failed pushed=no" and "not committing" in r.stdout and git(v, "rev-parse", "HEAD") == head,
+      "the hook declines (a merge in progress): commit=failed pushed=no and the hook's reason", r.stdout)
 v = git_vault("commit-dry")
 head = git(v, "rev-parse", "HEAD")
 r = run(v, pay(), "--commit", "--dry-run")
