@@ -14,6 +14,18 @@ are minor.
 
 ## [Unreleased]
 
+## [3.9.1] — 2026-11-23
+
+### Changed
+
+- **`closeout --commit` no longer commits to a workspace found only by repo name.** When another checkout holds the indexed path (`match=basename`), it writes the files but ends `commit=none match=basename`; `reference/closeout.md` has the skill confirm the workspace and rerun with `--workspace`, which commits without writing again.
+- **The skill bodies no longer name a markdown viewer as an example** of the vault (capture-notes, manage-project-workspaces, the writing conventions). Passages about how specific viewers behave are kept.
+
+### Fixed
+
+- **condense-vault no longer contradicts thread closing**: a `status: done` thread that still holds its item lists is reduced to the closing stub from "Closing a thread", not kept as goal plus done list.
+- **`tests/test-session-hours.py` passes across a DST change**: test times took today's UTC offset instead of the one in force on their own date, so the midnight-crossing case failed when run outside summer time.
+
 ## [3.9.0] — 2026-11-23
 
 ### Added
