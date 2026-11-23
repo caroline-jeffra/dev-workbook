@@ -35,11 +35,9 @@ def check(cond: bool, name: str, detail: str = "") -> None:
             print(f"       {detail}")
 
 
-LOCAL = datetime.now().astimezone().tzinfo
-
-
 def at(day: str, hm: str) -> datetime:
-    return datetime.fromisoformat(f"{day}T{hm}:00").replace(tzinfo=LOCAL)
+    """A local wall-clock time, with the UTC offset in force on that date (not today's)."""
+    return datetime.fromisoformat(f"{day}T{hm}:00").astimezone()
 
 
 def user(ts: datetime, text: str = "go") -> dict:
