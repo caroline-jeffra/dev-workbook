@@ -159,18 +159,23 @@ def check_workspace(vault: Path, arg: str) -> str:
     return f"Projects/{name}"
 
 
+def locate(out: dict[str, str], vault_arg: str | None, repo_arg: str | None, ws_arg: str | None) -> str | None:
+    """Fill `out` from workspace_context.gather; the structured workspace to work in, or None."""
+    wc.gather(out, vault_arg, repo_arg)
+    if ws_arg is not None:
+        workspace = check_workspace(Path(out["vault"]), ws_arg)
+        out["workspace"], out["match"] = workspace, "arg"
+        return workspace
+    if out.get("match") in ("path", "basename") and out.get("structured") == "yes":
+        return out["workspace"]
+    return None
+
+
 def gather(out: dict[str, str], body: list[str], vault_arg: str | None, repo_arg: str | None,
            ws_arg: str | None) -> None:
-    wc.gather(out, vault_arg, repo_arg)
-    vault = Path(out["vault"])
-    workspace = None
-    if ws_arg is not None:
-        workspace = check_workspace(vault, ws_arg)
-        out["workspace"], out["match"] = workspace, "arg"
-    elif out.get("match") in ("path", "basename") and out.get("structured") == "yes":
-        workspace = out["workspace"]
+    workspace = locate(out, vault_arg, repo_arg, ws_arg)
     if workspace:
-        body += brief_body(vault, workspace, out)
+        body += brief_body(Path(out["vault"]), workspace, out)
     freshness(out)
 
 

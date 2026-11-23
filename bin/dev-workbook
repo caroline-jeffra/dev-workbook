@@ -16,6 +16,10 @@
                                                  print what a read of the workspace needs: current
                                                  focus, next up, open threads, recent progress,
                                                  the latest log and how current it is (read-only)
+    dev-workbook closeout [--vault P] [--repo PATH] [--workspace Projects/<Name>] [--commit] [--dry-run]
+                                                 write the day's log, ProgressLog line and
+                                                 TasksArchive row from JSON on stdin; with --commit
+                                                 (sync=self) also commit and push the vault
     dev-workbook hours [session_hours options]   measure time spent from session transcripts
     dev-workbook tokens [session_tokens options] measure what the plugin costs in context per
                                                  session, from transcripts (sizes only, no text)
@@ -174,6 +178,9 @@ def main(argv: list[str]) -> int:
     if cmd == "brief":
         import workspace_brief
         return workspace_brief.main(args)
+    if cmd == "closeout":
+        import workspace_closeout
+        return workspace_closeout.main(args)
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)
