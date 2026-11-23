@@ -487,22 +487,35 @@ r = run(v, pay(), "--commit")
 check(r.stdout.strip().splitlines()[-1] == "commit=none sync=hooks" and git(v, "rev-parse", "HEAD") == head, "sync=hooks: the hooks commit, not closeout", r.stdout)
 v = git_vault("commit-basename")
 code = TMP / "code-basename"
-(code / "alpha").mkdir(parents=True)                       # the indexed checkout exists here...
-other = TMP / "elsewhere" / "alpha"                         # ...and this repo only shares its name
+(code / "alpha").mkdir(parents=True)                       # the indexed checkout exists here
+git(code / "alpha", "init", "-q")
+other = TMP / "elsewhere" / "alpha"                         # this repo only shares its name
 other.mkdir(parents=True)
 git(other, "init", "-q")
-(v / "Projects" / "WorkspaceIndex.md").write_text("# Project Workspaces\n\n| Repo path | Workspace |\n|---|---|\n| alpha | [[Alpha/Overview]] |\n")
+INDEX = "# Project Workspaces\n\n| Repo path | Workspace |\n|---|---|\n| alpha | [[Alpha/Overview]] |\n"
+(v / "Projects" / "WorkspaceIndex.md").write_text(INDEX)
 git(v, "add", "Projects")
 git(v, "commit", "-q", "-m", "index")
 git(v, "push", "-q")
-head = git(v, "rev-parse", "HEAD")
-r = run(v, pay(learned=["by name"]), "--repo", str(other), "--commit", env={"CODE_ROOT": str(code)}, ws=None)
-check(r.returncode == 0 and r.stdout.strip().splitlines()[-1] == "commit=none match=basename" and git(v, "rev-parse", "HEAD") == head
-      and "by name" in text(v, f"Projects/Alpha/Log/{DATE}.md"),
-      "a workspace matched only by repo name is written but not committed: commit=none match=basename", r.stdout + r.stderr)
-r = run(v, pay(learned=["by name"]), "--repo", str(other), "--commit", env={"CODE_ROOT": str(code)})
-check(r.returncode == 0 and r.stdout.strip().splitlines()[-1].endswith("pushed=yes") and git(v, "rev-parse", "HEAD") != head,
-      "the rerun with an explicit --workspace commits what the first run wrote", r.stdout + r.stderr)
+head, base = git(v, "rev-parse", "HEAD"), tree(v)
+by_name = {"CODE_ROOT": str(code)}
+for args in (["--commit"], [], ["--commit", "--dry-run"]):
+    r = run(v, pay(learned=["by name"]), "--repo", str(other), *args, env=by_name, ws=None)
+    check(r.returncode == 3 and "closeout: workspace:" in r.stderr and "match=basename" in r.stderr
+          and "--workspace Projects/Alpha" in r.stderr and tree(v) == base and git(v, "rev-parse", "HEAD") == head and r.stdout == "",
+          f"a repo-name-only match is refused before any write ({' '.join(args) or 'no flags'})", f"{r.returncode} {r.stdout!r} {r.stderr!r}")
+v2 = vault("basename-unsynced")
+(v2 / "Projects" / "WorkspaceIndex.md").write_text(INDEX)
+base2 = tree(v2)
+r = run(v2, pay(), "--repo", str(other), env=by_name, ws=None)
+check(r.returncode == 3 and "match=basename" in r.stderr and tree(v2) == base2, "sync=none: refused the same way", r.stderr)
+r = run(v2, pay(), "--repo", str(code / "alpha"), env=by_name, ws=None)
+check(r.returncode == 0 and (v2 / "Projects/Alpha/Log" / f"{DATE}.md").is_file(), "a path match writes without --workspace", r.stderr)
+r = run(v, pay(learned=["by name"]), "--repo", str(other), "--commit", env=by_name)
+log = text(v, f"Projects/Alpha/Log/{DATE}.md")
+check(r.returncode == 0 and r.stdout.strip().splitlines()[-1].endswith("pushed=yes") and log.count("by name") == 1
+      and f"Projects/Alpha/Log/{DATE}.md" in git(v, "show", "--name-only", "--format=", "HEAD").splitlines(),
+      "with the workspace passed explicitly it writes once and commits the log", r.stdout + r.stderr)
 v = git_vault("commit-bg")
 head = git(v, "rev-parse", "HEAD")
 r = run(v, pay(), "--commit", env={**bg, "CLAUDE_CODE_SESSION_ID": "sess-2"})

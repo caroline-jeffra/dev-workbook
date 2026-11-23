@@ -29,9 +29,10 @@ refuses rather than write it directly. `--dry-run` writes nothing (in a backgrou
 the staged copies that exist). `--commit`, with sync=self and outside a background session, also
 refreshes the indexes and runs hooks/vault-push.sh, and ends with
 `commit=<sha>|none|failed pushed=yes|no|no-remote`: `failed` when this run changed a file and the
-hook made no commit (its reason is printed above). A workspace found only by repo name
-(match=basename: another checkout holds the indexed path) is written but never committed: it ends
-`commit=none match=basename`, and a rerun with an explicit `--workspace` commits.
+hook made no commit (its reason is printed above).
+
+A workspace found only by repo name (match=basename: another checkout holds the indexed path) is
+refused before any write, in every sync mode: confirm it, then pass it as `--workspace`.
 
 Exit 0 when done; 3 with a one-line reason, before any write, when it refuses. The reason starts
 with `input:` (the request is malformed: fix it and rerun) or `workspace:` / `archive:` (the vault
@@ -488,8 +489,6 @@ def commit(vault: Path, out: dict[str, str], changed: bool) -> list[str]:
         return ["commit=none background=yes"]
     if out["sync"] != "self":
         return [f"commit=none sync={out['sync']}"]
-    if out.get("match") == "basename":      # maybe another repo's workspace: never push on a guess
-        return ["commit=none match=basename"]
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         try:
             vault_maintain.main([str(vault)])
@@ -546,6 +545,8 @@ def run(argv: list[str]) -> list[str]:
         raise Refusal(str(e)) from None
     if workspace is None:
         raise Refusal(f"no structured workspace for this repo (match={out.get('match', '-')}); pass --workspace")
+    if out.get("match") == "basename":      # maybe another repo's workspace: never write on a guess
+        raise Refusal(f"{workspace} was found only by repo name (match=basename); confirm it, then pass --workspace {workspace}")
     vault = Path(out["vault"])
     background = out["background"] == "yes"
     steps = plan(vault, workspace, req, background, opts["dry_run"])
