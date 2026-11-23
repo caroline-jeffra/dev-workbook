@@ -6,7 +6,7 @@ description: Per-repo workspace in the user's markdown vault, the source of trut
 
 # Managing project workspaces
 
-Keep a durable, per-repo workspace in the user's markdown vault (Obsidian, Foam, …) so ongoing development work has one findable home, not scattered across trackers, issues and code comments.
+Keep a durable, per-repo workspace in the user's markdown vault so ongoing development work has one findable home, not scattered across trackers, issues and code comments.
 
 **Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
