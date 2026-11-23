@@ -6,7 +6,8 @@ Applies to a read request — "what's next", "where did we leave off", "what's t
 
 Before acting on a task or answering a workspace-wide "what's the status", read the workspace's current state (a question about one ticket is answered from that ticket's note instead — see below). This is the context that would otherwise be lost.
 
-- `Overview.md` (its `## Next up` is the queued work), `ThreadsIndex.md` (open threads and active playbooks with their counts), and the newest lines of `ProgressLog.md`, following the top one or two dates into `Log/<date>.md` for the detail.
+- Run `dev-workbook brief`: it prints the Overview's current focus and `## Next up`, the open threads, the newest progress lines and the latest log. Answer from it, and open a note only for what it lacks (a ticket's `**Next:**`, a thread's items). Fall back to reading the files when it is unavailable, exits non-zero, sets `error=` or prints no `## end`; with `workspace=-`, follow the router's `match` table.
+- The files: `Overview.md` (its `## Next up` is the queued work), `ThreadsIndex.md` (open threads and active playbooks with their counts), and the newest lines of `ProgressLog.md`, following the top one or two dates into `Log/<date>.md` for the detail.
 
 ## Answering "what's next" / status questions
 
@@ -29,7 +30,7 @@ For a genuine next-work question the vault is the source of truth — check it *
 3. Answer from that. Prioritize: `## Next up` first, then open threads and active playbooks.
 4. Only consult the tracker as a *supplement* — to enrich an item or if the vault is genuinely silent — and mention that you're going beyond the vault when you do.
 
-**Check the workspace is current before trusting it over a tracker.** That preference is earned by a workspace someone has been keeping up; it is wrong for one that is empty or months behind, where deferring to it means answering from stale information and calling it the source of truth. Compare the newest `ProgressLog.md` date against the repo's last commit date:
+**Check the workspace is current before trusting it over a tracker.** That preference is earned by a workspace someone has been keeping up; it is wrong for one that is empty or months behind, where deferring to it means answering from stale information and calling it the source of truth. Compare the newest `ProgressLog.md` date against the repo's last commit date (`brief` gives `last_log`, `last_commit` and `commits_since_log`):
 
 - **Workspace within a few days of the last commit** → proceed as above; it is current.
 - **Workspace materially behind the repo** (say a week or more of commits it does not mention) → say so in one line, answer from the vault *and* the recent commits together, and offer to log the gap: "the workspace was last updated 2026-08-12 and there are 23 commits since — here's what it has, plus what the commits show; want me to bring it up to date?"
