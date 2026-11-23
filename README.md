@@ -107,6 +107,7 @@ The skills are plain Agent Skills and work in any harness that reads them. The s
 | `dev-workbook start --format <claude\|cursor\|plain>` | session start | Relays what the last session's exit reported, commits changes an earlier session left uncommitted, flushes stranded commits, pulls, then runs the size check and the condense reminder. Prints the session context once, in the harness's format. |
 | `dev-workbook end` | session end, if the harness has one | Refreshes indexes, commits the plugin's folders, pushes. |
 | `dev-workbook context [--vault P] [--repo PATH]` | what the skills run first | Prints one `key=value` line: the resolved vault and code root, which workspace the current repo maps to, whether to ask before writing, who syncs the vault and whether this is a background session. Read-only. |
+| `dev-workbook brief [--vault P] [--repo PATH] [--workspace Projects/<Name>]` | a read of the workspace ("what's next") | Prints the `context` facts for the repo's workspace, then its current focus, next up, open threads, newest progress lines and latest log, each vault line prefixed `│ `, plus how many commits the repo has made since the last log. Read-only. |
 
 A harness with no session-end event still works: the next `start` commits what the last session left. Whatever `end` reports is also relayed by the next `start`, since few harnesses show session-end output.
 
