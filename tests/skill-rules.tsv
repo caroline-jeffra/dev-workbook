@@ -242,6 +242,7 @@ Fall back to reading the files	reference/read.md	new
 **one `dev-workbook closeout` call, last**	reference/closeout.md	new
 write by hand from [closeout-manual.md]	reference/closeout.md	new
 `date` is the day the session **started**	reference/closeout.md	new
+On `commit=none match=basename` the files are written but not committed	reference/closeout.md	new
 Read this only when `dev-workbook closeout` is unavailable	reference/closeout-manual.md	new
 ](closeout-manual.md)	reference/closeout.md	pointer
 ](closeout.md)	reference/closeout-manual.md	pointer

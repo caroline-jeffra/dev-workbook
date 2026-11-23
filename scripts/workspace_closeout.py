@@ -29,7 +29,9 @@ refuses rather than write it directly. `--dry-run` writes nothing (in a backgrou
 the staged copies that exist). `--commit`, with sync=self and outside a background session, also
 refreshes the indexes and runs hooks/vault-push.sh, and ends with
 `commit=<sha>|none|failed pushed=yes|no|no-remote`: `failed` when this run changed a file and the
-hook made no commit (its reason is printed above).
+hook made no commit (its reason is printed above). A workspace found only by repo name
+(match=basename: another checkout holds the indexed path) is written but never committed: it ends
+`commit=none match=basename`, and a rerun with an explicit `--workspace` commits.
 
 Exit 0 when done; 3 with a one-line reason, before any write, when it refuses. The reason starts
 with `input:` (the request is malformed: fix it and rerun) or `workspace:` / `archive:` (the vault
@@ -486,6 +488,8 @@ def commit(vault: Path, out: dict[str, str], changed: bool) -> list[str]:
         return ["commit=none background=yes"]
     if out["sync"] != "self":
         return [f"commit=none sync={out['sync']}"]
+    if out.get("match") == "basename":      # maybe another repo's workspace: never push on a guess
+        return ["commit=none match=basename"]
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         try:
             vault_maintain.main([str(vault)])
