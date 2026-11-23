@@ -12,7 +12,7 @@
 
 These rules apply to **every markdown file written into the vault**, by any skill.
 
-**No hard line breaks inside a text block.** Each paragraph and each bullet is a single source line, however long; separate paragraphs with a blank line. Viewers (Obsidian, Foam, …) soft-wrap to the pane width, so hard-wrapped lines (the 80/100-column habit from code) produce ragged, uncomfortable reading there. Never wrap prose to a column width.
+**No hard line breaks inside a text block.** Each paragraph and each bullet is a single source line, however long; separate paragraphs with a blank line. Markdown viewers soft-wrap to the pane width, so hard-wrapped lines (the 80/100-column habit from code) produce ragged, uncomfortable reading there. Never wrap prose to a column width.
 
 **Scan-first writing.** Every note is written for someone scanning for one fact, not someone reading start to finish:
 

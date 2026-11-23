@@ -186,7 +186,7 @@ year. Target well under half the original length; a long note may become five bu
 **Project workspaces** (`Projects/<repo>/`) condense each stale note **to its type's template** (see [templates.md](../manage-project-workspaces/reference/templates.md), one file per type) rather than to free bullets:
 - `Log/<date>.md` — one `Did` / `Decided` / `Learned` / `Links` block; `Did` down to the outcomes that still matter. Keep every `Case study:` line word for word — `summarize-contribution` harvests them, and they are often the only record of the story.
 - Decisions — keep every one; condense `Why` and `Rejected` to a line each.
-- Threads — collapse `## Done` to one line per item; a `status: done` thread keeps only its goal and done list.
+- Threads — collapse `## Done` to one line per item; a `status: done` thread that still holds its item lists is reduced to the closing stub (Goal / Outcome / Moved to), after moving out what lasts — see "Closing a thread" in [structure.md](../manage-project-workspaces/reference/structure.md).
 - Playbooks and research — `status: done` playbooks keep goal, done-when and the step titles; research keeps its TL;DR and the sections that still hold facts.
 
 Rewrites also apply the vault writing style: **one continuous line per block** (unwrap any hard-wrapped prose you touch) and **scan-first prose** — the answer first, bullets over paragraphs, outcome not process. Condensed bullets are readable clauses, not telegraphic fragments.
