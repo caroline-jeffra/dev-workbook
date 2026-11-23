@@ -76,8 +76,8 @@ It is not something to do as work happens	reference/closeout.md
 Golden rule: **never overwrite existing content.**	reference/closeout.md
 Create a file (with its header) only if it is absent	reference/closeout.md
 Read [reference/structure.md](reference/structure.md) first	reference/closeout.md	replaced
-(`type: log`, `date:` matching the filename)	reference/closeout.md
-never add a second block or a `###` sub-entry	reference/closeout.md
+(`type: log`, `date:` matching the filename)	reference/closeout-manual.md
+never add a second block or a `###` sub-entry	reference/closeout-manual.md
 **No `Next:` line.**	reference/closeout.md
 Never append a dated entry to the root `ProgressLog.md`	reference/closeout.md
 **Case-study flags**	reference/closeout.md
@@ -141,11 +141,11 @@ Stop and ask only when writing would **destroy or contradict**	reference/closeou
 # --- TasksArchive -> closeout.md
 is the quick-reference the user scans before a personal update	reference/closeout.md
 **Append today's row when the session is closed out**	reference/closeout.md
-Newest year first (`# 2026`)	reference/closeout.md
-**Exactly two columns**	reference/closeout.md
-**Date column**	reference/closeout.md
-**Month's Projects** — every project touched that month	reference/closeout.md
-**New month** → add a new	reference/closeout.md
+Newest year first (`# 2026`)	reference/closeout-manual.md
+**Exactly two columns**	reference/closeout-manual.md
+**Date column**	reference/closeout-manual.md
+**Month's Projects** — every project touched that month	reference/closeout-manual.md
+**New month** → add a new	reference/closeout-manual.md
 Rows are **terse by design**	reference/closeout.md
 Name the project when the clause needs the context	reference/closeout.md
 Bold a genuine milestone	reference/closeout.md
@@ -187,9 +187,9 @@ Remove references to finished, superseded or deleted things	reference/structure.
 Act on `sync`. The plugin's hooks pull the vault	SKILL.md
 do not run `git pull`, `git add`, `git commit` or `git push` on the vault	SKILL.md
 no hooks here, so sync yourself	SKILL.md
-stage only the paths the plugin owns	reference/closeout.md
-Never `git add -A`	reference/closeout.md
-If the push fails, leave the commit and tell the user	reference/closeout.md
+stage only the paths the plugin owns	reference/closeout-manual.md
+Never `git add -A`	reference/closeout-manual.md
+If the push fails, leave the commit and tell the user	reference/closeout-manual.md
 not under version control: nothing to sync, and never `git init` it	SKILL.md
 **Background sessions** (`background=yes`)	reference/closeout.md
 Skip renames and deletions in a background session	reference/closeout.md
@@ -226,8 +226,8 @@ Say so, name the root you resolved and where it came from	reference/scaffold.md
 ](structure.md)	reference/scaffold.md	pointer
 ](scaffold.md)	reference/read.md	pointer
 ](templates/overview.md)	reference/closeout.md	pointer
-](templates/log.md)	reference/closeout.md	pointer
-](templates/tasks-archive.md)	reference/closeout.md	pointer
+](templates/log.md)	reference/closeout-manual.md	pointer
+](templates/tasks-archive.md)	reference/closeout-manual.md	pointer
 ](templates/vault-config.md)	reference/scaffold.md	pointer
 ](templates/index.md)	reference/scaffold.md	pointer
 ](templates/overview.md)	reference/scaffold.md	pointer
@@ -235,3 +235,14 @@ Say so, name the root you resolved and where it came from	reference/scaffold.md
 Answer first	reference/structure.md
 area first, kind last	reference/structure.md	home
 two kinds of note	reference/structure.md	home
+# --- 3.9.0: brief, closeout and the manual fallback
+Run `dev-workbook brief`	reference/read.md	new
+Fall back to reading the files	reference/read.md	new
+`last_log`, `last_commit` and `commits_since_log`	reference/read.md	new
+**one `dev-workbook closeout` call, last**	reference/closeout.md	new
+write by hand from [closeout-manual.md]	reference/closeout.md	new
+`date` is the day the session **started**	reference/closeout.md	new
+Read this only when `dev-workbook closeout` is unavailable	reference/closeout-manual.md	new
+](closeout-manual.md)	reference/closeout.md	pointer
+](closeout.md)	reference/closeout-manual.md	pointer
+](templates/progress-log.md)	reference/closeout-manual.md	pointer
