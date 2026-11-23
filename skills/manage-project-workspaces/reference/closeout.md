@@ -119,17 +119,17 @@ When one of those fires, do the whole write in one pass, in this order: rewrite 
 ```
 dev-workbook closeout [--commit] <<'EOF'
 {"date": "2026-11-23", "headline": "...", "did": ["..."], "decided": [], "learned": [],
- "case_study": [], "links": [], "archive": "...", "project": "dev-workbook"}
+ "case_study": [], "links": [], "archive": "..."}
 EOF
 ```
 
-`date` is the day the session **started**; `headline` is at most 12 words; `archive` and `project` are optional. It prints one line per file and never vault text, so a second close-out the same day is the same call. If it exits 3 (refused, nothing written), is unavailable or fails, write by hand from [closeout-manual.md](closeout-manual.md) instead of retrying.
+`date` is the day the session **started**; `headline` is at most 12 words; `archive` is optional; pass `project` (its alias) only on a project's first archive entry. JSON-escape `"` and `\` in clauses. A second close-out the same day is the same call. Exit 3 writes nothing: on `input:` fix the JSON and rerun once; otherwise, or if it is unavailable or fails, write by hand from [closeout-manual.md](closeout-manual.md).
 
 Keep each write incremental — the golden rule above ("never overwrite; append or edit in place") governs *how*.
 
 ## Close-out sync and background sessions
 
-- **`sync=self`** — pass `--commit` to the `closeout` call, last. It ends with `commit=<sha>|none pushed=yes|no|no-remote`; `pushed=no` means the push failed, so tell the user.
+- **`sync=self`** — pass `--commit` to the `closeout` call, last. It ends with `commit=<sha>|none|failed pushed=yes|no|no-remote`; on `commit=failed` or `pushed=no`, tell the user and leave the vault as it is.
 
 **Background sessions** (`background=yes`) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and read and write it at the path it prints. Stage each note once. The hooks merge staged notes into the vault three ways when the session ends, so edits made meanwhile survive; a conflicting edit stays staged and the next session reports it (`dev-workbook staged` lists them). Skip renames and deletions in a background session. `dev-workbook closeout` stages its own three files.
 
