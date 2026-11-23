@@ -129,7 +129,7 @@ Keep each write incremental — the golden rule above ("never overwrite; append 
 
 ## Close-out sync and background sessions
 
-- **`sync=self`** — pass `--commit` to the `closeout` call, last. It ends with `commit=<sha>|none|failed pushed=yes|no|no-remote`; on `commit=failed` or `pushed=no`, tell the user and leave the vault as it is.
+- **`sync=self`** — pass `--commit` to the `closeout` call, last. It ends with `commit=<sha>|none|failed pushed=yes|no|no-remote`; on `commit=failed` or `pushed=no`, tell the user and leave the vault as it is. On `commit=none match=basename` the files are written but not committed, because the workspace was found only by repo name: ask the user to confirm `workspace`, then rerun the same call with `--workspace <workspace> --commit`, which commits without writing anything again.
 
 **Background sessions** (`background=yes`) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and read and write it at the path it prints. Stage each note once. The hooks merge staged notes into the vault three ways when the session ends, so edits made meanwhile survive; a conflicting edit stays staged and the next session reports it (`dev-workbook staged` lists them). Skip renames and deletions in a background session. `dev-workbook closeout` stages its own three files.
 
