@@ -75,7 +75,8 @@ def parse_frontmatter(raw: str) -> dict[str, object]:
             continue
         block = re.match(r"^\s+-\s*(.*)$", line)
         if block and key:
-            out.setdefault(key, [])
+            if out.get(key) is None:
+                out[key] = []
             if isinstance(out[key], list):
                 out[key].append(_scalar(block.group(1)))
             continue
@@ -84,7 +85,7 @@ def parse_frontmatter(raw: str) -> dict[str, object]:
             continue
         key, rest = m.group(1), m.group(2).strip()
         if rest == "":
-            out[key] = []          # a block list may follow
+            out[key] = None        # empty, unless a block list follows
         elif rest.startswith("[") and rest.endswith("]"):
             inner = rest[1:-1].strip()
             out[key] = [_scalar(x) for x in _split_inline(inner)] if inner else []
@@ -205,11 +206,16 @@ def frontmatter_roundtrips(raw: str) -> bool:
 
 
 def emit_frontmatter(fields: dict[str, object]) -> str:
+    """Frontmatter for these fields. An empty value is written as it was read — `key:` for None,
+    `key: []` for an empty list — so a template's `tickets: []` round-trips and the note stays
+    maintainable. To remove a field, leave it out of `fields`."""
     lines = ["---"]
     for k, v in fields.items():
-        if v is None or v == "" or v == []:
+        if v == "":
             continue
-        if isinstance(v, list):
+        if v is None:
+            lines.append(f"{k}:")
+        elif isinstance(v, list):
             # Newlines inside a value would produce structurally invalid YAML.
             items = [emit_scalar(str(x).replace("\n", " ")) for x in v]
             lines.append(f"{k}: [{', '.join(items)}]")
