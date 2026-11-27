@@ -801,6 +801,67 @@ finally:
     shutil.rmtree(tmp8, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
+section("Symlinks from the vault's remote never redirect a write")
+# ---------------------------------------------------------------------------
+
+tmp9 = Path(tempfile.mkdtemp())
+real_own = vm.own_version
+try:
+    outside = tmp9 / "outside"
+    outside.mkdir()
+    victim = outside / "victim.txt"
+    victim.write_text("precious\n")
+    vault = tmp9 / "vault"
+    ws = vault / "Projects" / "W"
+    ws.mkdir(parents=True)
+    (vault / "Projects" / ".dev-workbook-version").symlink_to(victim)
+    vm.own_version = lambda: "9.9.9"
+    run_maintain(vault)
+    check(victim.read_text() == "precious\n", "the version claim does not write through a symlink")
+
+    (vault / "Projects" / ".dev-workbook-version").unlink()
+    write(ws / ".vault-config.json", json.dumps(
+        {"project": "w", "topics": {"t": {"name": "T", "gloss": "x\nINJECTED LINE", "patterns": ["zzz"]}}}))
+    write(ws / "Notes" / "N.md", "---\ntype: note\ntopics: [t]\n---\n\n# N\n")
+    for name in ("TopicIndex.md", "ThreadsIndex.md"):
+        (ws / name).symlink_to(outside / f"new-{name}")
+    run_maintain(vault)
+    check(not (outside / "new-TopicIndex.md").exists() and not (outside / "new-ThreadsIndex.md").exists(),
+          "an index that is a dangling symlink is not written through")
+    for name in ("TopicIndex.md", "ThreadsIndex.md"):
+        (ws / name).unlink()
+    run_maintain(vault)
+    topic = (ws / "TopicIndex.md").read_text()
+    check("\nINJECTED LINE" not in topic and "x INJECTED LINE" in topic,
+          "a newline in a topic gloss stays on the gloss's line", topic)
+    check(not list(ws.glob(".*.tmp")), "no temporary files are left behind")
+finally:
+    vm.own_version = real_own
+    shutil.rmtree(tmp9, ignore_errors=True)
+
+# ---------------------------------------------------------------------------
+section("A note edited while the run is going is not overwritten")
+# ---------------------------------------------------------------------------
+
+tmp10 = Path(tempfile.mkdtemp())
+try:
+    ws = tmp10 / "Projects" / "W"
+    write(ws / ".vault-config.json", json.dumps({"project": "w", "topics": {}}))
+    note = ws / "Notes" / "Busy.md"
+    write(note, "# Busy\n\nfirst line\n")
+    cfg = vm.Config.load(ws / ".vault-config.json")
+    notes = vm.collect(ws, cfg)
+    note.write_text("# Busy\n\nfirst line\nsaved by the editor mid-run\n")
+    vm.refresh_metadata(notes, cfg)
+    check("saved by the editor mid-run" in note.read_text(), "the concurrent edit survives")
+    vm.refresh_metadata(vm.collect(ws, cfg), cfg)
+    text = note.read_text()
+    check(text.startswith("---") and "saved by the editor mid-run" in text,
+          "the next run adds the frontmatter around it", text)
+finally:
+    shutil.rmtree(tmp10, ignore_errors=True)
+
+# ---------------------------------------------------------------------------
 print()
 if not FAIL:
     print(f"\033[32m{PASS} passed\033[0m")
