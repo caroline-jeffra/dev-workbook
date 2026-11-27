@@ -47,7 +47,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterator
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import vault_settings  # noqa: E402
 
@@ -289,7 +290,11 @@ class Config:
         )
 
     def doctype_for_folder(self, folder: str) -> str | None:
-        for doctype, name in self.folders.items():
+        # A folder the workspace's own config maps wins over a default that happens to share its
+        # name (a workspace that already filed research under `Specs/` keeps it as research).
+        configured = [(t, n) for t, n in self.folders.items() if DEFAULT_FOLDERS.get(t) != n]
+        defaults = [(t, n) for t, n in self.folders.items() if DEFAULT_FOLDERS.get(t) == n]
+        for doctype, name in configured + defaults:
             if name == folder:
                 return doctype
         return None
@@ -744,7 +749,7 @@ def build_topic_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) -> 
         for n in group:
             buckets[n.doctype].append(n)
 
-        for doctype in sorted(buckets, key=lambda d: TYPE_RANK.get(d, 9)):
+        for doctype in sorted(buckets, key=lambda d: TYPE_RANK.get(d, 99)):
             items = sorted(buckets[doctype], key=lambda n: n.name.lower())
             if doctype == "log":
                 days = " · ".join(
@@ -770,7 +775,8 @@ def build_ticket_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) ->
 
     owned: dict[str, Note] = {}
     for n in notes:
-        m = pattern.match(n.name)
+        # A spec never owns a ticket key: its ticket note does.
+        m = pattern.match(n.name) if n.doctype != "spec" else None
         key = m.group(1) if m else None
         # A ticket note named `<number>-<Subject>` takes its key from `tickets:`.
         num = re.match(r"^(\d+)-", n.name) if key is None and n.doctype == "ticket" else None
@@ -802,7 +808,7 @@ def build_ticket_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) ->
 
     for t in sorted(by_ticket, key=sort_key):
         uniq = {n.name: n for n in by_ticket[t]}.values()
-        group = sorted(uniq, key=lambda n: (TYPE_RANK.get(n.doctype, 9), n.name.lower()))
+        group = sorted(uniq, key=lambda n: (TYPE_RANK.get(n.doctype, 99), n.name.lower()))
         own = owned.get(t)
         head = f"**{wikilink(ref(own), t)}**" if own else f"`{t}`"
         refs = [n for n in group if n is not own]
@@ -1116,19 +1122,26 @@ class VaultNames:
     stems: dict[str, list[str]]              # stem -> vault-relative paths holding it
     paths: set[str]                          # vault-relative, no `.md`
     suffixes: Counter = field(default_factory=Counter)   # lower-cased path suffix -> notes ending so
+    # Notes in folders listed as unmanaged (vault_settings.py): a link resolves to one only by its
+    # full vault path, so a template can never make a bare link ambiguous or trip a duplicate name.
+    unmanaged_paths: set = field(default_factory=set)
 
     @classmethod
     def scan(cls, vault: Path) -> "VaultNames":
         stems: dict[str, list[str]] = defaultdict(list)
         paths: set[str] = set()
         unmanaged = vault_settings.unmanaged(vault)
+        outside: set[str] = set()
         for p in sorted(vault.rglob("*.md")):
             rel = p.relative_to(vault)
-            if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in unmanaged:
+            if any(part.startswith(".") for part in rel.parts):
+                continue
+            if rel.parts[0] in unmanaged:
+                outside.add(rel.with_suffix("").as_posix().lower())
                 continue
             stems[p.stem].append(rel.as_posix())
             paths.add(rel.with_suffix("").as_posix())
-        return cls(dict(stems), paths, suffix_counts(paths))
+        return cls(dict(stems), paths, suffix_counts(paths), outside)
 
     def matches(self, target: str) -> int:
         """How many notes a link target names."""
@@ -1142,7 +1155,7 @@ class VaultNames:
 
     def resolves(self, target: str) -> bool:
         """Whether a link target names some note — bare by stem, or by a trailing path."""
-        return self.matches(target) > 0
+        return self.matches(target) > 0 or target.strip("/").lower() in self.unmanaged_paths
 
     def ref(self, path: Path, vault: Path) -> str:
         """The shortest link target that names this note and no other."""
@@ -1196,7 +1209,7 @@ def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> st
         return "date in name — dates belong in frontmatter"
     if t == "spec":
         # Named after its ticket note plus `Spec`, so `[[12-NaturalSortApi]]` still means the ticket.
-        if not name.endswith("Spec"):
+        if not name.endswith("Spec") or re.fullmatch(r"(?:\d+-)?Spec", name):
             return "spec name must end in Spec: '<number>-<Subject>Spec', or '<Subject>Spec' without a ticket"
         if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
             return None
@@ -1530,6 +1543,8 @@ def find_workspaces(vault: Path) -> list[Path]:
     that it is a workspace, and `collect()` scopes each one to its own tree.
     """
     found: list[Path] = []
+    # A folder listed as unmanaged is never maintained, even if it holds a .vault-config.json.
+    unmanaged = set(vault_settings.unmanaged(vault))
 
     def walk(d: Path, depth: int) -> None:
         if (d / ".vault-config.json").is_file():
@@ -1545,6 +1560,8 @@ def find_workspaces(vault: Path) -> list[Path]:
                 continue
             # is_dir() follows symlinks; a link out of the vault is not ours to maintain.
             if child.is_symlink() or not child.is_dir():
+                continue
+            if d == vault and child.name in unmanaged:
                 continue
             walk(child, depth + 1)
 

@@ -519,6 +519,11 @@ try:
     write(tmp6 / "Archived" / "old" / "not pascal.md", "# archived names are not checked\n")
     write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# unmanaged folders are not checked\n")
     write(tmp6 / "Unlisted" / "not pascal either.md", "# a folder nobody lists is checked\n")
+    write(tmp6 / "HouseStyles" / "Acme" / ".vault-config.json", json.dumps({"project": "acme", "topics": {}}))
+    write(ws / "Notes" / "TemplateLink.md",
+          "---\ntype: note\nstatus: reference\n---\n\n# Template link\n\nSee [[HouseStyles/Acme/ticket-story]].\n")
+    write(ws / "Specs" / "Spec.md", "---\ntype: spec\nstatus: draft\n---\n\n# bare\n")
+    write(ws / "Specs" / "12-Spec.md", "---\ntype: spec\nstatus: draft\n---\n\n# bare numbered\n")
     write(tmp6 / ".dev-workbook.json", json.dumps({"unmanaged": ["HouseStyles"]}))
     write(tmp6 / "Tasks Archive.md", "# Tasks archive\n")
     write(tmp6 / "Resources" / "Link checker.md", "# Link checker\n")
@@ -539,7 +544,7 @@ try:
     for clean in ("Overview.md", "ProgressLog.md", "2026-10-01.md", "UseOldHost.md",
                   "CutoverTracking.md", "OldWork.md", "HostCostsAnalysis.md",
                   "CutoverToNewHost.md", "12-NaturalSortApi.md", "TimeTracking.md",
-                  "12-NaturalSortApiSpec.md", "CachePolicySpec.md",
+                  "12-NaturalSortApiSpec.md", "CachePolicySpec.md", "TemplateLink.md",
                   "LinkChecker.md", "TopicIndex.md"):
         got = codes_for(findings, clean)
         check(not got, f"clean {clean}: no findings", f"got {sorted(got)}")
@@ -597,11 +602,18 @@ try:
           "Archived/ names are not checked")
     check(not any("HouseStyles/" in f for f in findings),
           "names in a folder listed as unmanaged are not checked", "\n".join(findings))
+    check(not (tmp6 / "HouseStyles" / "Acme" / "TopicIndex.md").exists(),
+          "a .vault-config.json inside an unmanaged folder does not make it a maintained workspace")
+    for bare in ("Spec.md", "12-Spec.md"):
+        check(any(bare in f and "bad-name" in f for f in findings), f"a spec named only {bare} is reported",
+              "\n".join(f for f in findings if bare in f))
     check(any("Unlisted/not pascal either" in f for f in findings),
           "names in a top-level folder nobody lists are still checked", "\n".join(findings))
     names6 = vm.VaultNames.scan(tmp6)
     check("ticket-story" not in names6.stems and not any(p.startswith("HouseStyles/") for p in names6.paths),
-          "notes in an unmanaged folder stay out of link resolution")
+          "notes in an unmanaged folder stay out of bare-name resolution and duplicate checks")
+    check(names6.resolves("HouseStyles/Acme/ticket-story") and not names6.resolves("ticket-story"),
+          "a note in an unmanaged folder resolves by its full path only")
     gen = [f for f in findings if "Topic Index.md" in f]
     check(bool(gen) and "delete it" in gen[0],
           "a pre-2.0 generated index is marked for deletion, not renaming", str(gen))
@@ -1000,6 +1012,22 @@ except vm.Overrun:
     check(True, "an inner limit never outlasts the outer one")
 except vm.SlowPattern:
     check(False, "an inner limit never outlasts the outer one", "the inner one fired")
+
+# A workspace that already files research in Specs/ keeps it: its own folder mapping wins over the
+# spec default that shares the name.
+tmp8 = Path(tempfile.mkdtemp(prefix="dev-workbook-vm-tests."))
+try:
+    ws8 = tmp8 / "Projects" / "Old"
+    write(ws8 / ".vault-config.json", json.dumps({"project": "old", "topics": {}, "folders": {"research": "Specs"}}))
+    write(ws8 / "Specs" / "HostingAnalysis.md", "# Hosting analysis\n\n## TL;DR\n\n- x\n")
+    cfg8 = vm.Config.load(ws8 / ".vault-config.json")
+    check(cfg8.doctype_for_folder("Specs") == "research", "a configured folder mapping wins over the Specs default",
+          repr(cfg8.doctype_for_folder("Specs")))
+    run_maintain(tmp8)
+    found8 = [f for f in lint_vault(tmp8) if "HostingAnalysis" in f]
+    check(not found8, "research filed in Specs/ by config raises no spec findings", "\n".join(found8))
+finally:
+    shutil.rmtree(tmp8, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
 print()

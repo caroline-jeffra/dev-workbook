@@ -76,12 +76,18 @@ if [ -n "$routine" ] && [ -n "$stale_cutoff" ]; then
     *) stat_fmt=gnu ;;
   esac
 
+  # Folders listed as unmanaged are never condensed, so their age must not prompt a run.
+  skip=()
+  while IFS= read -r d; do
+    [ -n "$d" ] && skip+=(-not -path "$VAULT/$d/*")
+  done < <(unmanaged_names "$VAULT" --listed)
+
   if [ "$stat_fmt" = bsd ]; then
     oldest="$(find "$VAULT" -name '*.md' -not -path '*/.git/*' -not -path '*/.obsidian/*' \
-      -exec stat -f '%Sm' -t '%Y-%m-%d' {} + 2>/dev/null | sort | head -n1)"
+      ${skip[@]+"${skip[@]}"} -exec stat -f '%Sm' -t '%Y-%m-%d' {} + 2>/dev/null | sort | head -n1)"
   else
     oldest="$(find "$VAULT" -name '*.md' -not -path '*/.git/*' -not -path '*/.obsidian/*' \
-      -exec stat -c '%y' {} + 2>/dev/null | cut -d' ' -f1 | sort | head -n1)"
+      ${skip[@]+"${skip[@]}"} -exec stat -c '%y' {} + 2>/dev/null | cut -d' ' -f1 | sort | head -n1)"
   fi
 
   case "$oldest" in

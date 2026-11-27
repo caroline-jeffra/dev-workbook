@@ -88,6 +88,20 @@ v="$(stamp_vault eightdays "$(days_ago 8)")"
 run_hook vault-condense-reminder.sh "$v"
 if prompted; then ok 'stamp 8 days old: prompts'; else nope 'stamp 8 days old: prompts' "got [$HOOK_OUT]"; fi
 
+section 'Folders listed as unmanaged'
+
+# The only old note sits in a folder condense must never touch: nothing to prompt about.
+v="$(stamp_vault unmanaged-old "$(days_ago 30)" --fresh)"
+mkdir -p "$v/HouseStyles"
+: > "$v/HouseStyles/Template.md"
+touch -t 202501010000 "$v/HouseStyles/Template.md" 2>/dev/null \
+  || touch -d '2025-01-01' "$v/HouseStyles/Template.md" 2>/dev/null
+run_hook vault-condense-reminder.sh "$v"
+if prompted; then ok 'an old note in an unlisted folder: prompts'; else nope 'an old note in an unlisted folder: prompts' "got [$HOOK_OUT]"; fi
+printf '{"unmanaged": ["HouseStyles"]}\n' > "$v/.dev-workbook.json"
+run_hook vault-condense-reminder.sh "$v"
+if prompted; then nope 'an old note only in an unmanaged folder: silent' "got [$HOOK_OUT]"; else ok 'an old note only in an unmanaged folder: silent'; fi
+
 section 'Missing or malformed stamps'
 
 v="$(build_vault nostamp --no-git)"

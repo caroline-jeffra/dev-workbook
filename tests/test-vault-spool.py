@@ -118,6 +118,17 @@ check(vs.check_path("HouseStyles/Acme/PullRequest.md", v) == "HouseStyles/Acme/P
       "accepted: a folder .dev-workbook.json lists as unmanaged")
 check(vs.check_path("HouseStyles/Acme/PullRequest.md") is None, "refused: an unmanaged folder when no vault is given")
 (v / ".dev-workbook.json").unlink()
+g = TMP / "paths-git"
+g.mkdir()
+subprocess.run(["git", "init", "-q", str(g)], check=True)
+(g / "HouseStyles").mkdir()
+(g / ".dev-workbook.json").write_text('{"unmanaged": ["HouseStyles"]}', encoding="utf-8")
+check(vs.check_path("HouseStyles/Acme/PullRequest.md", g) is None,
+      "refused: in a git vault, a listed folder this machine has not approved")
+subprocess.run([sys.executable, str(HOOKS.parent / "bin" / "dev-workbook"), "unmanaged", "--vault", str(g), "--approve"],
+               capture_output=True, check=True)
+check(vs.check_path("HouseStyles/Acme/PullRequest.md", g) == "HouseStyles/Acme/PullRequest.md",
+      "accepted: once this machine approves it")
 for rel in ("Notes/Stray.md", "/etc/passwd", "../Out.md", "Projects/../Home.md", "Projects/A/.env",
             "Projects/A/key.pem", "Archived/Old.md", "Random.md", "Projects"):
     check(vs.check_path(rel) is None, f"refused: {rel}")

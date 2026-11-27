@@ -257,7 +257,14 @@ A top-level vault folder that belongs to something else — another plugin's dat
 {"unmanaged": ["HouseStyles"]}
 ```
 
-A listed folder is committed and pushed with the session, staged by background sessions, and counted as the plugin's own by the first-run check. Nothing else touches it: no maintenance, no naming lint, no condensing or renaming, and its notes stay out of link resolution. An entry is one folder name at the vault root (letters, digits, space, `_`, `-`); `Projects`, `Resources`, `Contributions` and `Archived` can't be listed, and a bad entry is reported and ignored. `dev-workbook unmanaged` prints the list as the plugin reads it.
+- **Never changed.** Every listed folder: no maintenance, no naming lint, no condensing, no renaming or link rewriting. Its notes resolve only by their full path (`[[HouseStyles/Acme/PullRequest]]`), so a template never makes a bare link ambiguous.
+- **Synced once you approve it on this machine.** Run `dev-workbook unmanaged --approve HouseStyles` (or `--approve` alone for every listed folder). From then on the folder is committed and pushed with the session, staged by background sessions, and counted as the plugin's own by the first-run check.
+  - The approval is kept in the vault's git directory (shared by its worktrees), so it never travels. Approvals add up; a malformed settings file refuses approval instead of clearing it.
+  - If git can't read the vault (a timeout, git missing, a safe-directory refusal), nothing extra is synced that session.
+  - The settings file does travel, so another machine (or anyone who can push to the vault's remote) can add a folder to the list. That folder is never pushed from here until you approve it; the session start says it's waiting.
+  - A vault that isn't a git repository pushes nothing, so there every listed folder counts as approved.
+- **Entries:** one folder name at the vault root, in any letter case (letters, digits, space, `_`, `-`; no leading or trailing space). `Projects`, `Resources`, `Contributions`, `Archived` and symlinked folders can't be listed; a bad entry is reported and ignored.
+- `dev-workbook unmanaged` lists each folder and whether this machine syncs it.
 
 ### Vault version control
 

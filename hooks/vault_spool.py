@@ -39,11 +39,13 @@ import tempfile
 import time
 from pathlib import Path, PurePosixPath
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import vault_settings  # noqa: E402
 
-# Plus any folder the vault's .dev-workbook.json lists as unmanaged (vault_settings.py).
+# Plus any folder the vault's .dev-workbook.json lists as unmanaged and this machine approved
+# (vault_settings.synced).
 OWNED_DIRS = ("Projects", "Resources", "Contributions")
 OWNED_FILES = ("Home.md", "TasksArchive.md", "WorkPlanning.md")
 
@@ -72,7 +74,7 @@ def session_id() -> str | None:
 
 def check_path(rel: str, vault: Path | None = None) -> str | None:
     """The normalised vault-relative path, or None if the spool must not carry it. With the vault,
-    folders its .dev-workbook.json lists as unmanaged are accepted too."""
+    folders its .dev-workbook.json lists as unmanaged — and this machine approved — are accepted too."""
     p = PurePosixPath(rel.replace("\\", "/"))
     if p.is_absolute() or not p.parts or any(part in ("", ".", "..") for part in p.parts):
         return None
@@ -81,7 +83,7 @@ def check_path(rel: str, vault: Path | None = None) -> str | None:
         return None
     if len(p.parts) == 1:
         return str(p) if name in OWNED_FILES else None
-    return str(p) if p.parts[0] in OWNED_DIRS + vault_settings.unmanaged(vault) else None
+    return str(p) if p.parts[0] in OWNED_DIRS + vault_settings.synced(vault) else None
 
 
 def inside(vault: Path, rel: str) -> Path | None:
@@ -129,7 +131,7 @@ def stage(vault: Path, rel: str, sid: str | None = None) -> tuple[Path | None, s
     """Stage one note for this session; return (path to edit, message)."""
     norm = check_path(rel, vault)
     if norm is None:
-        dirs = OWNED_DIRS + vault_settings.unmanaged(vault)
+        dirs = OWNED_DIRS + vault_settings.synced(vault)
         return None, (f"'{rel}' is not a path the vault hooks publish — stage notes under "
                       f"{', '.join(dirs)}/ or {', '.join(OWNED_FILES)}")
     if inside(vault, norm) is None:

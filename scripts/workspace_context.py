@@ -46,7 +46,8 @@ KEYS = ("vault", "vault_ok", "vault_from", "code_root", "code_root_from", "repo"
         "error")
 INDEXES = ("Projects/WorkspaceIndex.md", "Projects/_index.md")
 ARCHIVES = ("TasksArchive.md", "Tasks Archive.md")
-# Plus any folder the vault's .dev-workbook.json lists as unmanaged (hooks/vault_settings.py).
+# Plus any folder the vault's .dev-workbook.json lists as unmanaged and this machine approved
+# (hooks/vault_settings.synced) — a list widened by a pull never skips the consent check.
 PLUGIN_DIRS = ("Projects", "Resources", "Contributions", "Archived")
 VERSION_FILES = (".dev-workbook-version", ".claudesidion-version")
 HEARTBEAT = "dev-workbook-hooks"
@@ -252,7 +253,7 @@ def consent_for(vault: Path) -> str:
     projects = vault / "Projects"
     if projects.is_dir() and not any((projects / v).exists() for v in VERSION_FILES):
         return "ask"
-    own = PLUGIN_DIRS + vault_settings.unmanaged(vault)
+    own = PLUGIN_DIRS + vault_settings.synced(vault)
     for root, dirs, files in os.walk(vault):
         dirs[:] = [d for d in dirs if d != ".git" and not (root == str(vault) and d in own)]
         if any(f.endswith(".md") for f in files):
