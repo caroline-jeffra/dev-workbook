@@ -8,6 +8,8 @@ Cases marked [T1.x] correspond to Pre-Release Plan tier-1 items. Run directly:
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import shutil
 import sys
@@ -862,11 +864,34 @@ finally:
     shutil.rmtree(tmp10, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
+section("Empty values round-trip, so template notes stay maintainable")
+# ---------------------------------------------------------------------------
+
+# The decision and playbook templates write `tickets: []`. The emitter used to drop empty values,
+# so no such note round-tripped and every one was skipped on every run.
+tmp13 = Path(tempfile.mkdtemp())
+try:
+    ws = tmp13 / "Projects" / "W"
+    write(ws / ".vault-config.json", json.dumps({"project": "w", "topics": {}}))
+    note = ws / "Decisions" / "UseQueues.md"
+    write(note, "---\ntype: decision\nstatus: active\ndecided: 2026-09-08\ntickets: []\nowner:\n---\n\n# Use queues\n")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        run_maintain(tmp13)
+    text = note.read_text()
+    check("SKIPPED" not in out.getvalue(), "a note with `tickets: []` is not skipped", out.getvalue())
+    check("project: w" in text, "and is maintained", text)
+    check("tickets: []\n" in text and "owner:\n" in text, "and keeps its empty values as written", text)
+    before = text
+    run_maintain(tmp13)
+    check(note.read_text() == before, "a second run changes nothing")
+finally:
+    shutil.rmtree(tmp13, ignore_errors=True)
+
+# ---------------------------------------------------------------------------
 section("Hostile input is processed in linear time, and a run cannot hang")
 # ---------------------------------------------------------------------------
 
-import contextlib  # noqa: E402
-import io  # noqa: E402
 import time  # noqa: E402
 
 
