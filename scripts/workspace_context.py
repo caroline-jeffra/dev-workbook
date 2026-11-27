@@ -44,7 +44,7 @@ KEYS = ("vault", "vault_ok", "vault_from", "code_root", "code_root_from", "repo"
         "error")
 INDEXES = ("Projects/WorkspaceIndex.md", "Projects/_index.md")
 ARCHIVES = ("TasksArchive.md", "Tasks Archive.md")
-PLUGIN_DIRS = ("Projects", "Resources", "Contributions", "Archived")
+PLUGIN_DIRS = ("Projects", "Resources", "Contributions", "HouseStyles", "Archived")
 VERSION_FILES = (".dev-workbook-version", ".claudesidion-version")
 HEARTBEAT = "dev-workbook-hooks"
 HEARTBEAT_MAX_AGE = 24 * 3600

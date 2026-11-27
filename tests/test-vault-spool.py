@@ -90,7 +90,7 @@ section("Staging only accepts what the vault hooks publish")
 # ---------------------------------------------------------------------------
 
 v = vault("paths")
-for rel in ("Projects/Alpha/Notes/A.md", "Resources/R.md", "Contributions/C.md", "Home.md",
+for rel in ("Projects/Alpha/Notes/A.md", "Resources/R.md", "Contributions/C.md", "HouseStyles/Acme/PullRequest.md", "Home.md",
             "Projects/Alpha/.vault-config.json"):
     check(vs.check_path(rel) == rel, f"accepted: {rel}")
 for rel in ("Notes/Stray.md", "/etc/passwd", "../Out.md", "Projects/../Home.md", "Projects/A/.env",

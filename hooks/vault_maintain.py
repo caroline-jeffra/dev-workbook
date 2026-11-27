@@ -1381,7 +1381,8 @@ LEGACY_VAULT = {
 
 def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
     """Naming outside the workspaces: every note in the vault is PascalCase, and so are the
-    workspace folders. `Archived/` is expendable by design and is not checked."""
+    workspace folders. `Archived/` is expendable by design and is not checked; `HouseStyles/`
+    belongs to clean-docs, whose profile.json names its templates by file, so a rename breaks it."""
     out: list[str] = []
     for ws in workspaces:
         if ws != vault:
@@ -1391,7 +1392,7 @@ def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
                            " (rename it, its WorkspaceIndex row, its Contributions note and links)")
     for p in sorted(vault.rglob("*.md")):
         rel = p.relative_to(vault)
-        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] == "Archived":
+        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in ("Archived", "HouseStyles"):
             continue
         if any(p.is_relative_to(ws) for ws in workspaces):
             continue

@@ -30,4 +30,4 @@ Newest year first (`# 2026`), and within it newest month first (`## Aug 2026`). 
 
 ## Close-out sync by hand
 
-- **`sync=self`** — when the user closes out the session run `dev-workbook maintain`, stage only the paths the plugin owns (`git -C "$DEVWB_VAULT" add -- Projects Resources Contributions Home.md TasksArchive.md WorkPlanning.md`, skipping any that do not exist), commit them as one single-line commit (`vault: session updates YYYY-MM-DD`) and push. Never `git add -A`, and never commit mid-merge or on a detached HEAD. If the push fails, leave the commit and tell the user.
+- **`sync=self`** — when the user closes out the session run `dev-workbook maintain`, stage only the paths the plugin owns (`git -C "$DEVWB_VAULT" add -- Projects Resources Contributions HouseStyles Home.md TasksArchive.md WorkPlanning.md`, skipping any that do not exist), commit them as one single-line commit (`vault: session updates YYYY-MM-DD`) and push. Never `git add -A`, and never commit mid-merge or on a detached HEAD. If the push fails, leave the commit and tell the user.

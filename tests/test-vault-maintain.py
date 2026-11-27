@@ -506,6 +506,7 @@ try:
           "---\ntype: decision\nstatus: active\nsupersedes: use-memcached\n---\n\n# Use Redis cache\n\n**Decision:** Redis.\n")
     write(tmp6 / "Archived" / "old" / "UseNewHost.md", "# dup\n")
     write(tmp6 / "Archived" / "old" / "not pascal.md", "# archived names are not checked\n")
+    write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# clean-docs template names are not checked\n")
     write(tmp6 / "Tasks Archive.md", "# Tasks archive\n")
     write(tmp6 / "Resources" / "Link checker.md", "# Link checker\n")
     write(tmp6 / "Projects" / "home-thing" / ".vault-config.json", json.dumps({"project": "ht", "topics": {}}))
@@ -567,6 +568,8 @@ try:
           "a non-PascalCase workspace folder is reported", "\n".join(findings))
     check(not any("Archived/old/not pascal" in f for f in findings),
           "Archived/ names are not checked")
+    check(not any("HouseStyles/" in f for f in findings),
+          "HouseStyles/ names are not checked (profile.json refers to them by file)")
     gen = [f for f in findings if "Topic Index.md" in f]
     check(bool(gen) and "delete it" in gen[0],
           "a pre-2.0 generated index is marked for deletion, not renaming", str(gen))

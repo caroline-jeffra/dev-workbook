@@ -142,6 +142,16 @@ assert_not_contains "$(tracked "$v")" '.env' '[T1.1] secret nested in an owned p
 assert_contains "$(tracked "$v")" 'Projects/app/notes.md' '[T1.1] sibling note in same dir still committed'
 assert_contains "$HOOK_OUT" 'secret' '[T1.1] secret refusal is reported'
 
+# HouseStyles/ (clean-docs profiles) is owned: its templates and profile.json are committed.
+v="$(build_vault housestyles)"
+mkdir -p "$v/HouseStyles/Acme"
+printf '# PR\n' > "$v/HouseStyles/Acme/PullRequest.md"
+printf '{"schema": 1}\n' > "$v/HouseStyles/Acme/profile.json"
+run_hook vault-push.sh "$v"
+assert_contains "$(tracked "$v")" 'HouseStyles/Acme/PullRequest.md' '[T1.1] HouseStyles/ template committed'
+assert_contains "$(tracked "$v")" 'HouseStyles/Acme/profile.json' '[T1.1] HouseStyles/ profile.json committed'
+assert_not_contains "$HOOK_OUT" 'HouseStyles' '[T1.1] HouseStyles/ is not reported as unowned'
+
 # Archived/ is expendable: neither committed nor mentioned.
 v="$(build_vault archived)"
 mkdir -p "$v/Archived/old"

@@ -290,6 +290,10 @@ c = TMP / "consent-owned"
 (c / "Resources").mkdir(parents=True)
 (c / "Resources" / "R.md").write_text("x")
 check(run(c, alpha, CODE)["consent"] == "ok", "notes only in this plugin's folders: ok")
+c = TMP / "consent-housestyles"
+(c / "HouseStyles" / "Acme").mkdir(parents=True)
+(c / "HouseStyles" / "Acme" / "PullRequest.md").write_text("x")
+check(run(c, alpha, CODE)["consent"] == "ok", "clean-docs house styles alone: ok")
 c = TMP / "consent-projects"
 (c / "Projects" / "Mine").mkdir(parents=True)
 check(run(c, alpha, CODE)["consent"] == "ask", "Projects/ without a version file: ask")

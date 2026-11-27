@@ -14,6 +14,11 @@ are minor.
 
 ## [Unreleased]
 
+### Added
+
+- **`HouseStyles/` is an owned vault folder.** The optional root folder where the companion clean-docs plugin keeps house-style profiles is now committed and pushed by the session hooks (templates and `profile.json` alike), committed by the manual `sync=self` close-out, accepted by the spool, and counted as plugin-made by the first-run consent check. Vaults without the folder are unaffected.
+- **Vault upkeep leaves `HouseStyles/` alone**: the naming lint skips it and condense-vault never condenses, renames or deletes it, since a profile names its templates by file.
+
 ## [3.9.1] — 2026-11-23
 
 ### Changed
