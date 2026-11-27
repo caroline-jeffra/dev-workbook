@@ -14,6 +14,12 @@ are minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Hostile or unusual notes no longer stall maintenance or the context call.** Several patterns took quadratic time: the task-box and `Next`/`Did` patterns on a long run of blank lines (a 1 MB note took about an hour), and both wikilink patterns on a run of `[` (40 KB took 8.5 s, and in the workspace index it stalled every skill's `dev-workbook context` call). All are linear now.
+- **Index maintenance has a time budget.** A run stops after 10 seconds instead of holding the session-end lock indefinitely, which also stopped that session's push and made the next session start wait. Topic patterns from `.vault-config.json` are compiled once per run, and one that takes over 0.25 s on a note is skipped for the rest of the run. Both are reported at the next session start.
+- **A stalled push or pull no longer hangs a hook.** The session-end push stops after 20 seconds and keeps its commit for the next session start; the session-start hook fits its pushes and pull within its own 20-second timeout, so it reports a slow network instead of being killed.
+
 ## [3.11.0] — 2026-11-27
 
 ### Security
