@@ -78,7 +78,7 @@ class Row(NamedTuple):
     workspace: str   # Projects/<Name>
 
 
-WIKILINK = re.compile(r"\[\[([^\]]*)\]\]")
+WIKILINK = re.compile(r"\[\[([^\[\]\n]*)\]\]")    # no `[` inside: a run of `[` stays linear
 SEPARATOR = re.compile(r"^:?-+:?$")
 TRIAL_HEADING = re.compile(r"^##\s+trial workspaces\b", re.I)
 # A workspace name is one folder under Projects/. Skills splice it into shell commands and paths,
