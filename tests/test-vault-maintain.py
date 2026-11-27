@@ -862,6 +862,91 @@ finally:
     shutil.rmtree(tmp10, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
+section("Hostile input is processed in linear time, and a run cannot hang")
+# ---------------------------------------------------------------------------
+
+import contextlib  # noqa: E402
+import io  # noqa: E402
+import time  # noqa: E402
+
+
+def timed(fn) -> tuple[float, str]:
+    out = io.StringIO()
+    start = time.monotonic()
+    with contextlib.redirect_stdout(out):
+        fn()
+    return time.monotonic() - start, out.getvalue()
+
+
+tmp11 = Path(tempfile.mkdtemp())
+try:
+    ws = tmp11 / "Projects" / "W"
+    write(ws / ".vault-config.json", json.dumps({"project": "w", "topics": {
+        "queue": {"name": "Queue", "patterns": ["queue"]},
+        "bad": {"name": "Bad", "patterns": ["(a+)+$", "("]},
+    }}))
+    # Each of these took seconds to hours before: a run of blank lines against the task-box and
+    # Next/Did patterns, and a run of `[` against the wikilink pattern.
+    write(ws / "Threads" / "Blank.md",
+          "---\ntype: thread\nstatus: open\n---\n\n# Blank\n" + "\n" * 200_000 + "- [ ] one\n- [x] two\n")
+    write(ws / "Notes" / "Brackets.md", "# Brackets\n\n" + "[" * 100_000 + "\n[[Blank]]\n")
+    # `(a+)+$` backtracks exponentially on a run of `a` that does not end the text.
+    write(ws / "Notes" / "Queue.md", "# Queue\n\nqueue queue queue " + "a" * 40 + "!\n")
+    took, out = timed(lambda: run_maintain(tmp11))
+    check(took < 3, "a run over pathological notes finishes promptly", f"{took:.1f}s")
+    threads = (ws / "ThreadsIndex.md").read_text()
+    check("**1 open**" in threads,
+          "the open-item count is still right after a long blank run", threads[-400:])
+    check("queue" in (ws / "Notes" / "Queue.md").read_text().split("---")[1],
+          "a runaway topic pattern does not stop the other topics being derived")
+    check("vault-maintain: warning: W: topic 'bad' pattern '(a+)+$'" in out,
+          "the runaway pattern is named in a warning line", out)
+    check("pattern '('" not in out, "a pattern that does not compile is dropped silently")
+    check(vm.link_targets("[[[[a]] [[b|c]] ![[d.png]] [[e#h]]") == ["a", "b", "e"],
+          "wikilink targets are unchanged by the linear pattern")
+finally:
+    shutil.rmtree(tmp11, ignore_errors=True)
+
+tmp12 = Path(tempfile.mkdtemp())
+real_all, real_budget = vm.maintain_all, vm.RUN_BUDGET
+try:
+    (tmp12 / "Projects").mkdir(parents=True)
+
+    def forever(vault: Path) -> list[str]:
+        while True:
+            time.sleep(0.01)
+
+    vm.maintain_all, vm.RUN_BUDGET = forever, 0.3
+    took, out = timed(lambda: run_maintain(tmp12))
+    check(took < 2, "a run that never ends is stopped at the budget", f"{took:.1f}s")
+    check("vault-maintain: warning: stopped after 0.3s" in out, "and says so in a warning line", out)
+finally:
+    vm.maintain_all, vm.RUN_BUDGET = real_all, real_budget
+    shutil.rmtree(tmp12, ignore_errors=True)
+
+try:
+    with vm.time_limit(1.0):
+        try:
+            with vm.time_limit(0.05, vm.SlowPattern):
+                time.sleep(0.5)
+            check(False, "an inner limit raises its own exception")
+        except vm.SlowPattern:
+            check(True, "an inner limit raises its own exception")
+        time.sleep(0.1)
+    check(True, "the outer limit resumes and does not fire early")
+except vm.Overrun:
+    check(False, "the outer limit resumes and does not fire early")
+try:
+    with vm.time_limit(0.1):
+        with vm.time_limit(5.0, vm.SlowPattern):
+            time.sleep(1)
+    check(False, "an inner limit never outlasts the outer one")
+except vm.Overrun:
+    check(True, "an inner limit never outlasts the outer one")
+except vm.SlowPattern:
+    check(False, "an inner limit never outlasts the outer one", "the inner one fired")
+
+# ---------------------------------------------------------------------------
 print()
 if not FAIL:
     print(f"\033[32m{PASS} passed\033[0m")

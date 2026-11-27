@@ -50,17 +50,27 @@ if git -C "$VAULT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   acquire_end_lock "$VAULT" 60 && locked=1
 fi
 
-# Spooled notes go in first, so maintenance and the commit treat them like any other edit. What
-# the merge has to say is printed and relayed to the next start, like vault-push.sh's warnings.
+# relay <line> — print it, and record it for the next session start to report, like
+# vault-push.sh's warnings: a detached session end has no one to print to.
+relay() {
+  local w
+  printf 'dev-workbook: %s\n' "$1"
+  w="$(warnings_file "$VAULT")" && printf '%s\n' "$1" >> "$w" 2>/dev/null
+}
+
+# Spooled notes go in first, so maintenance and the commit treat them like any other edit.
 if [ -n "$locked" ]; then
   while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    printf 'dev-workbook: %s\n' "$line"
-    w="$(warnings_file "$VAULT")" && printf '%s\n' "$line" >> "$w" 2>/dev/null
+    [ -n "$line" ] && relay "$line"
   done < <(apply_spool "$VAULT" "${DEVWB_SESSION_ID:-}")
 fi
 
-bash "$here/vault-maintain.sh" </dev/null 2>/dev/null
+# Maintenance stops itself after a time budget (vault_maintain.py) and says so in a warning line.
+while IFS= read -r line; do
+  case "$line" in
+    "vault-maintain: warning: "*) relay "index maintenance: ${line#vault-maintain: warning: }" ;;
+  esac
+done < <(bash "$here/vault-maintain.sh" </dev/null 2>/dev/null)
 bash "$here/vault-push.sh" </dev/null 2>/dev/null
 
 [ -n "$locked" ] && release_end_lock "$VAULT"

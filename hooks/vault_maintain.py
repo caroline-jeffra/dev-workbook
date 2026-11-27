@@ -36,12 +36,16 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
 import sys
 import tempfile
+import threading
+import time
 from collections import Counter, defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 # ---------------------------------------------------------------- frontmatter
 
@@ -255,6 +259,7 @@ class Config:
     generated_types: set[str] = field(default_factory=set)
     min_hits: int = 3
     title_weight: int = 4
+    slow: list[str] = field(default_factory=list)   # topic patterns dropped this run for overrunning
 
     @classmethod
     def load(cls, path: Path) -> "Config":
@@ -292,6 +297,15 @@ def clean_topics(topics: object) -> dict[str, dict]:
         for key in ("name", "gloss"):
             if key in spec:
                 spec[key] = one_line(spec[key])
+        # Compiled once per run, not once per note; a pattern that does not compile is dropped,
+        # as a bad pattern in config must not kill the run.
+        compiled = []
+        for p in spec.get("patterns") or []:
+            try:
+                compiled.append(re.compile(p, re.I))
+            except (re.error, TypeError):
+                continue
+        spec["compiled"] = compiled
         out[one_line(slug)] = spec
     return out
 
@@ -299,29 +313,77 @@ def clean_topics(topics: object) -> dict[str, dict]:
 # ---------------------------------------------------------------- topics
 
 
-def score_topic(text: str, patterns: list[str], head: str, title_weight: int) -> int:
+def score_topic(text: str, slug: str, spec: dict, head: str, cfg: Config) -> int:
+    """How strongly a note matches one topic. Each pattern gets PATTERN_BUDGET per note: the
+    patterns come from config, and one that backtracks without end would otherwise hang the run.
+    An overrunning pattern is dropped for the rest of the run and reported."""
     total = 0
-    for p in patterns:
+    for p in list(spec.get("compiled", [])):
         try:
-            total += len(re.findall(p, text, re.I))
-            total += title_weight * len(re.findall(p, head, re.I))
-        except re.error:
-            continue           # a bad pattern in config must not kill the run
+            with time_limit(PATTERN_BUDGET, SlowPattern):
+                total += len(p.findall(text))
+                total += cfg.title_weight * len(p.findall(head))
+        except SlowPattern:
+            spec["compiled"].remove(p)
+            cfg.slow.append(f"topic {slug!r} pattern {one_line(p.pattern, 80)!r}")
     return total
 
 
 def topics_for(cfg: Config, title: str, body: str, limit: int = 6) -> list[str]:
     head = title + "\n" + "\n".join(body.splitlines()[:12])
     text = title + "\n" + body
-    scored = [
-        (slug, score_topic(text, spec.get("patterns", []), head, cfg.title_weight))
-        for slug, spec in cfg.topics.items()
-    ]
+    scored = [(slug, score_topic(text, slug, spec, head, cfg)) for slug, spec in cfg.topics.items()]
     kept = sorted(
         [(s, n) for s, n in scored if n >= cfg.min_hits],
         key=lambda x: (-x[1], x[0]),
     )
     return sorted(s for s, _ in kept[:limit])
+
+
+# ---------------------------------------------------------------- time limits
+
+# The whole run's budget. A run over a vault of 1,300 notes takes under half a second; the budget
+# is for the run that never ends (a pathological note, a bad topic pattern), which would hold
+# session-end's lock, keep that session's push from running and stall the next session start.
+RUN_BUDGET = 10.0
+# One topic pattern against one note.
+PATTERN_BUDGET = 0.25
+
+
+class Overrun(BaseException):
+    """The run's budget ran out. A BaseException, so the fail-open `except Exception` handlers
+    around each step cannot swallow it and carry on."""
+
+
+class SlowPattern(BaseException):
+    """One topic pattern overran its budget on one note."""
+
+
+@contextmanager
+def time_limit(seconds: float, exc: type[BaseException] = Overrun) -> Iterator[None]:
+    """Raise `exc` inside the block once `seconds` pass. Python checks for signals inside a regex
+    match, so this stops a runaway pattern too. Limits nest: an inner one never outlasts the
+    outer, which raises its own exception when it is the one that ran out, and resumes on exit.
+    A no-op where there is no interval timer (Windows) or off the main thread."""
+    if not hasattr(signal, "setitimer") or threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    start = time.monotonic()
+    outer = signal.getitimer(signal.ITIMER_REAL)[0]
+    mine = not outer or seconds < outer
+
+    def ring(*_: object) -> None:
+        raise exc if mine else Overrun
+
+    previous = signal.signal(signal.SIGALRM, ring)
+    signal.setitimer(signal.ITIMER_REAL, seconds if mine else outer)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+        if outer:
+            signal.setitimer(signal.ITIMER_REAL, max(outer - (time.monotonic() - start), 0.001))
 
 
 # ---------------------------------------------------------------- safe writes
@@ -765,13 +827,18 @@ def link(n: Note, ref: Refs) -> str:
     return wikilink(ref(n), title or n.name)
 
 
+# A task box at the start of a line. `[ \t]`, not `\s`: with re.M, `^\s*` lets every line of a
+# run of blank lines rescan the rest of the run, which is quadratic in the run's length.
+TASK_BOX = re.compile(r"^[ \t]*[-*][ \t]+\[( |x|X)\]", re.M)
+
+
 def open_items(n: Note) -> int:
     """Count unchecked task boxes in a note's body.
 
     A thread's whole purpose is the work still outstanding, so the index leads with that
     number. Checked boxes and prose are ignored; a thread with no boxes reports zero.
     """
-    return len(re.findall(r"^\s*[-*]\s+\[ \]", n.body, re.MULTILINE))
+    return sum(1 for box in TASK_BOX.findall(n.body) if box == " ")
 
 
 def build_thread_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) -> bool:
@@ -944,9 +1011,11 @@ KEYED_TICKET_NAME = re.compile(r"^[A-Z][A-Z0-9]+-\d+-")
 # A bare ticket ID as a link target. These are deliberate placeholders for a ticket with no
 # note yet (the Tickets Index lists them), not broken links.
 TICKET_ID = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")
-WIKILINK = re.compile(r"(!?)\[\[([^\]\n]+?)\]\]")
-NEXT_LINE = re.compile(r"^\s*(?:[-*]\s+)?(?:\*\*)?Next\b\s*:?(?:\*\*)?\s*:?", re.I | re.M)
-DID_LINE = re.compile(r"^\s*[-*]\s+\*\*Did\b", re.M)
+# A link target never holds a bracket, so the inner class excludes `[` as well as `]`: without
+# that, a long run of `[` costs quadratic time (each one rescans the rest of the line).
+WIKILINK = re.compile(r"(!?)\[\[([^\[\]\n]+)\]\]")
+NEXT_LINE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Next\b\s*:?(?:\*\*)?\s*:?", re.I | re.M)
+DID_LINE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Did\b", re.M)
 SUBHEADING = re.compile(r"^#{2,6}\s", re.M)
 # A line that cannot be the second half of a hard-wrapped paragraph: blank, or the start of
 # some other block (heading, list item, quote, table, callout, HTML, embed, indent).
@@ -1185,7 +1254,7 @@ def lint(root: Path, cfg: Config, notes: list[Note], names: VaultNames, vault: P
             report(n, "bad-name", problem)
 
         if n.doctype == "thread":
-            boxes = re.findall(r"^\s*[-*]\s+\[( |x|X)\]", n.body, re.M)
+            boxes = TASK_BOX.findall(n.body)
             if status == "done" and boxes:
                 report(n, "unclosed-thread", "done thread still holds its item list — reduce it to the closing stub")
             elif status != "done" and boxes and " " not in boxes:
@@ -1402,6 +1471,7 @@ def maintain(root: Path, names: VaultNames | None = None, vault: Path | None = N
         return names.ref(n.path, vault)
 
     messages = refresh_metadata(notes, cfg)
+    messages += [f"warning: {p} took over {PATTERN_BUDGET:g}s on one note and was skipped" for p in cfg.slow]
     if build_topic_index(root, cfg, notes, ref):
         messages.append("TopicIndex.md regenerated")
     if build_ticket_index(root, cfg, notes, ref):
@@ -1543,17 +1613,41 @@ def main(argv: list[str] | None = None) -> int:
 
     if lint_mode:
         try:
-            return run_lint(vault, count_only)
+            with time_limit(RUN_BUDGET):
+                return run_lint(vault, count_only)
+        except Overrun:
+            print(f"vault-lint: stopped after {RUN_BUDGET:g}s", file=sys.stderr)
+            return 0
         except Exception as exc:                       # noqa: BLE001 - fail open
             print(f"vault-lint: {exc}", file=sys.stderr)
             return 0
 
     total: list[str] = []
     try:
-        names = VaultNames.scan(vault)
+        with time_limit(RUN_BUDGET):
+            total = maintain_all(vault)
+    except Overrun:
+        # Every write is atomic, so stopping part-way leaves each note either old or new. Lines
+        # starting `vault-maintain: warning:` are relayed to the next session start.
+        print(f"vault-maintain: warning: stopped after {RUN_BUDGET:g}s, so some indexes may be "
+              "stale; a vault note or topic pattern is unusually slow to process")
     except Exception as exc:                           # noqa: BLE001 - fail open
         print(f"vault-maintain: {exc}", file=sys.stderr)
-        return 0
+
+    warnings = [m for m in total if ": warning: " in m]
+    for m in warnings:
+        print("vault-maintain: warning: " + one_line(m.replace("warning: ", "", 1), 400))
+    rest = [m for m in total if m not in warnings]
+    if rest:
+        print(f"vault-maintain: {len(rest)} update(s)")
+        for m in rest[:20]:
+            print(f"  {one_line(m, 400)}")
+    return 0
+
+
+def maintain_all(vault: Path) -> list[str]:
+    total: list[str] = []
+    names = VaultNames.scan(vault)
     for ws in find_workspaces(vault):
         try:
             msgs = maintain(ws, names, vault)
@@ -1561,12 +1655,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"vault-maintain: {ws.name}: {exc}", file=sys.stderr)
             continue
         total += [f"{ws.name}: {m}" for m in msgs]
-
-    if total:
-        print(f"vault-maintain: {len(total)} update(s)")
-        for m in total[:20]:
-            print(f"  {one_line(m, 400)}")
-    return 0
+    return total
 
 
 if __name__ == "__main__":
