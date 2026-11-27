@@ -109,6 +109,20 @@ for fmt in plain cursor; do
   esac
 done
 
+# Copilot CLI reads only a top-level additionalContext, and Codex drops output that has one, so
+# the shape follows the harness: COPILOT_CLI=1 picks copilot, anything else keeps Claude Code's.
+v="$(build_vault pull-format-copilot)"
+out="$(env -u DEVWB_FORMAT HOME="$TEST_TMP/home.$$" DEVWB_VAULT="$v" COPILOT_CLI=1 bash "$HOOKS/vault-pull.sh" 2>&1)"
+assert_eq 'top' "$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("top" if set(d) == {"additionalContext"} else sorted(d))' 2>/dev/null)" \
+  'under Copilot CLI: only a top-level additionalContext'
+v="$(build_vault pull-format-default)"
+out="$(env -u DEVWB_FORMAT -u COPILOT_CLI HOME="$TEST_TMP/home.$$" DEVWB_VAULT="$v" bash "$HOOKS/vault-pull.sh" 2>&1)"
+assert_eq 'hso' "$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("hso" if set(d) == {"hookSpecificOutput"} else sorted(d))' 2>/dev/null)" \
+  'elsewhere: only hookSpecificOutput (Claude Code, Codex)'
+v="$(build_vault pull-format-explicit)"
+out="$(env HOME="$TEST_TMP/home.$$" DEVWB_VAULT="$v" COPILOT_CLI=1 DEVWB_FORMAT=plain bash "$HOOKS/vault-pull.sh" 2>&1)"
+assert_contains "$out" 'Vault pulled to latest' 'DEVWB_FORMAT wins over detection'
+
 # ---------------------------------------------------------------------------
 section 'Flushing commits stranded by a cancelled SessionEnd push'
 # ---------------------------------------------------------------------------

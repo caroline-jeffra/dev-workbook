@@ -41,7 +41,7 @@ PY=""
 for candidate in python3 python; do
   command -v "$candidate" >/dev/null 2>&1 && { PY="$candidate"; break; }
 done
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}/hooks/vault_maintain.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(dirname "$0")/..}}/hooks/vault_maintain.py"
 if [ -n "$PY" ] && [ -f "$SCRIPT" ]; then
   lint_count="$("$PY" "$SCRIPT" --lint --count "$VAULT" 2>/dev/null | tr -cd '0-9')"
   lint_count="${lint_count:-0}"

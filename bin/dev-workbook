@@ -35,8 +35,8 @@ three ways once the session has ended (see hooks/vault_spool.py).
 
 `start` and `end` are the session hooks, for harnesses that do not run Claude Code's
 hooks/hooks.json. `start` prints the session context once, in the harness's format:
-`--format claude` (hookSpecificOutput JSON, the default), `cursor` ({"additional_context": ...})
-or `plain` (text). `end` prints anything worth reporting as plain text; the next `start` relays
+`--format claude` (hookSpecificOutput JSON, the default), `copilot` ({"additionalContext": ...},
+the default under GitHub Copilot CLI), `cursor` ({"additional_context": ...}) or `plain` (text). `end` prints anything worth reporting as plain text; the next `start` relays
 it too, since few harnesses show session-end output.
 
 The vault resolves as the hooks do: --vault, $DEVWB_VAULT, ~/.config/dev-workbook/vault,
@@ -80,7 +80,7 @@ def run_maintainer(args: list[str], *flags: str) -> int:
 
 START_HOOKS = ("vault-pull.sh", "vault-size-check.sh", "vault-condense-reminder.sh")
 END_HOOKS = ("session-end.sh",)
-FORMATS = ("claude", "cursor", "plain")
+FORMATS = ("claude", "copilot", "cursor", "plain")
 
 
 def run_hooks(names: tuple[str, ...], fmt: str = "plain") -> list[str]:
@@ -104,7 +104,10 @@ def run_hooks(names: tuple[str, ...], fmt: str = "plain") -> list[str]:
 def session_start(args: list[str]) -> int:
     import json
 
-    fmt = "claude"
+    import os
+
+    # Same default as the hooks' devwb_format: Copilot CLI sets COPILOT_CLI=1.
+    fmt = "copilot" if os.environ.get("COPILOT_CLI") == "1" else "claude"
     for i, a in enumerate(args):
         if a.startswith("--format="):
             fmt = a.split("=", 1)[1]
@@ -120,6 +123,8 @@ def session_start(args: list[str]) -> int:
         print(ctx)
     elif fmt == "cursor":
         print(json.dumps({"additional_context": ctx}))
+    elif fmt == "copilot":
+        print(json.dumps({"additionalContext": ctx}))
     else:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart",
                                                  "additionalContext": ctx}}))

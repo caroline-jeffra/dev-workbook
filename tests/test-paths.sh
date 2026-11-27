@@ -11,13 +11,13 @@ CLI="$REPO_ROOT/bin/dev-workbook"
 TEST_TMP="$(python3 -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "$TEST_TMP")"
 
 # in_home <home> <env assignments...> -- <command...> — run with an isolated HOME and no
-# inherited DEVWB_VAULT / OBSIDIAN_VAULT / CODE_ROOT / XDG_CONFIG_HOME.
+# inherited DEVWB_VAULT / OBSIDIAN_VAULT / CODE_ROOT / XDG_CONFIG_HOME / COPILOT_CLI.
 in_home() {
   local home="$1"; shift
   local assigns=()
   while [ "$1" != "--" ]; do assigns+=("$1"); shift; done
   shift
-  env -u DEVWB_VAULT -u OBSIDIAN_VAULT -u CODE_ROOT -u XDG_CONFIG_HOME HOME="$home" ${assigns[@]+"${assigns[@]}"} "$@"
+  env -u DEVWB_VAULT -u OBSIDIAN_VAULT -u CODE_ROOT -u XDG_CONFIG_HOME -u COPILOT_CLI HOME="$home" ${assigns[@]+"${assigns[@]}"} "$@"
 }
 
 sh_vault() { in_home "$1" "${@:2}" -- bash -c ". '$HOOKS/lib.sh'; resolve_vault"; }
@@ -178,6 +178,12 @@ assert_eq 1 "$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys
 out="$(cs "$v" start --format=cursor)"
 assert_eq 1 "$(printf '%s' "$out" | python3 -c 'import json,sys; print(int("additional_context" in json.load(sys.stdin)))' 2>/dev/null)" \
   'start --format=cursor prints one additional_context object'
+out="$(cs "$v" start --format copilot)"
+assert_eq 1 "$(printf '%s' "$out" | python3 -c 'import json,sys; print(int(set(json.load(sys.stdin)) == {"additionalContext"}))' 2>/dev/null)" \
+  'start --format copilot prints one top-level additionalContext'
+out="$(in_home "$TEST_TMP" DEVWB_VAULT="$v" COPILOT_CLI=1 -- python3 "$CLI" start)"
+assert_eq 1 "$(printf '%s' "$out" | python3 -c 'import json,sys; print(int(set(json.load(sys.stdin)) == {"additionalContext"}))' 2>/dev/null)" \
+  'start defaults to the copilot shape under Copilot CLI'
 cs "$v" start --format bogus >/dev/null 2>&1
 assert_eq 2 "$?" 'an unknown format exits 2'
 

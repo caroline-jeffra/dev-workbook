@@ -65,6 +65,14 @@ assert_eq 0 "$HOOK_RC" 'stale stamp: exit 0'
 if prompted; then ok 'stamp 30 days old: prompts'; else nope 'stamp 30 days old: prompts' "got [$HOOK_OUT]"; fi
 assert_contains "$HOOK_OUT" "$(days_ago 30)" 'stale stamp: names the last-run date'
 
+# Codex and Copilot set PLUGIN_ROOT; a hook must find the plugin's scripts through it when
+# CLAUDE_PLUGIN_ROOT is absent, not fall back to its own directory.
+fake_root="$TEST_TMP/plugin-root"
+mkdir -p "$fake_root/hooks"
+printf 'print(7)\n' > "$fake_root/hooks/vault_maintain.py"
+out="$(env -u CLAUDE_PLUGIN_ROOT -u DEVWB_FORMAT -u COPILOT_CLI PLUGIN_ROOT="$fake_root" HOME="$TEST_TMP/home.$$" DEVWB_VAULT="$v" bash "$HOOKS/vault-condense-reminder.sh" 2>&1)"
+assert_contains "$out" '7 workspace format finding' 'PLUGIN_ROOT locates the plugin when CLAUDE_PLUGIN_ROOT is unset'
+
 v="$(stamp_vault fresh "$(days_ago 1)")"
 run_hook vault-condense-reminder.sh "$v"
 if prompted; then nope 'stamp 1 day old: stays silent' "got [$HOOK_OUT]"; else ok 'stamp 1 day old: stays silent'; fi
