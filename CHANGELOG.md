@@ -14,6 +14,20 @@ are minor.
 
 ## [Unreleased]
 
+## [3.13.0] — 2026-11-27
+
+### Added
+
+- **Codex and GitHub Copilot CLI support.** Both install the plugin, hooks included, from the existing marketplace; the README's "Other coding agents" section has the commands. Verified by running both CLIs against a probe plugin.
+- `dev-workbook ref <skill>/<path> [--section <heading>]` prints a file from the plugin's skills, so a skill installed on its own (for example in `~/.agents/skills`) can still read the files it links to in other skills. The four skills with such links say so.
+- `dev-workbook start --format copilot`.
+
+### Fixed
+
+- **Session-start context now reaches Copilot CLI.** Copilot reads only a top-level `additionalContext` and ignored the hooks' output; the hooks now detect it (`COPILOT_CLI=1`) and print that shape. Output under Claude Code and Codex is unchanged — Codex drops output that carries both shapes, so the hooks never print both.
+- The hooks find the plugin through `PLUGIN_ROOT` when `CLAUDE_PLUGIN_ROOT` is not set.
+- The network time limit added in 3.12.0 no longer prints `Terminated: 15` on stderr after every pull.
+
 ## [3.12.0] — 2026-11-27
 
 ### Changed
