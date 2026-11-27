@@ -173,7 +173,7 @@ Outside `Projects/`, in rough order of how much accumulates there:
 - **Loose root notes** other than the ones the plugin maintains.
 
 **Never delete** `Home.md`, `TasksArchive.md`, `WorkPlanning.md`, anything under
-`Contributions/` or `HouseStyles/` (clean-docs house-style profiles — leave them untouched: no condensing, renaming or moving), or any dot-directory (`.obsidian/`, `.vscode/`, `.foam/`, …).
+`Contributions/`, any folder `.dev-workbook.json` lists as unmanaged (`dev-workbook unmanaged` prints them — leave them untouched: no condensing, renaming or moving), or any dot-directory (`.obsidian/`, `.vscode/`, `.foam/`, …).
 
 ## Step 4 — Condense
 

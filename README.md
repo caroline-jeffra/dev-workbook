@@ -249,6 +249,16 @@ The folder skeleton is **fixed** — every workspace uses the same folder names 
 > [!warning]
 > **1.0 dropped the old flat layout.** Workspaces created before 1.0 — stacked `Progress Log.md`, `Decisions.md` and `Open Threads.md` — are no longer read or written. If you have one, pin the plugin to `v0.4.x`, run its `migrate-workspace` skill to convert it, then upgrade again. This version will tell you rather than guessing, and will never scaffold a second workspace alongside one it cannot read.
 
+### Unmanaged folders
+
+A top-level vault folder that belongs to something else — another plugin's data, a tool's files, your own — can be **synced but never changed**. List it in `.dev-workbook.json` at the vault root:
+
+```json
+{"unmanaged": ["HouseStyles"]}
+```
+
+A listed folder is committed and pushed with the session, staged by background sessions, and counted as the plugin's own by the first-run check. Nothing else touches it: no maintenance, no naming lint, no condensing or renaming, and its notes stay out of link resolution. An entry is one folder name at the vault root (letters, digits, space, `_`, `-`); `Projects`, `Resources`, `Contributions` and `Archived` can't be listed, and a bad entry is reported and ignored. `dev-workbook unmanaged` prints the list as the plugin reads it.
+
 ### Vault version control
 
 > [!important]
@@ -268,10 +278,9 @@ hooks (no heartbeat, or one over a day old), the skills pull before their first 
 push the same owned paths when you close out the session.
 
 **What gets committed, and what does not.** The push hook does *not* `git add -A`. It commits only
-paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, the optional
-`HouseStyles/` (house-style profiles kept by the companion clean-docs plugin), and the root
-`Home.md`, `TasksArchive.md`, `WorkPlanning.md` — so a stray file elsewhere in the vault is never
-published on your behalf. Two further refusals, each reported on stdout rather than done silently:
+paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, any folder you
+list as [unmanaged](#unmanaged-folders), and the root `Home.md`, `TasksArchive.md`, `WorkPlanning.md`
+and `.dev-workbook.json` — so a stray file elsewhere in the vault is never published on your behalf. Two further refusals, each reported on stdout rather than done silently:
 
 - **Secret-shaped filenames** (`.env`, `.envrc`, `*.pem`, `*.key`, `*.ppk`, `*.gpg`, `id_rsa*`, `.npmrc`, `.git-credentials`, `secrets.*`, and similar, in any letter case) are never
   committed, even inside an owned folder. That blocklist cannot be complete, so copy

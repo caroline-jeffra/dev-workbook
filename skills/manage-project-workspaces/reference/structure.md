@@ -92,7 +92,7 @@ In short: every note is PascalCase, **area first, kind last**, and never repeats
 | ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
 | log | `YYYY-MM-DD` | `2026-08-19` |
 | structural | fixed | `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`, `TimeTracking` |
-| vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` |
+| vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` — and any folder `.dev-workbook.json` lists as unmanaged is not ours to name or change |
 | workspace folder | the repo's name | `Projects/Orchard/` (and `Contributions/Orchard.md`) |
 
 - **Acronyms are words.** `AdminApiAudit`, `CiPipelineSpec`, `SqlInjectionAudit` — never `AdminAPIAudit`, which hides the word boundary.
