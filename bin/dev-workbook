@@ -20,6 +20,10 @@
                                                  write the day's log, ProgressLog line and
                                                  TasksArchive row from JSON on stdin; with --commit
                                                  (sync=self) also commit and push the vault
+    dev-workbook ref SKILL/PATH [--section HEADING]
+                                                 print a file from the plugin's skills, or one `##`
+                                                 section of it: how a skill installed on its own
+                                                 reads another skill's reference files
     dev-workbook hours [session_hours options]   measure time spent from session transcripts
     dev-workbook tokens [session_tokens options] measure what the plugin costs in context per
                                                  session, from transcripts (sizes only, no text)
@@ -137,6 +141,49 @@ def session_end(args: list[str]) -> int:
     return 0
 
 
+def print_ref(args: list[str]) -> int:
+    """`ref SKILL/PATH [--section HEADING]` — print a file under the plugin's skills/ folder.
+
+    A skill copied on its own into ~/.agents/skills loses its relative links into the other
+    skills; this serves those files from the plugin the command lives in. A heading prefix
+    selects one `## ` section, ending at the next `## ` heading.
+    """
+    section, rest, it = None, [], iter(args)
+    for a in it:
+        if a == "--section":
+            section = next(it, None)
+        elif a.startswith("--section="):
+            section = a.split("=", 1)[1]
+        else:
+            rest.append(a)
+    if len(rest) != 1 or section == "":
+        print("usage: dev-workbook ref SKILL/PATH [--section HEADING]", file=sys.stderr)
+        return 2
+    skills = (ROOT / "skills").resolve()
+    target = (skills / rest[0]).resolve()
+    if not target.is_relative_to(skills) or not target.is_file():
+        print(f"dev-workbook: no skill file '{rest[0]}'", file=sys.stderr)
+        return 1
+    text = target.read_text(encoding="utf-8")
+    if section is None:
+        sys.stdout.write(text)
+        return 0
+    out: list[str] = []
+    for line in text.splitlines(keepends=True):
+        if line.startswith("## "):
+            if out:
+                break
+            if line[3:].strip().startswith(section.lstrip("# ").strip()):
+                out.append(line)
+        elif out:
+            out.append(line)
+    if not out:
+        print(f"dev-workbook: no '## {section}' section in '{rest[0]}'", file=sys.stderr)
+        return 1
+    sys.stdout.write("".join(out))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__.strip())
@@ -186,6 +233,8 @@ def main(argv: list[str]) -> int:
     if cmd == "closeout":
         import workspace_closeout
         return workspace_closeout.main(args)
+    if cmd == "ref":
+        return print_ref(args)
     if cmd == "hours":
         import session_hours
         return session_hours.main(args)
