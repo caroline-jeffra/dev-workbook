@@ -238,6 +238,7 @@ def emit_frontmatter(fields: dict[str, object]) -> str:
 # fixed keep working; new ones omit the key entirely.
 DEFAULT_FOLDERS: dict[str, str] = {
     "ticket": "Tickets",
+    "spec": "Specs",
     "epic": "Epics",
     "playbook": "Playbooks",
     "research": "Research",
@@ -602,6 +603,7 @@ def refresh_metadata(notes: list[Note], cfg: Config) -> list[str]:
 
 TYPE_PLURAL = {
     "ticket": ("Ticket", "Tickets"),
+    "spec": ("Spec", "Specs"),
     "epic": ("Epic", "Epics"),
     "playbook": ("Playbook", "Playbooks"),
     "research": ("Research", "Research"),
@@ -613,8 +615,8 @@ TYPE_PLURAL = {
     "diagram": ("Diagram", "Diagrams"),
 }
 TYPE_RANK = {
-    "playbook": 0, "research": 1, "diagram": 2, "epic": 3, "ticket": 4, "note": 5,
-    "decision": 6, "convention": 7, "thread": 8, "log": 9,
+    "playbook": 0, "research": 1, "diagram": 2, "epic": 3, "ticket": 4, "spec": 5, "note": 6,
+    "decision": 7, "convention": 8, "thread": 9, "log": 10,
 }
 
 
@@ -1000,7 +1002,7 @@ BUDGETS = {
 # Notes that state current truth. Logs are history; indexes are generated.
 CURRENT_STATE = {
     "overview", "thread", "playbook", "decision", "convention", "research", "note", "ticket",
-    "epic", "diagram",
+    "epic", "diagram", "spec",
 }
 
 RESEARCH_KINDS = ("Audit", "Analysis", "Plan", "Spec", "Review", "Map", "Reference")
@@ -1192,6 +1194,14 @@ def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> st
         return None if LOG_NAME.match(name) else "log name must be YYYY-MM-DD"
     if DATE.search(name):
         return "date in name — dates belong in frontmatter"
+    if t == "spec":
+        # Named after its ticket note plus `Spec`, so `[[12-NaturalSortApi]]` still means the ticket.
+        if not name.endswith("Spec"):
+            return "spec name must end in Spec: '<number>-<Subject>Spec', or '<Subject>Spec' without a ticket"
+        if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
+            return None
+        if KEYED_TICKET_NAME.match(name):
+            return "drop the project key — name it '<number>-<Subject>Spec'; the key stays in tickets:"
     if t == "ticket":
         if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
             return None
@@ -1215,6 +1225,9 @@ def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> st
     return None
 
 
+SPEC_SECTIONS = ("Problem", "Acceptance criteria", "Decisions", "Out of scope", "Open questions", "Steps")
+
+
 def missing_sections(n: Note) -> list[str]:
     body = n.body
     want: list[tuple[str, str]] = []
@@ -1230,6 +1243,10 @@ def missing_sections(n: Note) -> list[str]:
             (r"^\*\*Done when:\*\*", "**Done when:**"),
             (r"^##\s+Steps\b", "## Steps"),
         ]
+    elif n.doctype == "spec":
+        # The build contract: what to solve, how we'll know, what's settled, what isn't in it,
+        # what's still open (empty at approval), and the steps /build follows.
+        want = [(rf"^##\s+{re.escape(s)}\b", f"## {s}") for s in SPEC_SECTIONS]
     return [label for pat, label in want if not re.search(pat, body, re.M | re.I)]
 
 

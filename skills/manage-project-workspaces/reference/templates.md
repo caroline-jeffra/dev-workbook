@@ -12,6 +12,7 @@ One file per note type in [templates/](templates/): read only the type you are w
 | Playbook | [templates/playbook.md](templates/playbook.md) |
 | Research | [templates/research.md](templates/research.md) |
 | Ticket | [templates/ticket.md](templates/ticket.md) |
+| Spec | [templates/spec.md](templates/spec.md) |
 | Decision, convention | [templates/decision.md](templates/decision.md) |
 | Note | [templates/note.md](templates/note.md) |
 | Diagram | [templates/diagram.md](templates/diagram.md) |
