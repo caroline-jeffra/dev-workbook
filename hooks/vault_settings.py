@@ -1,6 +1,6 @@
 """Vault-level settings: `<vault>/.dev-workbook.json`.
 
-    {"unmanaged": ["HouseStyles"]}
+    {"unmanaged": ["Profiles"]}
 
 `unmanaged` names top-level vault folders that belong to someone else — another plugin, a tool,
 you — and that the plugin should **sync but never change**: the session hooks, the spool and the
@@ -69,5 +69,13 @@ def load(vault: Path | str) -> Settings:
     return Settings(tuple(kept), warnings)
 
 
-def unmanaged(vault: Path | str) -> tuple[str, ...]:
-    return load(vault).unmanaged
+def unmanaged(vault: Path | str | None) -> tuple[str, ...]:
+    return load(vault).unmanaged if vault is not None else ()
+
+
+if __name__ == "__main__":
+    # `python3 vault_settings.py <vault>` — the unmanaged folders, one per line (for the shell hooks).
+    import sys
+
+    for name in unmanaged(sys.argv[1]) if len(sys.argv) > 1 else ():
+        print(name)

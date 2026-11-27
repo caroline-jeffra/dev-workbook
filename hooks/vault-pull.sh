@@ -82,7 +82,8 @@ fi
 # uncommitted. Commit them now, before pulling, through the same owned-paths-only rules as the
 # exit hook. Its messages are reported directly rather than relayed to the next session.
 leftover=""
-if [ -n "$(git -C "$VAULT" status --porcelain -- Projects Resources Contributions HouseStyles Home.md TasksArchive.md WorkPlanning.md 2>/dev/null)" ]; then
+load_unmanaged "$VAULT"
+if [ -n "$(git -C "$VAULT" status --porcelain -- Projects Resources Contributions ${UNMANAGED_DIRS[@]+"${UNMANAGED_DIRS[@]}"} Home.md TasksArchive.md WorkPlanning.md .dev-workbook.json 2>/dev/null)" ]; then
   before="$(git -C "$VAULT" rev-parse HEAD 2>/dev/null)"
   said="$(DEVWB_PUSH_TIMEOUT="$(left)" DEVWB_NO_RELAY=1 bash "$(dirname "$0")/vault-push.sh" </dev/null 2>/dev/null \
     | sed 's/^dev-workbook: //' | tr '\n' ' ' | tr -d '\000-\037')"

@@ -39,7 +39,12 @@ import tempfile
 import time
 from pathlib import Path, PurePosixPath
 
-OWNED_DIRS = ("Projects", "Resources", "Contributions", "HouseStyles")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import vault_settings  # noqa: E402
+
+# Plus any folder the vault's .dev-workbook.json lists as unmanaged (vault_settings.py).
+OWNED_DIRS = ("Projects", "Resources", "Contributions")
 OWNED_FILES = ("Home.md", "TasksArchive.md", "WorkPlanning.md")
 
 # A spool with no recorded owner process is treated as finished once it has been idle this long.
@@ -65,8 +70,9 @@ def session_id() -> str | None:
     return sid if sid and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", sid) else None
 
 
-def check_path(rel: str) -> str | None:
-    """The normalised vault-relative path, or None if the spool must not carry it."""
+def check_path(rel: str, vault: Path | None = None) -> str | None:
+    """The normalised vault-relative path, or None if the spool must not carry it. With the vault,
+    folders its .dev-workbook.json lists as unmanaged are accepted too."""
     p = PurePosixPath(rel.replace("\\", "/"))
     if p.is_absolute() or not p.parts or any(part in ("", ".", "..") for part in p.parts):
         return None
@@ -75,7 +81,7 @@ def check_path(rel: str) -> str | None:
         return None
     if len(p.parts) == 1:
         return str(p) if name in OWNED_FILES else None
-    return str(p) if p.parts[0] in OWNED_DIRS else None
+    return str(p) if p.parts[0] in OWNED_DIRS + vault_settings.unmanaged(vault) else None
 
 
 def inside(vault: Path, rel: str) -> Path | None:
@@ -121,10 +127,11 @@ def save_meta(spool: Path, meta: dict) -> None:
 
 def stage(vault: Path, rel: str, sid: str | None = None) -> tuple[Path | None, str]:
     """Stage one note for this session; return (path to edit, message)."""
-    norm = check_path(rel)
+    norm = check_path(rel, vault)
     if norm is None:
+        dirs = OWNED_DIRS + vault_settings.unmanaged(vault)
         return None, (f"'{rel}' is not a path the vault hooks publish — stage notes under "
-                      f"{', '.join(OWNED_DIRS)}/ or {', '.join(OWNED_FILES)}")
+                      f"{', '.join(dirs)}/ or {', '.join(OWNED_FILES)}")
     if inside(vault, norm) is None:
         return None, f"'{rel}' resolves outside the vault"
     sid = sid or session_id()
@@ -267,7 +274,7 @@ def write_atomic(path: Path, data: bytes) -> None:
 
 def apply_note(vault: Path, rel: str, work: Path, base_file: Path) -> str:
     """Merge one staged note in. Returns 'applied', 'unchanged', 'conflict' or 'refused'."""
-    if check_path(rel) is None:
+    if check_path(rel, vault) is None:
         return "refused"
     target = inside(vault, rel)
     if target is None:

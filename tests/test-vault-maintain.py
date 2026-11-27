@@ -508,7 +508,9 @@ try:
           "---\ntype: decision\nstatus: active\nsupersedes: use-memcached\n---\n\n# Use Redis cache\n\n**Decision:** Redis.\n")
     write(tmp6 / "Archived" / "old" / "UseNewHost.md", "# dup\n")
     write(tmp6 / "Archived" / "old" / "not pascal.md", "# archived names are not checked\n")
-    write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# clean-docs template names are not checked\n")
+    write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# unmanaged folders are not checked\n")
+    write(tmp6 / "Unlisted" / "not pascal either.md", "# a folder nobody lists is checked\n")
+    write(tmp6 / ".dev-workbook.json", json.dumps({"unmanaged": ["HouseStyles"]}))
     write(tmp6 / "Tasks Archive.md", "# Tasks archive\n")
     write(tmp6 / "Resources" / "Link checker.md", "# Link checker\n")
     write(tmp6 / "Projects" / "home-thing" / ".vault-config.json", json.dumps({"project": "ht", "topics": {}}))
@@ -571,7 +573,12 @@ try:
     check(not any("Archived/old/not pascal" in f for f in findings),
           "Archived/ names are not checked")
     check(not any("HouseStyles/" in f for f in findings),
-          "HouseStyles/ names are not checked (profile.json refers to them by file)")
+          "names in a folder listed as unmanaged are not checked", "\n".join(findings))
+    check(any("Unlisted/not pascal either" in f for f in findings),
+          "names in a top-level folder nobody lists are still checked", "\n".join(findings))
+    names6 = vm.VaultNames.scan(tmp6)
+    check("ticket-story" not in names6.stems and not any(p.startswith("HouseStyles/") for p in names6.paths),
+          "notes in an unmanaged folder stay out of link resolution")
     gen = [f for f in findings if "Topic Index.md" in f]
     check(bool(gen) and "delete it" in gen[0],
           "a pre-2.0 generated index is marked for deletion, not renaming", str(gen))

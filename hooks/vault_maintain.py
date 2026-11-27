@@ -47,6 +47,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterator
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import vault_settings  # noqa: E402
+
 # ---------------------------------------------------------------- frontmatter
 
 FM_START = "---\n"
@@ -1115,9 +1119,10 @@ class VaultNames:
     def scan(cls, vault: Path) -> "VaultNames":
         stems: dict[str, list[str]] = defaultdict(list)
         paths: set[str] = set()
+        unmanaged = vault_settings.unmanaged(vault)
         for p in sorted(vault.rglob("*.md")):
             rel = p.relative_to(vault)
-            if any(part.startswith(".") for part in rel.parts):
+            if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in unmanaged:
                 continue
             stems[p.stem].append(rel.as_posix())
             paths.add(rel.with_suffix("").as_posix())
@@ -1540,8 +1545,10 @@ LEGACY_VAULT = {
 
 def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
     """Naming outside the workspaces: every note in the vault is PascalCase, and so are the
-    workspace folders. `Archived/` is expendable by design and is not checked; `HouseStyles/`
-    belongs to clean-docs, whose profile.json names its templates by file, so a rename breaks it."""
+    workspace folders. `Archived/` is expendable by design and is not checked, and neither are the
+    folders .dev-workbook.json lists as unmanaged: they belong to someone else (a profile that names
+    its templates by file breaks when one is renamed)."""
+    unmanaged = vault_settings.unmanaged(vault)
     out: list[str] = []
     for ws in workspaces:
         if ws != vault:
@@ -1551,7 +1558,7 @@ def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
                            " (rename it, its WorkspaceIndex row, its Contributions note and links)")
     for p in sorted(vault.rglob("*.md")):
         rel = p.relative_to(vault)
-        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in ("Archived", "HouseStyles"):
+        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in ("Archived", *unmanaged):
             continue
         if any(p.is_relative_to(ws) for ws in workspaces):
             continue
