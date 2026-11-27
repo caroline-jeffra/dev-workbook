@@ -2,6 +2,8 @@
 """dev-workbook — one command for every tool the skills and hooks run.
 
     dev-workbook vault-path                      print the resolved vault path
+    dev-workbook unmanaged [--vault P]           print the folders .dev-workbook.json lists as
+                                                 unmanaged (synced, never changed), one per line
     dev-workbook code-root                       print the resolved code root
     dev-workbook lint [--count] [--vault P]      report notes that break the format contract
     dev-workbook maintain [--vault P]            refresh derived frontmatter and indexes
@@ -190,6 +192,15 @@ def main(argv: list[str]) -> int:
         return 0
     cmd, args = argv[0], argv[1:]
 
+    if cmd == "unmanaged":
+        import vault_settings
+        vault, _ = take_vault(args)
+        settings = vault_settings.load(vault)
+        for warning in settings.warnings:
+            print(f"dev-workbook: {warning}", file=sys.stderr)
+        for name in settings.unmanaged:
+            print(name)
+        return 0
     if cmd == "vault-path":
         print(paths.resolve_vault())
         return 0
