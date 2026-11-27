@@ -195,4 +195,20 @@ assert_file_exists "$v/Projects/Alpha/Notes/Orphan.md" 'session start applies an
 assert_contains "$HOOK_OUT" 'applied 1 note(s) from background session' 'and says so'
 assert_file_absent "$v/Projects/Alpha/Notes/StillRunning.md" 'but not a running session'"'"'s'
 
+# ---------------------------------------------------------------------------
+section 'End lock: stale takeover'
+# ---------------------------------------------------------------------------
+
+v="$(build_vault lock-stale)"
+lock="$(git -C "$v" rev-parse --absolute-git-dir)/dev-workbook-end.lock"
+mkdir "$lock"
+touch -t 202001010000 "$lock"
+bash -c ". '$HOOKS/lib.sh'; acquire_end_lock '$v' 1 && release_end_lock '$v'"
+assert_eq 0 "$?" 'a pid-less lock over a minute old is taken over'
+
+mkdir "$lock"; printf '999999\n' > "$lock/pid"
+bash -c ". '$HOOKS/lib.sh'; acquire_end_lock '$v' 1 && release_end_lock '$v'"
+assert_eq 0 "$?" 'a dead owner'"'"'s lock is taken over'
+assert_file_absent "$lock" 'and released afterwards'
+
 finish

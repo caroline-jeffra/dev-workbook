@@ -93,9 +93,15 @@ fi
 # SessionStart has no teardown pressure, so a flush here reliably recovers whatever the last exit
 # stranded. Push before the pull below: these commits are already on the branch, so sending them
 # first keeps the subsequent --ff-only honest instead of racing a remote that moved on.
+#
+# Only the plugin's own commits are flushed (push_blocker, lib.sh): a commit the user made and
+# has not pushed, or one adding a secret-shaped file, stops the push and is reported instead.
 if [ -n "$(git -C "$VAULT" log '@{upstream}..HEAD' --oneline 2>/dev/null)" ]; then
   n="$(git -C "$VAULT" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo some)"
-  if git -C "$VAULT" push >/dev/null 2>&1; then
+  blocked="$(push_blocker "$VAULT" | tr -d '\000-\037')"
+  if [ -n "$blocked" ]; then
+    stranded="Vault has ${n} unpushed commit(s) and was not pushed: ${blocked}"
+  elif git -C "$VAULT" push >/dev/null 2>&1; then
     stranded="Pushed ${n} vault commit(s) stranded by a previous session's cancelled exit hook."
   else
     stranded="Vault has ${n} unpushed commit(s) from a previous session and the retry failed; they remain local-only."

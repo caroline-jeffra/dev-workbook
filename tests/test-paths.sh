@@ -53,6 +53,13 @@ mkdir -p "$TEST_TMP/xdg/dev-workbook"
 printf '%s\n' "$TEST_TMP/CustomXdg" > "$TEST_TMP/xdg/dev-workbook/vault"
 check_both '$XDG_CONFIG_HOME is honoured' "$TEST_TMP/CustomXdg" "$h" XDG_CONFIG_HOME="$TEST_TMP/xdg"
 
+h="$TEST_TMP/h-rel"; mkdir -p "$h/.config/dev-workbook"
+printf 'relative/vault\n' > "$h/.config/dev-workbook/vault"
+check_both 'a relative configured vault is refused' /dev/null/dev-workbook-vault-path-must-be-absolute "$h"
+check_both 'a relative env vault is refused' /dev/null/dev-workbook-vault-path-must-be-absolute "$h" DEVWB_VAULT=Vault
+# shellcheck disable=SC2088  # a literal ~ is what the env var holds
+check_both 'a ~ in the env var is expanded' "$h/EnvVault" "$h" 'DEVWB_VAULT=~/EnvVault'
+
 h="$TEST_TMP/h-tilde"; mkdir -p "$h/.config/dev-workbook"
 printf '  ~/Notes/Vault  \n' > "$h/.config/dev-workbook/vault"
 check_both 'whitespace trimmed, leading ~ expanded' "$h/Notes/Vault" "$h"
