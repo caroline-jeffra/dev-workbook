@@ -8,11 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 **What a breaking change means here.** This plugin's public surface is not an API — it is the
 **layout it writes into your vault** and the **behaviour of the hooks**. A major version bump means
 one of: a change to the workspace folder structure or note format that existing vaults would need
-migrating for; a change to which paths the session-end hook commits; or a skill trigger changing so
+migrating for; a path the session-end hook used to commit no longer being committed (adding an owned path is minor); or a skill trigger changing so
 that a phrase that used to invoke it no longer does. New skills, new hooks and additive frontmatter
 are minor.
 
 ## [Unreleased]
+
+## [3.10.0] — 2026-11-27
 
 ### Added
 
