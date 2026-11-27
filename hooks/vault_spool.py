@@ -44,6 +44,9 @@ OWNED_FILES = ("Home.md", "TasksArchive.md", "WorkPlanning.md")
 
 # A spool with no recorded owner process is treated as finished once it has been idle this long.
 ORPHAN_AFTER = 6 * 3600
+# A spool applied on idleness alone is kept, emptied, this long, in case its session was only
+# quiet and writes again: removing it would leave those later writes in a spool nothing reads.
+EXPIRE_AFTER = 7 * 24 * 3600
 
 # Append-shaped notes: a log gains entries at the end, the progress log a line at the top. When two
 # sessions both add to one, a plain three-way merge calls the adjacent insertions a conflict; keeping
@@ -58,7 +61,8 @@ def spool_root() -> Path:
 
 def session_id() -> str | None:
     sid = os.environ.get("CLAUDE_CODE_SESSION_ID", "").strip()
-    return sid if sid and re.fullmatch(r"[A-Za-z0-9._-]+", sid) else None
+    # Starts with a letter or digit, so it can never be `.` or `..` and name a parent directory.
+    return sid if sid and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", sid) else None
 
 
 def check_path(rel: str) -> str | None:
@@ -75,11 +79,20 @@ def check_path(rel: str) -> str | None:
 
 
 def inside(vault: Path, rel: str) -> Path | None:
-    """The note's vault path, or None if a symlink would take it outside the vault."""
-    target = (vault / rel).resolve()
+    """The note's vault path, or None if any part of it below the vault is a symlink.
+
+    Resolving and checking the result stays inside the vault is not enough: a symlinked note in an
+    owned folder can point at `.git/config` or any other file the hooks never publish, and the
+    staged edit would then be written there. Git stores symlinks, so one can arrive with a pull.
+    """
+    target = vault
+    for part in PurePosixPath(rel).parts:
+        target = target / part
+        if target.is_symlink():
+            return None
     try:
-        target.relative_to(vault.resolve())
-    except ValueError:
+        target.resolve().relative_to(vault.resolve())
+    except (OSError, ValueError):
         return None
     return target
 
@@ -290,7 +303,9 @@ def apply_note(vault: Path, rel: str, work: Path, base_file: Path) -> str:
     return "applied"
 
 
-def apply_spool(vault: Path, spool: Path, meta: dict) -> list[str]:
+def apply_spool(vault: Path, spool: Path, meta: dict, keep: bool = False) -> list[str]:
+    """Merge one spool in. With keep (its session was judged finished only by being idle), an
+    emptied spool is kept with its record instead of removed, so later writes are still found."""
     sid = str(meta.get("session") or spool.name)
     short = sid[:8]
     notes_dir, base_dir = spool / "notes", spool / "base"
@@ -324,6 +339,9 @@ def apply_spool(vault: Path, spool: Path, meta: dict) -> list[str]:
             msgs.append(f"background session {short}: {len(conflicts)} note(s) changed in the vault "
                         f"since they were staged and do not merge: {' '.join(conflicts)}. Its versions "
                         f"are kept in {notes_dir}; merge them by hand, then delete {spool}.")
+    elif keep:
+        meta["applied"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+        save_meta(spool, meta)
     else:
         shutil.rmtree(spool, ignore_errors=True)
     return msgs
@@ -340,8 +358,14 @@ def apply(vault: Path, ending: str | None = None) -> list[str]:
         meta = load_meta(spool)
         if meta.get("vault") != vault_key or meta.get("held"):
             continue
+        notes = spool / "notes"
+        empty = not (notes.is_dir() and any(p.is_file() for p in notes.rglob("*")))
+        if meta.get("applied") and empty and time.time() - last_touched(spool) > EXPIRE_AFTER:
+            shutil.rmtree(spool, ignore_errors=True)
+            continue
         if finished(spool, meta, ending):
-            due.append((spool, meta))
+            idle_only = not (ending and meta.get("session") == ending) and not meta.get("pid")
+            due.append((spool, meta, idle_only))
     if not due:
         return []
     what = busy(vault)
@@ -349,8 +373,8 @@ def apply(vault: Path, ending: str | None = None) -> list[str]:
         return [f"vault has {what} in progress — {len(due)} background session spool(s) left "
                 f"unapplied until it is finished."]
     msgs = []
-    for spool, meta in due:
-        msgs.extend(apply_spool(vault, spool, meta))
+    for spool, meta, idle_only in due:
+        msgs.extend(apply_spool(vault, spool, meta, keep=idle_only))
     return msgs
 
 
@@ -369,7 +393,9 @@ def pending(vault: Path) -> list[str]:
         rels = sorted(p.relative_to(notes).as_posix() for p in notes.rglob("*") if p.is_file()) \
             if notes.is_dir() else []
         state = "held (conflict)" if meta.get("held") else (
-            "running" if not finished(spool, meta, None) else "due")
+            "running" if not finished(spool, meta, None)
+            else "applied (kept while its session may write again)" if meta.get("applied") and not rels
+            else "due")
         lines.append(f"{spool.name} [{state}] {spool}: {' '.join(rels) or '(nothing written)'}")
     return lines
 
