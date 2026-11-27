@@ -317,7 +317,7 @@ regenerates index notes, described below.
   regenerated indexes land in the same commit as the notes that changed them. It never deletes or
   moves a file and never edits a note body. Generated indexes carry a `_Generated —` marker and an
   index without that marker is left alone, so a hand-written one is never clobbered; hand-written
-  `topics:` are likewise respected. Requires `python3` — without it the hook exits silently.
+  `topics:` are likewise respected. Requires `python3` — without it the hook exits silently. A run stops after 10 seconds (a typical one takes well under one), and a topic pattern that takes over a quarter of a second on one note is skipped for the rest of the run; either is reported at the next session start.
 
   **Sessions started before an upgrade leave the vault alone.** Hooks load when a session starts,
   so a session still open from before an upgrade would otherwise regenerate indexes in the old
@@ -333,7 +333,7 @@ regenerates index notes, described below.
   and refuses outright while a merge or rebase is in progress or HEAD is detached — see
   "Vault version control" above. Maintenance, commit and push run in a detached background job,
   because Claude Code allows exit hooks only 1.5 seconds and a push alone can take longer; a
-  session started before that job finishes waits for it. Anything it reports reaches the next
+  session started before that job finishes waits for it, for up to 12 seconds. A push is stopped after 20 seconds, so a stalled connection cannot keep that job running; the commit stays local and the next session start pushes it. The session-start pull fits its own pushes and pull inside its 20-second hook timeout the same way. Anything it reports reaches the next
   session start.
 
 ### When progress gets logged
