@@ -26,6 +26,7 @@ Read-only: nothing here writes to the vault.
 from __future__ import annotations
 
 import json
+import unicodedata
 import os
 import re
 import subprocess
@@ -53,9 +54,16 @@ HEARTBEAT_MAX_AGE = 24 * 3600
 # --- output ----------------------------------------------------------------------------------
 
 def fmt(value: object) -> str:
+    """One value, quoted as JSON unless it is plain printable ASCII with no space, quote or `=`.
+    Anything else — a separator, an invisible or bidi control, a look-alike `＝` — could make a
+    value read as more keys than it is, so it is quoted, and JSON escapes it to plain text."""
     s = "-" if value is None or value == "" else str(value)
-    if any(c.isspace() or c in '"=' or ord(c) < 32 or ord(c) == 127 for c in s):
-        return json.dumps(s)
+    if any(c in '"=' or not ("!" <= c <= "~") for c in s):
+        # Readable characters stay readable (a vault path may hold an accent); only control,
+        # format and separator characters are escaped.
+        return "".join(f"\\u{ord(c):04x}" if unicodedata.category(c) in ("Cc", "Cf", "Zl", "Zp")
+                       and c not in "\n\t" else c
+                       for c in json.dumps(s, ensure_ascii=False))
     return s
 
 
@@ -75,7 +83,7 @@ SEPARATOR = re.compile(r"^:?-+:?$")
 TRIAL_HEADING = re.compile(r"^##\s+trial workspaces\b", re.I)
 # A workspace name is one folder under Projects/. Skills splice it into shell commands and paths,
 # so anything beyond word characters, dots, dashes and spaces (or a `..`) is not a workspace.
-SAFE_NAME = re.compile(r"^\w[\w. -]*$")
+SAFE_NAME = re.compile(r"\w[\w. -]*\Z")
 
 
 def workspace_of(cells_text: str) -> str | None:
@@ -89,7 +97,7 @@ def workspace_of(cells_text: str) -> str | None:
             name = target[: -len("/overview")].strip("/")
             if name.startswith("Projects/"):
                 name = name[len("Projects/"):]
-            found = f"Projects/{name}" if SAFE_NAME.match(name) and ".." not in name else None
+            found = f"Projects/{name}" if SAFE_NAME.fullmatch(name) and ".." not in name else None
     return found
 
 

@@ -154,7 +154,7 @@ def freshness(out: dict[str, str]) -> None:
 def check_workspace(vault: Path, arg: str) -> str:
     """`Projects/<name>` if it is a structured workspace inside the vault; ValueError otherwise."""
     name = arg[len("Projects/"):] if arg.startswith("Projects/") else ""
-    if not name or not wc.SAFE_NAME.match(name) or ".." in name:
+    if not name or not wc.SAFE_NAME.fullmatch(name) or ".." in name:
         raise ValueError("--workspace must be Projects/<name>")
     target = vault_spool.inside(vault, f"Projects/{name}")
     if target is None:

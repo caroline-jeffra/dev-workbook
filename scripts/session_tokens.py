@@ -420,7 +420,8 @@ def print_rows(rows: list[dict]) -> None:
     print("|" + " --- |" * 14)
     for r in rows:
         t = r["tokens"]
-        repo = r["repo"].replace("|", "\\|")
+        # The repo is a folder name from the transcript: one line, or it could forge table rows.
+        repo = " ".join(str(r["repo"]).split()).replace("|", "\\|")
         print(f"| {r['date']} | {repo} | {r['version']} | {r['skill_loads']} | {r['skill_bytes']} "
               f"| {r['description_bytes']} | {r['reinjected_bytes']} "
               f"| {r['hook_context_bytes_all_plugins']} | {r['reference_reads']} | {r['reference_bytes']} "

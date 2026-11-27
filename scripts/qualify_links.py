@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import os
 import re
 import sys
 import tempfile
@@ -40,7 +41,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "hooks"))
 
 from dev_workbook_paths import resolve_vault  # noqa: E402
-from vault_maintain import WIKILINK, VaultNames, find_workspaces, shortest_ref  # noqa: E402
+from vault_maintain import WIKILINK, VaultNames, find_workspaces, shortest_ref, write_atomic  # noqa: E402
 
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 
@@ -120,7 +121,7 @@ def qualify(vault: Path, dry_run: bool = False) -> tuple[int, int, list[str]]:
                 links += fixed
                 files += 1
                 if not dry_run:
-                    p.write_text(out, encoding="utf-8")
+                    write_atomic(p, out)
     return links, files, unresolved
 
 
@@ -136,7 +137,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     vault = vault.resolve()
     key = hashlib.sha1(str(vault).encode()).hexdigest()[:12]
-    with open(Path(tempfile.gettempdir()) / f"dev-workbook-rename-{key}.lock", "w") as lock:
+    # O_NOFOLLOW and no truncation: a planted symlink must not turn opening the lock into a write.
+    fd = os.open(Path(tempfile.gettempdir()) / f"dev-workbook-rename-{key}.lock",
+                 os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         links, files, unresolved = qualify(vault, a.dry_run)
     for line in unresolved:
