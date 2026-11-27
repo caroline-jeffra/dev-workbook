@@ -15,6 +15,8 @@ This is a routine, not a per-note judgement call — run it over the whole vault
 
 **Start here: run `dev-workbook context`.** It prints one `key=value` line (a value with spaces is JSON-quoted, `-` means none). If `command -v dev-workbook` finds nothing, run `python3 "<plugin root>/bin/dev-workbook" context` (the plugin root is two levels above this skill's base directory); a standalone skill needs it on PATH: `ln -s <plugin root>/bin/dev-workbook ~/.local/bin/`.
 
+**Links into another skill** (`../<skill>/…`) don't open when this skill is installed on its own: run `dev-workbook ref <skill>/<path>` instead, with `--section <heading>` for one `##` section.
+
 This skill reads `vault`, `vault_ok`, `vault_from` and `background`. `vault` is written below as `$DEVWB_VAULT` — use this absolute path for every read and write. `vault_ok=no` → if `vault_from=env`, say that `DEVWB_VAULT` (or `OBSIDIAN_VAULT`) names a folder that does not exist and stop, since a config file cannot override it; otherwise ask where the vault is and write it to `~/.config/dev-workbook/vault` (creating the folder), then re-run `dev-workbook context` and act only on the new line (no key from the old line carries over).
 
 **Fallback** if the command is unavailable or prints no `vault=`: resolve the vault from `DEVWB_VAULT`, then `~/.config/dev-workbook/vault`, then ask. Treat `background` as `yes` only when `CLAUDE_JOB_DIR` is set.
