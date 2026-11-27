@@ -424,6 +424,15 @@ v_ok_names = make_vault("ok-names", "| alpha | [[bert.report/Overview]] |\n| bet
 check(run(v_ok_names, alpha, CODE)["workspace"] == "Projects/bert.report", "dots in a name are fine")
 check(run(v_ok_names, beta, CODE)["workspace"] == "Projects/My Notes_2-x", "spaces, underscores, dashes are fine")
 
+# A run of `[` in a row cost quadratic time in the wikilink pattern, stalling every skill's
+# context call. The real row after it must still match.
+import time  # noqa: E402
+v_brackets = make_vault("brackets", "| junk | " + "[" * 100_000 + " |\n| alpha | [[Projects/Alpha/Overview\\|Alpha]] |\n")
+start = time.monotonic()
+r = run(v_brackets, alpha, CODE)
+check(time.monotonic() - start < 3, "a row of 100k `[` does not stall the context call")
+check(r["workspace"] == "Projects/Alpha", "and the row after it still matches", str(r))
+
 # ---------------------------------------------------------------------------
 section("vault_from")
 # ---------------------------------------------------------------------------
