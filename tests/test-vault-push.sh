@@ -320,4 +320,26 @@ printf '# ours\n' > "$v/Projects/ours.md"
 run_hook vault-push.sh "$v"
 assert_contains "$HOOK_OUT" 'push' '[T1.8] diverged remote: push failure surfaced'
 
+# A stalled push is stopped, not waited out: it would otherwise hold the end lock and freeze every
+# session start meanwhile. The commit stays local for the next session start to push.
+v="$(build_vault slow-push)"
+r="$(git -C "$v" remote get-url origin)"
+printf '#!/bin/sh\nsleep 6\n' > "$r/hooks/pre-receive"; chmod +x "$r/hooks/pre-receive"
+printf '# slow\n' > "$v/Projects/slow.md"
+start=$SECONDS
+DEVWB_PUSH_TIMEOUT=1 run_hook vault-push.sh "$v"
+assert_eq 1 "$([ $((SECONDS - start)) -le 3 ] && echo 1 || echo 0)" '[T1.8] a stalled push is stopped at its timeout'
+assert_contains "$HOOK_OUT" 'timed out after 1s' '[T1.8] and the timeout is reported'
+assert_contains "$(tracked "$v")" 'Projects/slow.md' '[T1.8] and the commit is kept locally'
+
+# net_git on its own: a fetch from a remote that never answers ends at the deadline.
+v="$(build_vault net-git)"
+git -C "$v" config protocol.ext.allow always
+git -C "$v" remote set-url origin 'ext::sleep 30'
+start=$SECONDS
+( . "$HOOKS/lib.sh"; net_git 1 -C "$v" fetch -q ) >/dev/null 2>&1
+rc=$?
+assert_eq 1 "$([ $((SECONDS - start)) -le 3 ] && echo 1 || echo 0)" 'net_git: a hung fetch is stopped at its deadline'
+assert_eq 1 "$([ "$rc" -ne 0 ] && echo 1 || echo 0)" 'net_git: and reports failure'
+
 finish

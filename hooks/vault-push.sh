@@ -39,13 +39,20 @@ say() {
 # push_if_safe <message on failure> — push the branch, unless push_blocker (lib.sh) finds an
 # unpushed commit the plugin did not make, or one adding a secret-shaped file. Reports either.
 push_if_safe() {
-  local blocked err
+  local blocked err out rc
   blocked="$(push_blocker "$VAULT")"
   if [ -n "$blocked" ]; then
     say "vault not pushed: $blocked"
     return 0
   fi
-  if ! err="$(git -C "$VAULT" push 2>&1)"; then
+  # Output goes through a file, not $(…): see net_git.
+  out="$(mktemp "${TMPDIR:-/tmp}/dev-workbook-push.XXXXXX")" || out=""
+  net_git "$PUSH_TIMEOUT" -C "$VAULT" push >"${out:-/dev/null}" 2>&1
+  rc=$?
+  err="$([ -n "$out" ] && cat "$out")"
+  [ -n "$out" ] && rm -f "$out"
+  [ "$rc" -eq 143 ] && err="push timed out after ${PUSH_TIMEOUT}s"
+  if [ "$rc" -ne 0 ]; then
     case "$err" in
       *"rejected"*|*"fetch first"*|*"non-fast-forward"*)
         say "vault committed locally but the push was REJECTED — the remote has work you do not have."

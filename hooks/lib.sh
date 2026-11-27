@@ -283,3 +283,26 @@ wait_end_lock() {
   done
   return 0
 }
+
+# net_git <seconds> <git args…> — run git, stopped after <seconds>. A push or pull over a stalled
+# connection can otherwise hang for minutes: in a SessionStart hook that is a frozen session start,
+# and in the detached session end it holds the end lock, so every session start meanwhile waits
+# out its full lock wait. Give it output redirected to a file or /dev/null, never a pipe: a
+# transport child (ssh) that outlives git would keep a pipe open. Returns git's status, or
+# non-zero when stopped.
+net_git() {
+  local secs="$1" pid watcher rc
+  shift
+  git "$@" &
+  pid=$!
+  ( sleep "$secs" && kill "$pid" ) </dev/null >/dev/null 2>&1 &
+  watcher=$!
+  wait "$pid"
+  rc=$?
+  kill "$watcher" 2>/dev/null
+  return "$rc"
+}
+
+# PUSH_TIMEOUT — how long one push may take. The callers in a hook with a deadline lower it.
+# shellcheck disable=SC2034  # read by vault-push.sh, which sources this file
+PUSH_TIMEOUT="${DEVWB_PUSH_TIMEOUT:-20}"
