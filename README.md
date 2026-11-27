@@ -98,6 +98,23 @@ find them. `dev-workbook --help` lists its commands.
 > session, and indexes refresh only then too. Use the marketplace install unless you specifically
 > want skills-only.
 
+### 3. Fewer permission prompts (optional)
+
+The vault usually sits outside the repo you're working in, so Claude Code asks before reading or editing it. Each skill pre-approves the plugin's own `dev-workbook` command (`allowed-tools: Bash(dev-workbook *)`), so its context, brief and close-out calls run without a prompt — but only for the turn in which the skill was invoked. That command writes to the vault (close-out, rename, stage), which is the skill's job; nothing else is pre-approved.
+
+To stop the remaining prompts, make the vault a working directory in your own settings — a plugin cannot do this for you. In `~/.claude/settings.json`, using your vault's absolute path:
+
+```json
+{
+  "permissions": {
+    "additionalDirectories": ["/Users/you/Vault"],
+    "allow": ["Bash(dev-workbook *)"]
+  }
+}
+```
+
+With the vault an additional directory, reading it needs no approval and editing it follows your permission mode, as in the repo itself. The `allow` rule extends the `dev-workbook` grant to the whole session, so a later turn that writes a close-out does not prompt either. Leave either out if you would rather be asked. `/add-dir <vault path>` does the first for one session only.
+
 ### Other coding agents
 
 The skills are plain Agent Skills and work in any harness that reads them. The session hooks are Claude Code's `hooks/hooks.json`; any other harness gets the same behaviour from two commands, once `dev-workbook` is on your PATH (see the symlink install above):

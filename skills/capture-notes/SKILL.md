@@ -1,5 +1,6 @@
 ---
 name: capture-notes
+allowed-tools: Bash(dev-workbook *)
 description: Saves an idea, fact or reference as a durable note in the user's markdown vault. Use for "make a note", "capture this", "save this to my vault". Not for repo dev work — that is manage-project-workspaces.
 ---
 
