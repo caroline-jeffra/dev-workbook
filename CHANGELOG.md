@@ -14,6 +14,8 @@ are minor.
 
 ## [Unreleased]
 
+## [3.11.0] — 2026-11-27
+
 ### Security
 
 - **The session commit takes only the plugin's paths.** It named no paths, so anything already staged in the vault — a `.env`, a file outside the owned folders — went into the commit the hook had just said was skipping it. It now commits its selected paths by name (as literal names, so `a[1].md` is a file, not a pattern) and leaves the rest of the index as it was.
