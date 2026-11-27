@@ -9,13 +9,30 @@ Each path resolves in the same order as the hooks:
   4. a default                                            (~/ObsidianVault / ~/code)
 
 A config file is one line; surrounding whitespace is trimmed and a leading `~` or `$HOME` is
-expanded. Keep this and lib.sh in step: the tests check they agree.
+expanded, as it is in an environment value. A configured path that is still relative is refused:
+it would resolve against the working directory — the repo the user opened — so the vault resolves
+to REFUSED, a path that can never exist. Keep this and lib.sh in step: the tests check they agree.
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
+
+
+REFUSED = Path("/dev/null/dev-workbook-vault-path-must-be-absolute")
+
+
+def expand(raw: str) -> Path:
+    """A leading `~` or `$HOME` expanded, as lib.sh's absolute_path does."""
+    home = str(Path.home())
+    if raw == "~" or raw == "$HOME":
+        return Path(home)
+    if raw.startswith("~/"):
+        return Path(home) / raw[2:]
+    if raw.startswith("$HOME/"):
+        return Path(home) / raw[6:]
+    return Path(raw)
 
 
 def config_dir(name: str = "dev-workbook") -> Path:
@@ -32,37 +49,29 @@ def read_path_file(path: Path) -> Path | None:
     raw = lines[0].strip() if lines else ""
     if not raw:
         return None
-    home = str(Path.home())
-    if raw == "~" or raw == "$HOME":
-        return Path(home)
-    if raw.startswith("~/"):
-        return Path(home) / raw[2:]
-    if raw.startswith("$HOME/"):
-        return Path(home) / raw[6:]
-    return Path(raw)
+    return expand(raw)
 
 
 def _resolve(explicit: str | None, envs: tuple[str, ...], name: str, legacy: str,
-             default: str) -> Path:
+             default: str, refused: Path) -> Path:
     if explicit:
         return Path(explicit).expanduser()
-    for env in envs:
-        value = os.environ.get(env, "")
-        if value:
-            return Path(value)
-    return (read_path_file(config_dir() / name)
-            or read_path_file(config_dir("claudesidion") / name)
-            or read_path_file(Path.home() / ".claude" / legacy)
-            or Path.home() / default)
+    found = next((expand(os.environ[env]) for env in envs if os.environ.get(env, "")), None)
+    found = (found
+             or read_path_file(config_dir() / name)
+             or read_path_file(config_dir("claudesidion") / name)
+             or read_path_file(Path.home() / ".claude" / legacy)
+             or Path.home() / default)
+    return found if found.is_absolute() else refused
 
 
 def resolve_vault(explicit: str | None = None) -> Path:
     return _resolve(explicit, ("DEVWB_VAULT", "OBSIDIAN_VAULT"), "vault", "obsidian-vault",
-                    "ObsidianVault")
+                    "ObsidianVault", REFUSED)
 
 
 def resolve_code_root(explicit: str | None = None) -> Path:
-    return _resolve(explicit, ("CODE_ROOT",), "code-root", "code-root", "code")
+    return _resolve(explicit, ("CODE_ROOT",), "code-root", "code-root", "code", Path.home() / "code")
 
 
 def _source(envs: tuple[str, ...], name: str, legacy: str) -> str:

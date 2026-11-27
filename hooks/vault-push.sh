@@ -36,6 +36,29 @@ say() {
   return 0
 }
 
+# push_if_safe <message on failure> — push the branch, unless push_blocker (lib.sh) finds an
+# unpushed commit the plugin did not make, or one adding a secret-shaped file. Reports either.
+push_if_safe() {
+  local blocked err
+  blocked="$(push_blocker "$VAULT")"
+  if [ -n "$blocked" ]; then
+    say "vault not pushed: $blocked"
+    return 0
+  fi
+  if ! err="$(git -C "$VAULT" push 2>&1)"; then
+    case "$err" in
+      *"rejected"*|*"fetch first"*|*"non-fast-forward"*)
+        say "vault committed locally but the push was REJECTED — the remote has work you do not have."
+        say "resolve with: git -C \"$VAULT\" pull --rebase   (your commit is safe locally until then)"
+        ;;
+      *)
+        say "$1: ${err##*$'\n'}"
+        ;;
+    esac
+  fi
+  return 0
+}
+
 # An operation is in progress if git is holding any of these state files. Checked by
 # `rev-parse --git-path` so this is correct inside a linked worktree or a submodule, where
 # the state lives outside a literal .git directory.
@@ -85,9 +108,7 @@ fi
 if [ -z "$(git -C "$VAULT" status --porcelain 2>/dev/null)" ]; then
   # Nothing new locally, but an earlier push may have failed — try to flush any unpushed commits.
   if [ -n "$(git -C "$VAULT" log '@{upstream}..HEAD' --oneline 2>/dev/null)" ]; then
-    if ! retry_err="$(git -C "$VAULT" push 2>&1)"; then
-      say "vault has unpushed commits from an earlier session and the retry failed: ${retry_err##*$'\n'}"
-    fi
+    push_if_safe "vault has unpushed commits from an earlier session and the retry failed"
   fi
   exit 0
 fi
@@ -115,25 +136,7 @@ is_ignored_path() {
   esac
 }
 
-is_owned_path() {
-  case "$1" in
-    Projects/*|Resources/*|Contributions/*|HouseStyles/*) return 0 ;;
-    "Home.md"|"TasksArchive.md"|"WorkPlanning.md") return 0 ;;
-    # Pre-2.0 names, until condense-vault renames them.
-    "Tasks Archive.md"|"Work Planning.md") return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-# Secret-shaped basenames. Matched on the basename so a nested path cannot smuggle one through.
-is_secret_path() {
-  case "${1##*/}" in
-    .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.keystore) return 0 ;;
-    id_rsa|id_dsa|id_ecdsa|id_ed25519) return 0 ;;
-    .npmrc|.netrc|.pgpass|credentials|*.crt) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+# is_owned_path and is_secret_path live in lib.sh, shared with the session-start flush.
 
 to_commit=()
 skipped_unowned=()
@@ -165,33 +168,50 @@ classify() {
 
 # -z gives NUL-delimited entries, immune to newlines in filenames. Status codes are the first
 # two characters; the path follows after a space. A rename or copy is two entries, "R  new" and
-# then the bare old path, which carries no status and must not be parsed as one; the old side's
-# removal is already staged and goes into the commit with the new side.
+# then the bare old path, which carries no status and must not be parsed as one. Either column
+# can hold the R or C: the index column for a staged rename, the work-tree column for one git
+# detects against an intent-to-add path. A rename's old side is a deletion that belongs in the
+# same commit, so it is classified too — already staged (index-side) or still to add (work-tree).
 #
 # --untracked-files=all is essential: the default collapses a wholly-untracked directory into a
 # single "?? dir/" entry, so a secret inside a new directory would never be inspected and the
 # whole directory would be staged. Asking for every file means every file gets classified.
 while IFS= read -r -d '' entry; do
   classify "${entry:3}" "${entry:1:1}"
-  case "${entry:0:1}" in
-    R|C) IFS= read -r -d '' _ ;;
+  case "${entry:0:2}" in
+    R?) IFS= read -r -d '' old; classify "$old" " " ;;
+    ?R) IFS= read -r -d '' old; classify "$old" "D" ;;
+    C?|?C) IFS= read -r -d '' _ ;;
   esac
 done < <(git -C "$VAULT" -c core.quotepath=off status --porcelain -z --untracked-files=all 2>/dev/null)
 
+# name_list <path>... — the paths for a report line: at most ten, each cut to 80 characters and
+# quoted. These names are relayed into the next session's context, so a file name must not be a
+# vehicle for a paragraph of text.
+name_list() {
+  local n=0 out="" p
+  for p in "$@"; do
+    n=$((n + 1))
+    [ "$n" -le 10 ] || continue
+    [ "${#p}" -le 80 ] || p="${p:0:77}..."
+    out="${out:+$out, }\"$p\""
+  done
+  [ "$n" -le 10 ] || out="$out and $((n - 10)) more"
+  printf '%s' "$out"
+}
+
 if [ "${#skipped_secret[@]}" -gt 0 ]; then
-  say "not committing ${#skipped_secret[@]} file(s) that look like secrets: ${skipped_secret[*]}"
+  say "not committing ${#skipped_secret[@]} file(s) that look like secrets: $(name_list "${skipped_secret[@]}")"
   say "if one of these belongs in the vault, add it to the vault's .gitignore or commit it yourself."
 fi
 if [ "${#skipped_unowned[@]}" -gt 0 ]; then
-  say "not committing ${#skipped_unowned[@]} path(s) outside the vault's known folders: ${skipped_unowned[*]}"
+  say "not committing ${#skipped_unowned[@]} path(s) outside the vault's known folders: $(name_list "${skipped_unowned[@]}")"
 fi
 
 if [ "${#to_commit[@]}" -eq 0 ] && [ "${#staged_only[@]}" -eq 0 ]; then
   # Nothing the plugin owns changed. Still flush any unpushed commits from an earlier session.
   if [ -n "$(git -C "$VAULT" log '@{upstream}..HEAD' --oneline 2>/dev/null)" ]; then
-    if ! retry_err="$(git -C "$VAULT" push 2>&1)"; then
-      say "vault has unpushed commits from an earlier session and the retry failed: ${retry_err##*$'\n'}"
-    fi
+    push_if_safe "vault has unpushed commits from an earlier session and the retry failed"
   fi
   exit 0
 fi
@@ -206,15 +226,21 @@ fi
 
 date_stamp="$(date +%Y-%m-%d 2>/dev/null || echo session)"
 
-if [ "${#to_commit[@]}" -gt 0 ] && ! add_err="$(git -C "$VAULT" add -- "${to_commit[@]}" 2>&1)"; then
+# --literal-pathspecs throughout: a note named `a[1].md` or `:(glob)x` is a file name, not a pattern.
+if [ "${#to_commit[@]}" -gt 0 ] && ! add_err="$(git -C "$VAULT" --literal-pathspecs add -- "${to_commit[@]}" 2>&1)"; then
   say "could not stage vault changes: ${add_err%%$'\n'*}"
   exit 0
 fi
 
-if ! commit_err="$(git -C "$VAULT" commit -m "vault: session updates ${date_stamp}" 2>&1)"; then
+# The commit names its paths. A bare `git commit` takes the whole index, so anything already staged
+# — a .env the user ran `git add` on, an unowned file — would be published by the very commit that
+# just reported it was skipping them. With paths, it takes exactly the owned ones and leaves the
+# rest of the index as it was.
+if ! commit_err="$(git -C "$VAULT" --literal-pathspecs commit -m "vault: session updates ${date_stamp}" \
+    -- ${to_commit[@]+"${to_commit[@]}"} ${staged_only[@]+"${staged_only[@]}"} 2>&1)"; then
   # Leaving the index staged is itself a change the user did not ask for: their next manual
   # `git commit` would sweep up whatever this hook staged. Unwind to the state we found.
-  [ "${#to_commit[@]}" -eq 0 ] || git -C "$VAULT" reset -q -- "${to_commit[@]}" >/dev/null 2>&1 || true
+  [ "${#to_commit[@]}" -eq 0 ] || git -C "$VAULT" --literal-pathspecs reset -q -- "${to_commit[@]}" >/dev/null 2>&1 || true
 
   case "$commit_err" in
     *"Author identity unknown"*|*"tell me who you are"*|*"empty ident"*)
@@ -231,18 +257,8 @@ fi
 # Push. A missing remote is a legitimate local-only vault, not a fault — stay quiet. A rejected
 # or failed push against a configured remote means the commit exists only on this machine, which
 # the user needs to know about.
-if git -C "$VAULT" remote >/dev/null 2>&1 && [ -n "$(git -C "$VAULT" remote 2>/dev/null)" ]; then
-  if ! push_err="$(git -C "$VAULT" push 2>&1)"; then
-    case "$push_err" in
-      *"rejected"*|*"fetch first"*|*"non-fast-forward"*)
-        say "vault committed locally but the push was REJECTED — the remote has work you do not have."
-        say "resolve with: git -C \"$VAULT\" pull --rebase   (your commit is safe locally until then)"
-        ;;
-      *)
-        say "vault committed locally but the push failed: ${push_err##*$'\n'}"
-        ;;
-    esac
-  fi
+if [ -n "$(git -C "$VAULT" remote 2>/dev/null)" ]; then
+  push_if_safe "vault committed locally but the push failed"
 fi
 
 exit 0

@@ -15,7 +15,7 @@ strand() {
   local v="$1" n="$2" i
   for ((i = 1; i <= n; i++)); do
     printf 'stranded %s\n' "$i" >> "$v/Projects/Note.md"
-    gitq "$v" commit -qam "stranded $i"
+    gitq "$v" commit -qam "vault: session updates 2026-01-0$i"
   done
 }
 
@@ -144,5 +144,23 @@ run_hook vault-pull.sh "$v"
 assert_eq 0 "$HOOK_RC" 'unreachable remote: exit 0'
 assert_eq 1 "$(unpushed_ct "$v")" 'unreachable remote: commit stays local'
 assert_contains "$HOOK_OUT" 'remain local-only' 'unreachable remote: reported as not backed up'
+
+# The flush pushes the whole branch, so it only does so when every unpushed commit is the
+# plugin's own. A commit the user made and chose not to push is theirs to publish.
+v="$(build_vault pull-foreign)"
+strand "$v" 1
+printf 'mine\n' >> "$v/Projects/Note.md"
+gitq "$v" commit -qam "wip: not ready to share"
+run_hook vault-pull.sh "$v"
+assert_eq 2 "$(unpushed_ct "$v")" 'a user commit on the branch: nothing pushed'
+assert_contains "$HOOK_OUT" 'did not make' 'a user commit on the branch: reported'
+
+# A plugin commit that somehow carries a secret-shaped file is never pushed.
+v="$(build_vault pull-secret)"
+printf 'K=1\n' > "$v/Projects/.ENV"
+gitq "$v" add -A && gitq "$v" commit -qm "vault: session updates 2026-01-01"
+run_hook vault-pull.sh "$v"
+assert_eq 1 "$(unpushed_ct "$v")" 'an unpushed secret-shaped file: nothing pushed'
+assert_contains "$HOOK_OUT" 'look like secrets' 'an unpushed secret-shaped file: reported'
 
 finish

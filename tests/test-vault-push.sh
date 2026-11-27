@@ -142,6 +142,69 @@ assert_not_contains "$(tracked "$v")" '.env' '[T1.1] secret nested in an owned p
 assert_contains "$(tracked "$v")" 'Projects/app/notes.md' '[T1.1] sibling note in same dir still committed'
 assert_contains "$HOOK_OUT" 'secret' '[T1.1] secret refusal is reported'
 
+# Anything already staged outside the owned set stays out of the session commit: a bare `git
+# commit` took the whole index, publishing the very files the hook said it was skipping.
+v="$(build_vault prestaged)"
+printf 'TOKEN=1\n' > "$v/.env"
+printf 'private\n' > "$v/private.txt"
+gitq "$v" add -f .env private.txt
+printf '# edited\n' >> "$v/Projects/Note.md"
+run_hook vault-push.sh "$v"
+assert_contains "$(tracked "$v")" 'Projects/Note.md' '[T1.1] pre-staged: owned edit committed'
+assert_not_contains "$(gitq "$v" show --name-only --format= HEAD)" '.env' '[T1.1] pre-staged .env: not committed'
+assert_not_contains "$(gitq "$v" show --name-only --format= HEAD)" 'private.txt' '[T1.1] pre-staged unowned: not committed'
+assert_contains "$(gitq "$v" diff --cached --name-only)" 'private.txt' '[T1.1] pre-staged unowned: left staged as found'
+
+# Secret names are matched case-insensitively and cover the common key and credential files.
+v="$(build_vault secretcase)"
+mkdir -p "$v/Projects/X"
+for f in SERVER.PEM .ENV .Env.local .envrc .git-credentials id_rsa.bak key.gpg x.ppk secrets.json; do
+  printf 'x\n' > "$v/Projects/X/$f"
+done
+printf 'ssh-ed25519 AAAA\n' > "$v/Projects/X/id_ed25519.pub"
+run_hook vault-push.sh "$v"
+for f in SERVER.PEM .ENV .Env.local .envrc .git-credentials id_rsa.bak key.gpg x.ppk secrets.json; do
+  assert_not_contains "$(tracked "$v")" "Projects/X/$f" "[T1.1] secret name refused: $f"
+done
+assert_contains "$(tracked "$v")" 'Projects/X/id_ed25519.pub' '[T1.1] a public key is not a secret'
+
+# A note whose name is a glob is committed as itself.
+v="$(build_vault globname)"
+printf '# a\n' > "$v/Projects/a[1].md"
+printf '# b\n' > "$v/Projects/a1.md"
+gitq "$v" add Projects/a1.md && gitq "$v" commit -qm base && gitq "$v" push -q
+printf 'more\n' >> "$v/Projects/a1.md"
+run_hook vault-push.sh "$v"
+assert_contains "$(tracked "$v")" 'Projects/a[1].md' '[T1.1] glob-named note committed'
+assert_eq "" "$(gitq "$v" status --porcelain)" '[T1.1] glob-named note: tree clean'
+
+# A user's own unpushed commit is not published by the session push.
+v="$(build_vault foreigncommit)"
+printf 'mine\n' >> "$v/Projects/Note.md"
+gitq "$v" commit -qam "wip: private"
+printf '# new\n' > "$v/Projects/New.md"
+run_hook vault-push.sh "$v"
+assert_eq 2 "$(git -C "$v" rev-list --count '@{upstream}..HEAD')" '[T1.1] foreign commit: nothing pushed'
+assert_contains "$HOOK_OUT" 'did not make' '[T1.1] foreign commit: reported'
+
+# A work-tree rename (git add -N) carries its old path in a second record; it is not a status line.
+v="$(build_vault wtrename)"
+printf 'same body\n' > "$v/Projects/xxHome.md"
+gitq "$v" add Projects/xxHome.md && gitq "$v" commit -qm base && gitq "$v" push -q
+mv "$v/Projects/xxHome.md" "$v/Projects/Moved.md"
+gitq "$v" add -N Projects/Moved.md
+run_hook vault-push.sh "$v"
+assert_not_contains "$HOOK_OUT" 'ome.md' '[T1.1] work-tree rename: old path not misparsed'
+assert_contains "$(tracked "$v")" 'Projects/Moved.md' '[T1.1] work-tree rename: new side committed'
+assert_not_contains "$(tracked "$v")" 'xxHome.md' '[T1.1] work-tree rename: old side removed'
+
+# Inherited GIT_DIR must not redirect the hook to another repository.
+v="$(build_vault gitdir)"
+other="$(build_vault gitdir-other)"
+printf '# n\n' > "$v/Projects/N.md"
+GIT_DIR="$other/.git" run_hook vault-push.sh "$v"
+assert_contains "$(tracked "$v")" 'Projects/N.md' '[T1.1] GIT_DIR inherited: the vault is still the one committed'
+
 # HouseStyles/ (clean-docs profiles) is owned: its templates and profile.json are committed.
 v="$(build_vault housestyles)"
 mkdir -p "$v/HouseStyles/Acme"
