@@ -14,6 +14,8 @@ are minor.
 
 ## [Unreleased]
 
+## [3.12.0] — 2026-11-27
+
 ### Changed
 
 - **Skills pre-approve the plugin's own command.** Each skill declares `allowed-tools: Bash(dev-workbook *)`, so its `context`, `brief`, `closeout`, `rename` and `stage` calls run without a permission prompt during the turn that invokes the skill. The README's new setup step shows how to add the vault as an additional directory to stop the remaining prompts.
