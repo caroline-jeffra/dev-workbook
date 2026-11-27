@@ -30,6 +30,17 @@ run_hook vault-size-check.sh "$v"
 assert_eq 0 "$HOOK_RC" 'no large files: exit 0'
 assert_empty "$HOOK_OUT" 'no large files: silent'
 
+section 'Folders listed as unmanaged'
+
+v="$(build_vault bigunmanaged --no-git)"
+if make_big "$v/HouseStyles/huge.md"; then
+  printf '{"unmanaged": ["HouseStyles"]}\n' > "$v/.dev-workbook.json"
+  run_hook vault-size-check.sh "$v"
+  assert_empty "$HOOK_OUT" 'a large file in an unmanaged folder: not reported (it is never changed)'
+else
+  ok 'a large file in an unmanaged folder: skipped (no sparse files here)'
+fi
+
 section 'Reporting'
 
 v="$(build_vault bigvault --no-git)"

@@ -417,7 +417,7 @@ def through_link(vault: Path, rel: str) -> bool:
 
 def staged_copy(vault: Path, rel: str) -> Path | None:
     """This background session's staged copy of `rel` if it has one; never stages anything."""
-    sid, checked = vault_spool.session_id(), vault_spool.check_path(rel)
+    sid, checked = vault_spool.session_id(), vault_spool.check_path(rel, vault)
     if not sid or not checked:
         return None
     spool = vault_spool.spool_root() / sid

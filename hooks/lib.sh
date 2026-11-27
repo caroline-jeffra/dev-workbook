@@ -84,12 +84,50 @@ resolve_code_root() {
 
 # ---------------------------------------------------------------- what the hooks publish
 
+# Folders the vault's .dev-workbook.json lists as unmanaged and this machine approved (see
+# vault_settings.py): synced like the plugin's own, never changed. load_unmanaged <vault> fills
+# UNMANAGED_DIRS once per hook run; without Python the list stays empty, so nothing extra is synced.
+UNMANAGED_DIRS=()
+
+# unmanaged_names <vault> [--listed|--pending] — print names from vault_settings.py, one per line:
+# by default the folders to sync (listed and approved on this machine); --listed every listed
+# folder (never changed); --pending listed but not approved. Prints nothing without Python.
+unmanaged_names() {
+  local py script
+  script="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/..}}/hooks/vault_settings.py"
+  [ -f "$script" ] || return 0
+  for py in python3 python; do
+    if command -v "$py" >/dev/null 2>&1; then
+      "$py" "$script" "$@" 2>/dev/null
+      return 0
+    fi
+  done
+}
+
+load_unmanaged() {
+  local name
+  UNMANAGED_DIRS=()
+  while IFS= read -r name; do
+    [ -n "$name" ] && UNMANAGED_DIRS+=("$name")
+  done < <(unmanaged_names "$1")
+}
+
+# The same owned paths as a pathspec list, for `git status -- …` (with --literal-pathspecs), plus
+# UNMANAGED_DIRS after load_unmanaged. Keep in step with is_owned_path below.
+# shellcheck disable=SC2034  # used by the hooks that source this file
+OWNED_ROOTS=(Projects Resources Contributions Home.md TasksArchive.md WorkPlanning.md .dev-workbook.json
+  "Tasks Archive.md" "Work Planning.md")
+
 # Paths the plugin's conventions own; the session commit takes nothing else. Keep in step with
 # OWNED_DIRS / OWNED_FILES in vault_spool.py.
 is_owned_path() {
+  local d
+  for d in ${UNMANAGED_DIRS[@]+"${UNMANAGED_DIRS[@]}"}; do
+    case "$1" in "$d"/*) return 0 ;; esac
+  done
   case "$1" in
-    Projects/*|Resources/*|Contributions/*|HouseStyles/*) return 0 ;;
-    "Home.md"|"TasksArchive.md"|"WorkPlanning.md") return 0 ;;
+    Projects/*|Resources/*|Contributions/*) return 0 ;;
+    "Home.md"|"TasksArchive.md"|"WorkPlanning.md"|".dev-workbook.json") return 0 ;;
     # Pre-2.0 names, until condense-vault renames them.
     "Tasks Archive.md"|"Work Planning.md") return 0 ;;
     *) return 1 ;;

@@ -82,7 +82,8 @@ fi
 # uncommitted. Commit them now, before pulling, through the same owned-paths-only rules as the
 # exit hook. Its messages are reported directly rather than relayed to the next session.
 leftover=""
-if [ -n "$(git -C "$VAULT" status --porcelain -- Projects Resources Contributions HouseStyles Home.md TasksArchive.md WorkPlanning.md 2>/dev/null)" ]; then
+load_unmanaged "$VAULT"
+if [ -n "$(git --literal-pathspecs -C "$VAULT" status --porcelain -- "${OWNED_ROOTS[@]}" ${UNMANAGED_DIRS[@]+"${UNMANAGED_DIRS[@]}"} 2>/dev/null)" ]; then
   before="$(git -C "$VAULT" rev-parse HEAD 2>/dev/null)"
   said="$(DEVWB_PUSH_TIMEOUT="$(left)" DEVWB_NO_RELAY=1 bash "$(dirname "$0")/vault-push.sh" </dev/null 2>/dev/null \
     | sed 's/^dev-workbook: //' | tr '\n' ' ' | tr -d '\000-\037')"
@@ -133,10 +134,19 @@ if [ -n "$locked" ]; then
   spooled="${spooled% }"
 fi
 
+# After the pull, so a list another machine widened is seen: folders .dev-workbook.json lists but
+# this machine has not approved are never committed or pushed here until the user approves them.
+pending=""
+names="$(unmanaged_names "$VAULT" --pending | tr '\n' ',' | tr -d '\000-\037')"
+names="${names%,}"
+if [ -n "$names" ]; then
+  pending="Vault .dev-workbook.json lists folders this machine does not sync yet: ${names//,/, }. Check that you want them pushed from here, then run \`dev-workbook unmanaged --approve ${names//,/ }\` (quote a name with spaces)."
+fi
+
 # After the pull, so the comparison is against the version other machines recorded.
 stale="$(claim_version)"
 [ -n "$locked" ] && release_end_lock "$VAULT"
 
-emit_context "${relayed:+$relayed }${leftover:+$leftover }${stranded:+$stranded }${status}${spooled:+ $spooled}${stale:+ $stale}"
+emit_context "${relayed:+$relayed }${leftover:+$leftover }${stranded:+$stranded }${status}${spooled:+ $spooled}${stale:+ $stale}${pending:+ $pending}"
 
 exit 0

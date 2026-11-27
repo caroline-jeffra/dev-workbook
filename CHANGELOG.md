@@ -14,6 +14,32 @@ are minor.
 
 ## [Unreleased]
 
+## [3.14.0] — 2026-11-27
+
+### Added
+
+- **Unmanaged folders.** A `.dev-workbook.json` at the vault root can list top-level folders that belong to something else: `{"unmanaged": ["HouseStyles"]}`.
+  - **Never changed:** no maintenance, no naming lint, no condensing, no renaming or link rewriting. Notes in it resolve only by their full path, so a template can't make a bare wikilink ambiguous or trip the duplicate-name check. A `.vault-config.json` inside one doesn't make it a workspace.
+  - **Synced once approved on this machine** with `dev-workbook unmanaged --approve [NAME ...]`: committed and pushed with the session, staged by background sessions, and counted as the plugin's own by the first-run check.
+    - The approval is kept in the vault's git directory, shared by its worktrees, so a list widened by a pull from elsewhere never makes this machine push a folder it wasn't asked to. Session start names any folder waiting for approval, in the command to approve it.
+    - Approvals add up.
+    - A git error (timeout, missing git, safe-directory refusal) syncs nothing extra; it never counts as "not a git vault".
+    - A malformed settings file refuses approval rather than clearing it.
+    - The settings file itself is committed.
+  - **Entries** are matched in any letter case. Refused, with a warning: nested paths, dot-folders, symlinked folders, names with a leading or trailing space, and the plugin's own `Projects`, `Resources`, `Contributions` and `Archived`. A malformed, oversized or symlinked settings file is ignored with a warning and never crashes a hook.
+  - The condense reminder and the size check skip unmanaged folders, since neither may act on them.
+- **Spec notes.** The new `spec` type lives in a workspace's `Specs/` folder. It's the agreed plan a build follows.
+  - Statuses: `draft`, `approved`, `built`, `in-review` and `abandoned`.
+  - Frontmatter adds `profile:` (house style) and `request:` (MR/PR).
+  - Lint requires Problem, Acceptance criteria, Decisions, Out of scope, Open questions and Steps.
+  - A spec is named after its ticket note plus `Spec` (`1234-NaturalSortSpec`), or `<Subject>Spec`, so a link to the ticket note never resolves to the spec. There is a template in `templates/spec.md`.
+
+### Changed
+
+- **`HouseStyles/` is no longer synced by name.** 3.10.0 hard-coded it. To keep syncing it, list it in `.dev-workbook.json` and run `dev-workbook unmanaged --approve`; nothing in the plugin names it any more.
+  - Under the policy above, dropping a committed path is a major change. This release makes an exception: the folder was added in 3.10.0, earlier the same day, and has one known user. Add the settings file before updating.
+- **The session-start leftover check** uses literal pathspecs, and covers the pre-2.0 `Tasks Archive.md` and `Work Planning.md` again, as the push hook already did.
+
 ## [3.13.0] — 2026-11-27
 
 ### Added

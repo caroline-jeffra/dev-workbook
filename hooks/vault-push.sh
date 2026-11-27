@@ -145,6 +145,8 @@ is_ignored_path() {
 
 # is_owned_path and is_secret_path live in lib.sh, shared with the session-start flush.
 
+load_unmanaged "$VAULT"
+
 to_commit=()
 skipped_unowned=()
 skipped_secret=()

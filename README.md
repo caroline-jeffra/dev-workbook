@@ -249,6 +249,23 @@ The folder skeleton is **fixed** — every workspace uses the same folder names 
 > [!warning]
 > **1.0 dropped the old flat layout.** Workspaces created before 1.0 — stacked `Progress Log.md`, `Decisions.md` and `Open Threads.md` — are no longer read or written. If you have one, pin the plugin to `v0.4.x`, run its `migrate-workspace` skill to convert it, then upgrade again. This version will tell you rather than guessing, and will never scaffold a second workspace alongside one it cannot read.
 
+### Unmanaged folders
+
+A top-level vault folder that belongs to something else — another plugin's data, a tool's files, your own — can be **synced but never changed**. List it in `.dev-workbook.json` at the vault root:
+
+```json
+{"unmanaged": ["HouseStyles"]}
+```
+
+- **Never changed.** Every listed folder: no maintenance, no naming lint, no condensing, no renaming or link rewriting. Its notes resolve only by their full path (`[[HouseStyles/Acme/PullRequest]]`), so a template never makes a bare link ambiguous.
+- **Synced once you approve it on this machine.** Run `dev-workbook unmanaged --approve HouseStyles` (or `--approve` alone for every listed folder). From then on the folder is committed and pushed with the session, staged by background sessions, and counted as the plugin's own by the first-run check.
+  - The approval is kept in the vault's git directory (shared by its worktrees), so it never travels. Approvals add up; a malformed settings file refuses approval instead of clearing it.
+  - If git can't read the vault (a timeout, git missing, a safe-directory refusal), nothing extra is synced that session.
+  - The settings file does travel, so another machine (or anyone who can push to the vault's remote) can add a folder to the list. That folder is never pushed from here until you approve it; the session start says it's waiting.
+  - A vault that isn't a git repository pushes nothing, so there every listed folder counts as approved.
+- **Entries:** one folder name at the vault root, in any letter case (letters, digits, space, `_`, `-`; no leading or trailing space). `Projects`, `Resources`, `Contributions`, `Archived` and symlinked folders can't be listed; a bad entry is reported and ignored.
+- `dev-workbook unmanaged` lists each folder and whether this machine syncs it.
+
 ### Vault version control
 
 > [!important]
@@ -268,10 +285,9 @@ hooks (no heartbeat, or one over a day old), the skills pull before their first 
 push the same owned paths when you close out the session.
 
 **What gets committed, and what does not.** The push hook does *not* `git add -A`. It commits only
-paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, the optional
-`HouseStyles/` (house-style profiles kept by the companion clean-docs plugin), and the root
-`Home.md`, `TasksArchive.md`, `WorkPlanning.md` — so a stray file elsewhere in the vault is never
-published on your behalf. Two further refusals, each reported on stdout rather than done silently:
+paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, any folder you
+list as [unmanaged](#unmanaged-folders), and the root `Home.md`, `TasksArchive.md`, `WorkPlanning.md`
+and `.dev-workbook.json` — so a stray file elsewhere in the vault is never published on your behalf. Two further refusals, each reported on stdout rather than done silently:
 
 - **Secret-shaped filenames** (`.env`, `.envrc`, `*.pem`, `*.key`, `*.ppk`, `*.gpg`, `id_rsa*`, `.npmrc`, `.git-credentials`, `secrets.*`, and similar, in any letter case) are never
   committed, even inside an owned folder. That blocklist cannot be complete, so copy

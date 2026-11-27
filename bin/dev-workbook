@@ -2,6 +2,10 @@
 """dev-workbook — one command for every tool the skills and hooks run.
 
     dev-workbook vault-path                      print the resolved vault path
+    dev-workbook unmanaged [--vault P] [--approve [NAME ...]]
+                                                 list the folders .dev-workbook.json marks unmanaged
+                                                 (never changed) and whether this machine syncs them;
+                                                 --approve syncs the named listed folders (or all)
     dev-workbook code-root                       print the resolved code root
     dev-workbook lint [--count] [--vault P]      report notes that break the format contract
     dev-workbook maintain [--vault P]            refresh derived frontmatter and indexes
@@ -190,6 +194,26 @@ def main(argv: list[str]) -> int:
         return 0
     cmd, args = argv[0], argv[1:]
 
+    if cmd == "unmanaged":
+        import vault_settings
+        vault, rest = take_vault(args)
+        if rest and rest[0] != "--approve":
+            print("usage: dev-workbook unmanaged [--vault P] [--approve [NAME ...]]", file=sys.stderr)
+            return 2
+        settings = vault_settings.load(vault)
+        for warning in settings.warnings:
+            print(f"dev-workbook: {warning}", file=sys.stderr)
+        if rest:
+            approved, error = vault_settings.approve(vault, rest[1:])
+            if error:
+                print(f"dev-workbook: {error}", file=sys.stderr)
+                return 1
+            for name in approved:
+                print(f"{name}\tsynced")
+            return 0
+        for name in settings.unmanaged:
+            print(f"{name}\t{'synced' if name in settings.synced else 'pending approval'}")
+        return 0
     if cmd == "vault-path":
         print(paths.resolve_vault())
         return 0

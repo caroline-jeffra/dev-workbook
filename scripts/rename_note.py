@@ -7,7 +7,8 @@ leaves `supersedes:` frontmatter pointing at a name that no longer exists. This 
 
     rename_note.py [--vault PATH] [--dry-run] "<old vault-relative path>" "<new vault-relative path>"
 
-What it rewrites, in every note outside `Archived/` and dot-directories:
+What it rewrites, in every note outside `Archived/`, dot-directories and folders listed as
+unmanaged in the vault's .dev-workbook.json:
 
   * `[[Old]]`, `[[Old|alias]]`, `[[Old\\|alias]]` (inside a table), `[[Old#heading]]`, and the
     path-qualified forms `[[Folder/Old` that point at the renamed note — in any letter case and
@@ -47,6 +48,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 
+import vault_settings  # noqa: E402
 from dev_workbook_paths import resolve_vault  # noqa: E402
 from vault_maintain import shortest_ref, suffix_counts, write_atomic  # noqa: E402
 
@@ -67,9 +69,11 @@ def is_tracked(vault: Path, rel: str) -> bool:
 
 
 def notes(vault: Path):
+    """Every note whose links a rename may rewrite — never one in a folder listed as unmanaged."""
+    skip = ("Archived", *vault_settings.unmanaged(vault))
     for p in vault.rglob("*.md"):
         rel = p.relative_to(vault)
-        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] == "Archived":
+        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in skip:
             continue
         if p.is_symlink():
             continue

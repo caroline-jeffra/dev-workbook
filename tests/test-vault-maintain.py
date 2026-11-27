@@ -464,6 +464,15 @@ try:
     write(ws / "Tickets" / "12-NaturalSortApi.md",
           "---\ntype: ticket\nstatus: active\ntickets: [ACME-12]\n---\n\n# ACME-12 natural sort API\n\n**Goal:** g\n\n"
           "**Status:** in review\n\n**Next:** merge once CI is green\n")
+    write(ws / "Specs" / "12-NaturalSortApiSpec.md",
+          "---\ntype: spec\nstatus: approved\ntickets: [ACME-12]\nprofile: Acme\n---\n\n# ACME-12 natural sort API — spec\n\n"
+          "## Problem\n\np\n\n## Acceptance criteria\n\n- a\n\n## Decisions\n\n- d\n\n## Out of scope\n\n- o\n\n## Open questions\n\n## Steps\n\n1. s — **Done:** d\n\n## Departures\n\n## Review\n")
+    write(ws / "Specs" / "CachePolicySpec.md",
+          "---\nstatus: draft\n---\n\n# Cache policy — spec\n\n## Problem\n\np\n\n## Acceptance criteria\n\n- a\n\n## Decisions\n\n- d\n\n## Out of scope\n\n- o\n\n## Open questions\n\n## Steps\n\n1. s — **Done:** d\n\n## Departures\n\n## Review\n")
+    write(ws / "Specs" / "14-HalfDoneSpec.md",
+          "---\ntype: spec\nstatus: draft\ntickets: [ACME-14]\n---\n\n# ACME-14 half done\n\n## Problem\n\np\n\n## Steps\n\n1. s\n")
+    write(ws / "Specs" / "15-NoSuffix.md",
+          "---\ntype: spec\nstatus: draft\ntickets: [ACME-15]\n---\n\n# ACME-15\n\n## Problem\n\np\n\n## Acceptance criteria\n\n- a\n\n## Decisions\n\n- d\n\n## Out of scope\n\n- o\n\n## Open questions\n\n## Steps\n\n1. s — **Done:** d\n\n## Departures\n\n## Review\n")
     write(ws / "TimeTracking.md",
           "---\ntype: time-tracking\nstatus: active\n---\n\n# Time tracking — demo\n\n**Budget:** 6 hrs/week\n\n"
           "## Phases\n\n| Phase | Status | Estimate | Actual |\n| --- | --- | --- | --- |\n| **0 Skeleton** | done | 12 | 7.89 |\n")
@@ -508,7 +517,14 @@ try:
           "---\ntype: decision\nstatus: active\nsupersedes: use-memcached\n---\n\n# Use Redis cache\n\n**Decision:** Redis.\n")
     write(tmp6 / "Archived" / "old" / "UseNewHost.md", "# dup\n")
     write(tmp6 / "Archived" / "old" / "not pascal.md", "# archived names are not checked\n")
-    write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# clean-docs template names are not checked\n")
+    write(tmp6 / "HouseStyles" / "Acme" / "ticket-story.md", "# unmanaged folders are not checked\n")
+    write(tmp6 / "Unlisted" / "not pascal either.md", "# a folder nobody lists is checked\n")
+    write(tmp6 / "HouseStyles" / "Acme" / ".vault-config.json", json.dumps({"project": "acme", "topics": {}}))
+    write(ws / "Notes" / "TemplateLink.md",
+          "---\ntype: note\nstatus: reference\n---\n\n# Template link\n\nSee [[HouseStyles/Acme/ticket-story]].\n")
+    write(ws / "Specs" / "Spec.md", "---\ntype: spec\nstatus: draft\n---\n\n# bare\n")
+    write(ws / "Specs" / "12-Spec.md", "---\ntype: spec\nstatus: draft\n---\n\n# bare numbered\n")
+    write(tmp6 / ".dev-workbook.json", json.dumps({"unmanaged": ["HouseStyles"]}))
     write(tmp6 / "Tasks Archive.md", "# Tasks archive\n")
     write(tmp6 / "Resources" / "Link checker.md", "# Link checker\n")
     write(tmp6 / "Projects" / "home-thing" / ".vault-config.json", json.dumps({"project": "ht", "topics": {}}))
@@ -528,9 +544,23 @@ try:
     for clean in ("Overview.md", "ProgressLog.md", "2026-10-01.md", "UseOldHost.md",
                   "CutoverTracking.md", "OldWork.md", "HostCostsAnalysis.md",
                   "CutoverToNewHost.md", "12-NaturalSortApi.md", "TimeTracking.md",
+                  "12-NaturalSortApiSpec.md", "CachePolicySpec.md", "TemplateLink.md",
                   "LinkChecker.md", "TopicIndex.md"):
         got = codes_for(findings, clean)
         check(not got, f"clean {clean}: no findings", f"got {sorted(got)}")
+
+    half = [f for f in findings if "14-HalfDoneSpec.md" in f and "missing-section" in f]
+    check(sorted(f.rsplit("no ", 1)[-1] for f in half)
+          == sorted(["## Acceptance criteria", "## Decisions", "## Out of scope", "## Open questions"]),
+          "a spec missing four of its six required sections gets one finding each", "\n".join(half))
+    nosuffix = [f for f in findings if "15-NoSuffix.md" in f]
+    check(any("bad-name" in f and "end in Spec" in f.split("bad-name", 1)[1] for f in nosuffix),
+          "a spec name must end in Spec (so it never collides with its ticket note)", "\n".join(nosuffix))
+    maintained = (ws / "Specs" / "12-NaturalSortApiSpec.md").read_text(encoding="utf-8").split("---")[1]
+    check("project:" in maintained and "profile: Acme" in maintained,
+          "a spec gets its derived frontmatter and keeps its own keys", maintained)
+    untyped = [f for f in findings if "CachePolicySpec.md" in f]
+    check(not untyped, "a note in Specs/ without a type: line is a spec by its folder", "\n".join(untyped))
 
     expect = {
         "Home.md": {"root-stray"},
@@ -571,7 +601,19 @@ try:
     check(not any("Archived/old/not pascal" in f for f in findings),
           "Archived/ names are not checked")
     check(not any("HouseStyles/" in f for f in findings),
-          "HouseStyles/ names are not checked (profile.json refers to them by file)")
+          "names in a folder listed as unmanaged are not checked", "\n".join(findings))
+    check(not (tmp6 / "HouseStyles" / "Acme" / "TopicIndex.md").exists(),
+          "a .vault-config.json inside an unmanaged folder does not make it a maintained workspace")
+    for bare in ("Spec.md", "12-Spec.md"):
+        check(any(bare in f and "bad-name" in f for f in findings), f"a spec named only {bare} is reported",
+              "\n".join(f for f in findings if bare in f))
+    check(any("Unlisted/not pascal either" in f for f in findings),
+          "names in a top-level folder nobody lists are still checked", "\n".join(findings))
+    names6 = vm.VaultNames.scan(tmp6)
+    check("ticket-story" not in names6.stems and not any(p.startswith("HouseStyles/") for p in names6.paths),
+          "notes in an unmanaged folder stay out of bare-name resolution and duplicate checks")
+    check(names6.resolves("HouseStyles/Acme/ticket-story") and not names6.resolves("ticket-story"),
+          "a note in an unmanaged folder resolves by its full path only")
     gen = [f for f in findings if "Topic Index.md" in f]
     check(bool(gen) and "delete it" in gen[0],
           "a pre-2.0 generated index is marked for deletion, not renaming", str(gen))
@@ -970,6 +1012,22 @@ except vm.Overrun:
     check(True, "an inner limit never outlasts the outer one")
 except vm.SlowPattern:
     check(False, "an inner limit never outlasts the outer one", "the inner one fired")
+
+# A workspace that already files research in Specs/ keeps it: its own folder mapping wins over the
+# spec default that shares the name.
+tmp8 = Path(tempfile.mkdtemp(prefix="dev-workbook-vm-tests."))
+try:
+    ws8 = tmp8 / "Projects" / "Old"
+    write(ws8 / ".vault-config.json", json.dumps({"project": "old", "topics": {}, "folders": {"research": "Specs"}}))
+    write(ws8 / "Specs" / "HostingAnalysis.md", "# Hosting analysis\n\n## TL;DR\n\n- x\n")
+    cfg8 = vm.Config.load(ws8 / ".vault-config.json")
+    check(cfg8.doctype_for_folder("Specs") == "research", "a configured folder mapping wins over the Specs default",
+          repr(cfg8.doctype_for_folder("Specs")))
+    run_maintain(tmp8)
+    found8 = [f for f in lint_vault(tmp8) if "HostingAnalysis" in f]
+    check(not found8, "research filed in Specs/ by config raises no spec findings", "\n".join(found8))
+finally:
+    shutil.rmtree(tmp8, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
 print()

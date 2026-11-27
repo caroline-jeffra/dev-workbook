@@ -227,6 +227,18 @@ try:
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
+section("unmanaged folders are left alone")
+u2 = build(Path(tempfile.mkdtemp(prefix="dev-workbook-rn-unmanaged.")))
+write(u2 / "HouseStyles" / "Acme" / "PullRequest.md", "Template: [[use-old-host]]\n")
+write(u2 / ".dev-workbook.json", '{"unmanaged": ["HouseStyles"]}')
+git(u2, "add", "-A")
+git(u2, "commit", "-qm", "unmanaged")
+rc = rn.main(["--vault", str(u2), "Projects/Alpha/Decisions/use-old-host.md", "Projects/Alpha/Decisions/UseOldHost.md"])
+check(rc == 0, "the rename itself succeeds", f"rc={rc}")
+check((u2 / "HouseStyles" / "Acme" / "PullRequest.md").read_text() == "Template: [[use-old-host]]\n",
+      "a link inside a folder listed as unmanaged is not rewritten")
+check("[[UseOldHost]]" in (u2 / "Resources" / "Elsewhere.md").read_text(), "links elsewhere still are")
+
 print()
 if not FAIL:
     print(f"\033[32m{PASS} passed\033[0m")

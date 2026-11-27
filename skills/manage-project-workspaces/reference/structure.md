@@ -50,6 +50,7 @@ A workspace may whitelist extra root notes in `.vault-config.json` (`root_notes`
 | Folder | `type:` | What belongs there |
 | --- | --- | --- |
 | `Tickets/` | `ticket` | Work scoped to one tracker ticket; done when it ships |
+| `Specs/` | `spec` | The agreed spec for one piece of work — problem, criteria, decisions, steps — that a build follows; statuses `draft · approved · built · in-review · abandoned`, plus `profile:` (house style) and `request:` (the MR/PR) in frontmatter |
 | `Epics/` | `epic` | A multi-ticket body of work tracked as such |
 | `Playbooks/` | `playbook` | An ordered procedure to follow: phase plans, cutovers, upgrade runbooks, setup guides |
 | `Research/` | `research` | Investigations that outlive the ticket: audits, analyses, specs, reviews, maps |
@@ -90,9 +91,10 @@ In short: every note is PascalCase, **area first, kind last**, and never repeats
 | note | `<Area><Subject>`, optionally ending `Gotchas` · `Findings` · `Diagnosis` | `PostgresAdvisoryLocks`, `PromptSkillAuthoringGotchas` |
 | diagram | `<Area><Subject>` — a drawing adds `.excalidraw` before `.md` | `CheckoutFlow`, `SystemContext.excalidraw` |
 | ticket | `<number>-<Subject>` — the key stays in `tickets:` | `1701-NaturalSortAdApprovals` |
+| spec | its ticket note's name plus `Spec`, or `<Subject>Spec` without a ticket | `1701-NaturalSortAdApprovalsSpec`, `CachePolicySpec` |
 | log | `YYYY-MM-DD` | `2026-08-19` |
 | structural | fixed | `Overview`, `ProgressLog`, `TopicIndex`, `TicketsIndex`, `DecisionsIndex`, `ThreadsIndex`, `TimeTracking` |
-| vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` |
+| vault root | fixed | `Projects/WorkspaceIndex`, `TasksArchive` — and any folder `.dev-workbook.json` lists as unmanaged is not ours to name or change |
 | workspace folder | the repo's name | `Projects/Orchard/` (and `Contributions/Orchard.md`) |
 
 - **Acronyms are words.** `AdminApiAudit`, `CiPipelineSpec`, `SqlInjectionAudit` — never `AdminAPIAudit`, which hides the word boundary.

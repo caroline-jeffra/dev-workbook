@@ -205,15 +205,46 @@ printf '# n\n' > "$v/Projects/N.md"
 GIT_DIR="$other/.git" run_hook vault-push.sh "$v"
 assert_contains "$(tracked "$v")" 'Projects/N.md' '[T1.1] GIT_DIR inherited: the vault is still the one committed'
 
-# HouseStyles/ (clean-docs profiles) is owned: its templates and profile.json are committed.
-v="$(build_vault housestyles)"
-mkdir -p "$v/HouseStyles/Acme"
+# A folder .dev-workbook.json lists as unmanaged is owned: everything in it is committed, and so is
+# the settings file itself. A folder nothing lists is not.
+v="$(build_vault unmanaged)"
+mkdir -p "$v/HouseStyles/Acme" "$v/Unlisted"
 printf '# PR\n' > "$v/HouseStyles/Acme/PullRequest.md"
 printf '{"schema": 1}\n' > "$v/HouseStyles/Acme/profile.json"
+printf '# stray\n' > "$v/Unlisted/Note.md"
+printf '{"unmanaged": ["HouseStyles"]}\n' > "$v/.dev-workbook.json"
+"$REPO_ROOT/bin/dev-workbook" unmanaged --vault "$v" --approve >/dev/null
 run_hook vault-push.sh "$v"
-assert_contains "$(tracked "$v")" 'HouseStyles/Acme/PullRequest.md' '[T1.1] HouseStyles/ template committed'
-assert_contains "$(tracked "$v")" 'HouseStyles/Acme/profile.json' '[T1.1] HouseStyles/ profile.json committed'
-assert_not_contains "$HOOK_OUT" 'HouseStyles' '[T1.1] HouseStyles/ is not reported as unowned'
+assert_contains "$(tracked "$v")" 'HouseStyles/Acme/PullRequest.md' '[T1.1] unmanaged folder: note committed'
+assert_contains "$(tracked "$v")" 'HouseStyles/Acme/profile.json' '[T1.1] unmanaged folder: any file committed'
+assert_contains "$(tracked "$v")" '.dev-workbook.json' '[T1.1] .dev-workbook.json committed'
+assert_not_contains "$HOOK_OUT" 'HouseStyles' '[T1.1] an unmanaged folder is not reported as unowned'
+assert_not_contains "$(tracked "$v")" 'Unlisted/Note.md' '[T1.1] a folder nothing lists is not committed'
+
+# Listed but not approved on this machine (as when a pull added it): never committed or pushed here,
+# though the settings file itself is.
+v="$(build_vault unapproved)"
+mkdir -p "$v/Private" "$v/Spaced Out"
+printf '# mine\n' > "$v/Private/Diary.md"
+printf '# x\n' > "$v/Spaced Out/Note.md"
+printf '{"unmanaged": ["Private"]}\n' > "$v/.dev-workbook.json"
+run_hook vault-push.sh "$v"
+assert_not_contains "$(tracked "$v")" 'Private/Diary.md' '[T1.1] a listed but unapproved folder is not committed'
+assert_contains "$(tracked "$v")" '.dev-workbook.json' '[T1.1] the settings file is committed regardless'
+
+# A folder name with a space, once approved, is committed like any other.
+printf '{"unmanaged": ["Spaced Out"]}\n' > "$v/.dev-workbook.json"
+"$REPO_ROOT/bin/dev-workbook" unmanaged --vault "$v" --approve >/dev/null
+run_hook vault-push.sh "$v"
+assert_contains "$(tracked "$v")" 'Spaced Out/Note.md' '[T1.1] an approved folder with a space in its name is committed'
+assert_not_contains "$(tracked "$v")" 'Private/Diary.md' '[T1.1] a folder dropped from the list is not committed'
+
+# Without the settings file, the same folder is just another folder the plugin doesn't own.
+v="$(build_vault unlisted)"
+mkdir -p "$v/HouseStyles/Acme"
+printf '# PR\n' > "$v/HouseStyles/Acme/PullRequest.md"
+run_hook vault-push.sh "$v"
+assert_not_contains "$(tracked "$v")" 'HouseStyles/Acme/PullRequest.md' '[T1.1] without .dev-workbook.json, HouseStyles/ is not committed'
 
 # Archived/ is expendable: neither committed nor mentioned.
 v="$(build_vault archived)"

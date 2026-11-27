@@ -177,4 +177,37 @@ run_hook vault-pull.sh "$v"
 assert_eq 1 "$(unpushed_ct "$v")" 'an unpushed secret-shaped file: nothing pushed'
 assert_contains "$HOOK_OUT" 'look like secrets' 'an unpushed secret-shaped file: reported'
 
+
+section 'Unmanaged folders'
+
+# Another machine widens the list and pushes it: after the pull, this machine says so and does not
+# sync the new folder until it is approved here.
+v="$(build_vault pull-unmanaged)"
+other="$TEST_TMP/pull-unmanaged.other"
+git clone -q "$TEST_TMP/pull-unmanaged.remote.git" "$other"
+gitq "$other" config user.email t@example.invalid
+gitq "$other" config user.name T
+mkdir -p "$other/Private"
+printf '{"unmanaged": ["Private"]}\n' > "$other/.dev-workbook.json"
+printf '# p\n' > "$other/Private/P.md"
+gitq "$other" add -A && gitq "$other" commit -qm "list Private" && gitq "$other" push -q origin main
+run_hook vault-pull.sh "$v"
+assert_contains "$HOOK_OUT" 'does not sync yet: Private' 'a pulled list: the unapproved folder is reported'
+assert_contains "$HOOK_OUT" 'dev-workbook unmanaged --approve Private' 'a pulled list: the command names the folder'
+
+# Before approval, a local change in that folder is neither committed nor pushed at session start.
+printf 'local only\n' >> "$v/Private/P.md"
+run_hook vault-pull.sh "$v"
+assert_contains "$(git -C "$v" status --porcelain -- Private)" 'Private/P.md' 'unapproved: a local change is left uncommitted'
+git -C "$v" checkout -q -- Private
+
+"$REPO_ROOT/bin/dev-workbook" unmanaged --vault "$v" --approve >/dev/null
+run_hook vault-pull.sh "$v"
+assert_not_contains "$HOOK_OUT" 'does not sync yet' 'once approved: no notice'
+
+# A change left uncommitted in an approved folder is committed at session start like any owned path.
+printf 'more\n' >> "$v/Private/P.md"
+run_hook vault-pull.sh "$v"
+assert_eq "" "$(git -C "$v" status --porcelain -- Private)" 'an approved folder: a leftover change is committed'
+
 finish

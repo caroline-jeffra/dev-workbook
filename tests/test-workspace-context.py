@@ -290,10 +290,17 @@ c = TMP / "consent-owned"
 (c / "Resources").mkdir(parents=True)
 (c / "Resources" / "R.md").write_text("x")
 check(run(c, alpha, CODE)["consent"] == "ok", "notes only in this plugin's folders: ok")
-c = TMP / "consent-housestyles"
+c = TMP / "consent-unmanaged"
 (c / "HouseStyles" / "Acme").mkdir(parents=True)
 (c / "HouseStyles" / "Acme" / "PullRequest.md").write_text("x")
-check(run(c, alpha, CODE)["consent"] == "ok", "clean-docs house styles alone: ok")
+check(run(c, alpha, CODE)["consent"] == "ask", "notes in a folder nothing lists: ask")
+(c / ".dev-workbook.json").write_text('{"unmanaged": ["HouseStyles"]}')
+check(run(c, alpha, CODE)["consent"] == "ok", "notes only in a folder listed as unmanaged: ok")
+subprocess.run(["git", "init", "-q", str(c)], check=True)
+check(run(c, alpha, CODE)["consent"] == "ask", "in a git vault, a listed but unapproved folder still asks")
+subprocess.run([sys.executable, str(ROOT / "bin" / "dev-workbook"), "unmanaged", "--vault", str(c), "--approve"],
+               capture_output=True, check=True)
+check(run(c, alpha, CODE)["consent"] == "ok", "once approved on this machine: ok")
 c = TMP / "consent-projects"
 (c / "Projects" / "Mine").mkdir(parents=True)
 check(run(c, alpha, CODE)["consent"] == "ask", "Projects/ without a version file: ask")

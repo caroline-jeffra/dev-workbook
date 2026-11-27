@@ -27,6 +27,12 @@ THRESHOLD=49807360
 # newlines turns one such file into two nonexistent paths — which produced real stderr
 # noise on SessionStart (a fail-open violation) and fed filename fragments to the model.
 report=""
+# Folders listed as unmanaged are never changed, so there's nothing to offer to split there.
+skip=()
+while IFS= read -r d; do
+  [ -n "$d" ] && skip+=(-not -path "$VAULT/$d/*")
+done < <(unmanaged_names "$VAULT" --listed)
+
 count=0
 while IFS= read -r -d '' f; do
   bytes=$(wc -c <"$f" 2>/dev/null) || continue
@@ -39,7 +45,7 @@ while IFS= read -r -d '' f; do
 - ${safe} (${mb} MB)"
   count=$((count + 1))
 done < <(find "$VAULT" -type f -size +${THRESHOLD}c \
-  -not -path '*/.git/*' -not -path '*/.obsidian/*' -print0 2>/dev/null)
+  -not -path '*/.git/*' -not -path '*/.obsidian/*' ${skip[@]+"${skip[@]}"} -print0 2>/dev/null)
 [ "$count" -gt 0 ] || exit 0
 
 ctx="Vault size warning: the following files are within 5% of GitHub's 50 MB per-file push warning:${report}

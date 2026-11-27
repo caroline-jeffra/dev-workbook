@@ -47,6 +47,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterator
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import vault_settings  # noqa: E402
+
 # ---------------------------------------------------------------- frontmatter
 
 FM_START = "---\n"
@@ -234,6 +239,7 @@ def emit_frontmatter(fields: dict[str, object]) -> str:
 # fixed keep working; new ones omit the key entirely.
 DEFAULT_FOLDERS: dict[str, str] = {
     "ticket": "Tickets",
+    "spec": "Specs",
     "epic": "Epics",
     "playbook": "Playbooks",
     "research": "Research",
@@ -284,7 +290,11 @@ class Config:
         )
 
     def doctype_for_folder(self, folder: str) -> str | None:
-        for doctype, name in self.folders.items():
+        # A folder the workspace's own config maps wins over a default that happens to share its
+        # name (a workspace that already filed research under `Specs/` keeps it as research).
+        configured = [(t, n) for t, n in self.folders.items() if DEFAULT_FOLDERS.get(t) != n]
+        defaults = [(t, n) for t, n in self.folders.items() if DEFAULT_FOLDERS.get(t) == n]
+        for doctype, name in configured + defaults:
             if name == folder:
                 return doctype
         return None
@@ -598,6 +608,7 @@ def refresh_metadata(notes: list[Note], cfg: Config) -> list[str]:
 
 TYPE_PLURAL = {
     "ticket": ("Ticket", "Tickets"),
+    "spec": ("Spec", "Specs"),
     "epic": ("Epic", "Epics"),
     "playbook": ("Playbook", "Playbooks"),
     "research": ("Research", "Research"),
@@ -609,8 +620,8 @@ TYPE_PLURAL = {
     "diagram": ("Diagram", "Diagrams"),
 }
 TYPE_RANK = {
-    "playbook": 0, "research": 1, "diagram": 2, "epic": 3, "ticket": 4, "note": 5,
-    "decision": 6, "convention": 7, "thread": 8, "log": 9,
+    "playbook": 0, "research": 1, "diagram": 2, "epic": 3, "ticket": 4, "spec": 5, "note": 6,
+    "decision": 7, "convention": 8, "thread": 9, "log": 10,
 }
 
 
@@ -738,7 +749,7 @@ def build_topic_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) -> 
         for n in group:
             buckets[n.doctype].append(n)
 
-        for doctype in sorted(buckets, key=lambda d: TYPE_RANK.get(d, 9)):
+        for doctype in sorted(buckets, key=lambda d: TYPE_RANK.get(d, 99)):
             items = sorted(buckets[doctype], key=lambda n: n.name.lower())
             if doctype == "log":
                 days = " · ".join(
@@ -764,7 +775,8 @@ def build_ticket_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) ->
 
     owned: dict[str, Note] = {}
     for n in notes:
-        m = pattern.match(n.name)
+        # A spec never owns a ticket key: its ticket note does.
+        m = pattern.match(n.name) if n.doctype != "spec" else None
         key = m.group(1) if m else None
         # A ticket note named `<number>-<Subject>` takes its key from `tickets:`.
         num = re.match(r"^(\d+)-", n.name) if key is None and n.doctype == "ticket" else None
@@ -796,7 +808,7 @@ def build_ticket_index(root: Path, cfg: Config, notes: list[Note], ref: Refs) ->
 
     for t in sorted(by_ticket, key=sort_key):
         uniq = {n.name: n for n in by_ticket[t]}.values()
-        group = sorted(uniq, key=lambda n: (TYPE_RANK.get(n.doctype, 9), n.name.lower()))
+        group = sorted(uniq, key=lambda n: (TYPE_RANK.get(n.doctype, 99), n.name.lower()))
         own = owned.get(t)
         head = f"**{wikilink(ref(own), t)}**" if own else f"`{t}`"
         refs = [n for n in group if n is not own]
@@ -996,7 +1008,7 @@ BUDGETS = {
 # Notes that state current truth. Logs are history; indexes are generated.
 CURRENT_STATE = {
     "overview", "thread", "playbook", "decision", "convention", "research", "note", "ticket",
-    "epic", "diagram",
+    "epic", "diagram", "spec",
 }
 
 RESEARCH_KINDS = ("Audit", "Analysis", "Plan", "Spec", "Review", "Map", "Reference")
@@ -1110,18 +1122,26 @@ class VaultNames:
     stems: dict[str, list[str]]              # stem -> vault-relative paths holding it
     paths: set[str]                          # vault-relative, no `.md`
     suffixes: Counter = field(default_factory=Counter)   # lower-cased path suffix -> notes ending so
+    # Notes in folders listed as unmanaged (vault_settings.py): a link resolves to one only by its
+    # full vault path, so a template can never make a bare link ambiguous or trip a duplicate name.
+    unmanaged_paths: set = field(default_factory=set)
 
     @classmethod
     def scan(cls, vault: Path) -> "VaultNames":
         stems: dict[str, list[str]] = defaultdict(list)
         paths: set[str] = set()
+        unmanaged = vault_settings.unmanaged(vault)
+        outside: set[str] = set()
         for p in sorted(vault.rglob("*.md")):
             rel = p.relative_to(vault)
             if any(part.startswith(".") for part in rel.parts):
                 continue
+            if rel.parts[0] in unmanaged:
+                outside.add(rel.with_suffix("").as_posix().lower())
+                continue
             stems[p.stem].append(rel.as_posix())
             paths.add(rel.with_suffix("").as_posix())
-        return cls(dict(stems), paths, suffix_counts(paths))
+        return cls(dict(stems), paths, suffix_counts(paths), outside)
 
     def matches(self, target: str) -> int:
         """How many notes a link target names."""
@@ -1135,7 +1155,7 @@ class VaultNames:
 
     def resolves(self, target: str) -> bool:
         """Whether a link target names some note — bare by stem, or by a trailing path."""
-        return self.matches(target) > 0
+        return self.matches(target) > 0 or target.strip("/").lower() in self.unmanaged_paths
 
     def ref(self, path: Path, vault: Path) -> str:
         """The shortest link target that names this note and no other."""
@@ -1187,6 +1207,14 @@ def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> st
         return None if LOG_NAME.match(name) else "log name must be YYYY-MM-DD"
     if DATE.search(name):
         return "date in name — dates belong in frontmatter"
+    if t == "spec":
+        # Named after its ticket note plus `Spec`, so `[[12-NaturalSortApi]]` still means the ticket.
+        if not name.endswith("Spec") or re.fullmatch(r"(?:\d+-)?Spec", name):
+            return "spec name must end in Spec: '<number>-<Subject>Spec', or '<Subject>Spec' without a ticket"
+        if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
+            return None
+        if KEYED_TICKET_NAME.match(name):
+            return "drop the project key — name it '<number>-<Subject>Spec'; the key stays in tickets:"
     if t == "ticket":
         if TICKET_NAME.match(name) and not ACRONYM.search(name.split("-", 1)[-1]):
             return None
@@ -1210,6 +1238,9 @@ def name_problem(n: Note, workspace: str = "", diagrams: str = "Diagrams") -> st
     return None
 
 
+SPEC_SECTIONS = ("Problem", "Acceptance criteria", "Decisions", "Out of scope", "Open questions", "Steps")
+
+
 def missing_sections(n: Note) -> list[str]:
     body = n.body
     want: list[tuple[str, str]] = []
@@ -1225,6 +1256,10 @@ def missing_sections(n: Note) -> list[str]:
             (r"^\*\*Done when:\*\*", "**Done when:**"),
             (r"^##\s+Steps\b", "## Steps"),
         ]
+    elif n.doctype == "spec":
+        # The build contract: what to solve, how we'll know, what's settled, what isn't in it,
+        # what's still open (empty at approval), and the steps /build follows.
+        want = [(rf"^##\s+{re.escape(s)}\b", f"## {s}") for s in SPEC_SECTIONS]
     return [label for pat, label in want if not re.search(pat, body, re.M | re.I)]
 
 
@@ -1508,6 +1543,8 @@ def find_workspaces(vault: Path) -> list[Path]:
     that it is a workspace, and `collect()` scopes each one to its own tree.
     """
     found: list[Path] = []
+    # A folder listed as unmanaged is never maintained, even if it holds a .vault-config.json.
+    unmanaged = set(vault_settings.unmanaged(vault))
 
     def walk(d: Path, depth: int) -> None:
         if (d / ".vault-config.json").is_file():
@@ -1523,6 +1560,8 @@ def find_workspaces(vault: Path) -> list[Path]:
                 continue
             # is_dir() follows symlinks; a link out of the vault is not ours to maintain.
             if child.is_symlink() or not child.is_dir():
+                continue
+            if d == vault and child.name in unmanaged:
                 continue
             walk(child, depth + 1)
 
@@ -1540,8 +1579,10 @@ LEGACY_VAULT = {
 
 def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
     """Naming outside the workspaces: every note in the vault is PascalCase, and so are the
-    workspace folders. `Archived/` is expendable by design and is not checked; `HouseStyles/`
-    belongs to clean-docs, whose profile.json names its templates by file, so a rename breaks it."""
+    workspace folders. `Archived/` is expendable by design and is not checked, and neither are the
+    folders .dev-workbook.json lists as unmanaged: they belong to someone else (a profile that names
+    its templates by file breaks when one is renamed)."""
+    unmanaged = vault_settings.unmanaged(vault)
     out: list[str] = []
     for ws in workspaces:
         if ws != vault:
@@ -1551,7 +1592,7 @@ def lint_vault_level(vault: Path, workspaces: list[Path]) -> list[str]:
                            " (rename it, its WorkspaceIndex row, its Contributions note and links)")
     for p in sorted(vault.rglob("*.md")):
         rel = p.relative_to(vault)
-        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in ("Archived", "HouseStyles"):
+        if any(part.startswith(".") for part in rel.parts) or rel.parts[0] in ("Archived", *unmanaged):
             continue
         if any(p.is_relative_to(ws) for ws in workspaces):
             continue

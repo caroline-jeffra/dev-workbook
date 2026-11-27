@@ -39,13 +39,16 @@ from typing import NamedTuple
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 
 import dev_workbook_paths as paths  # noqa: E402
+import vault_settings  # noqa: E402
 
 KEYS = ("vault", "vault_ok", "vault_from", "code_root", "code_root_from", "repo", "index", "index_notes", "match",
         "workspace", "indexed", "candidates", "structured", "trial", "consent", "sync", "background",
         "error")
 INDEXES = ("Projects/WorkspaceIndex.md", "Projects/_index.md")
 ARCHIVES = ("TasksArchive.md", "Tasks Archive.md")
-PLUGIN_DIRS = ("Projects", "Resources", "Contributions", "HouseStyles", "Archived")
+# Plus any folder the vault's .dev-workbook.json lists as unmanaged and this machine approved
+# (hooks/vault_settings.synced) — a list widened by a pull never skips the consent check.
+PLUGIN_DIRS = ("Projects", "Resources", "Contributions", "Archived")
 VERSION_FILES = (".dev-workbook-version", ".claudesidion-version")
 HEARTBEAT = "dev-workbook-hooks"
 HEARTBEAT_MAX_AGE = 24 * 3600
@@ -250,8 +253,9 @@ def consent_for(vault: Path) -> str:
     projects = vault / "Projects"
     if projects.is_dir() and not any((projects / v).exists() for v in VERSION_FILES):
         return "ask"
+    own = PLUGIN_DIRS + vault_settings.synced(vault)
     for root, dirs, files in os.walk(vault):
-        dirs[:] = [d for d in dirs if d != ".git" and not (root == str(vault) and d in PLUGIN_DIRS)]
+        dirs[:] = [d for d in dirs if d != ".git" and not (root == str(vault) and d in own)]
         if any(f.endswith(".md") for f in files):
             return "ask"
     return "ok"
