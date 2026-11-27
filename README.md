@@ -117,15 +117,25 @@ With the vault an additional directory, reading it needs no approval and editing
 
 ### Other coding agents
 
-The skills are plain Agent Skills and work in any harness that reads them. The session hooks are Claude Code's `hooks/hooks.json`; any other harness gets the same behaviour from two commands, once `dev-workbook` is on your PATH (see the symlink install above):
+**Codex and GitHub Copilot CLI install the whole plugin, hooks included,** from the same marketplace:
+
+| Harness | Install | Notes |
+| --- | --- | --- |
+| Codex | `codex plugin marketplace add caroline-jeffra/dev-workbook`, then `codex plugin add dev-workbook@dev-workbook` | Codex asks you to trust each hook before it runs, and again after an update changes one. |
+| Copilot CLI | `copilot plugin marketplace add caroline-jeffra/dev-workbook`, then `copilot plugin install dev-workbook@dev-workbook` | The hooks detect Copilot (`COPILOT_CLI=1`) and print the session context in the shape it reads. |
+
+**Any other harness that reads Agent Skills** can use the skills on their own: symlink each `skills/*` folder into `~/.agents/skills` (read by Codex, Copilot CLI, Cursor and OpenCode) and put `dev-workbook` on your PATH, as in the symlink install above. A skill installed alone can't follow its links into the other skills; it reads them with `dev-workbook ref` instead.
+
+The session hooks are Claude Code's `hooks/hooks.json`; a harness that does not run them gets the same behaviour from two commands:
 
 | Command | Run it at | What it does |
 | --- | --- | --- |
-| `dev-workbook start --format <claude\|cursor\|plain>` | session start | Relays what the last session's exit reported, commits changes an earlier session left uncommitted, flushes stranded commits, pulls, then runs the size check and the condense reminder. Prints the session context once, in the harness's format. |
+| `dev-workbook start --format <claude\|copilot\|cursor\|plain>` | session start | Relays what the last session's exit reported, commits changes an earlier session left uncommitted, flushes stranded commits, pulls, then runs the size check and the condense reminder. Prints the session context once, in the harness's format. |
 | `dev-workbook end` | session end, if the harness has one | Refreshes indexes, commits the plugin's folders, pushes. |
 | `dev-workbook context [--vault P] [--repo PATH]` | what the skills run first | Prints one `key=value` line: the resolved vault and code root, which workspace the current repo maps to, whether to ask before writing, who syncs the vault and whether this is a background session. Read-only. |
 | `dev-workbook brief [--vault P] [--repo PATH] [--workspace Projects/<Name>]` | a read of the workspace ("what's next") | Prints the `context` facts for the repo's workspace, then its current focus, next up, open threads, newest progress lines and latest log, each vault line prefixed `│ `, plus how many commits the repo has made since the last log. Read-only. |
 | `dev-workbook closeout [--vault P] [--repo PATH] [--workspace Projects/<Name>] [--commit] [--dry-run]` | closing out a session | Reads the clauses as JSON on stdin and writes the day's log, the ProgressLog line and the TasksArchive row, fitted to the files as they are. Prints one line per file and never vault text. With `--commit` and `sync=self` it also refreshes the indexes, commits the plugin's folders and pushes. |
+| `dev-workbook ref <skill>/<path> [--section <heading>]` | a link into another skill that doesn't open | Prints that file from the plugin's skills, or one `##` section of it. Read-only. |
 
 A harness with no session-end event still works: the next `start` commits what the last session left. Whatever `end` reports is also relayed by the next `start`, since few harnesses show session-end output.
 
