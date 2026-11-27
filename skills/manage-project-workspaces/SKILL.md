@@ -63,7 +63,7 @@ Act on `sync`. The plugin's hooks pull the vault at session start and commit and
 Vault notes are long prose. Echoing their full text into the transcript buries the actual coding work the user is trying to follow, so **never dump a vault file's contents into the conversation** — not even when the user has the agent running verbose.
 
 - **Reading** — prefer targeted Bash extraction over reading whole files: `grep`, `sed -n '1,40p'`, or an `awk` range that pulls just the section you need (the latest `## YYYY-MM-DD` entry, the unchecked `- [ ]` lines, the "current focus" paragraph). Read a whole file only when you genuinely need all of it.
-- **Writing** — append and edit with Bash (`cat >> … <<'EOF'`, `sed -i''`, a small `python3` script) and send any command output to `/dev/null`. A successful write needs no output at all.
+- **Writing** — append and edit with Bash (`cat >> … <<'DEVWB_EOF'`, `sed -i''`, a small `python3` script) and send any command output to `/dev/null`. A successful write needs no output at all. Quote the heredoc delimiter and pick one the text cannot contain — never a bare `EOF`, which a note can hold on a line of its own, ending the heredoc early and running the rest as commands. A note's name or path goes into a command inside single quotes, never double quotes.
 - **Reporting** — after writing, say what you did in one short line ("logged today's progress and the archive row"), not by quoting or re-printing what was written. Never print a diff of the note.
 - **Verification** — if you must confirm a write landed, check cheaply (`tail -n 3`, a `grep -c`), not by re-reading the file into context.
 

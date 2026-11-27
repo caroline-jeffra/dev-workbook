@@ -117,10 +117,10 @@ Progress logging is **not** continuous. Do not append ProgressLog entries, Decis
 When one of those fires, do the whole write in one pass. If the context line said `match=basename`, the workspace was found only by repo name and another checkout holds its indexed path: **confirm `workspace` with the user before the first write**, pass it to `closeout` as `--workspace <workspace>`, and on a no write nothing and treat the repo as `unmatched`. Then, in this order: rewrite each touched ticket's `**Status:**` and `**Next:**` and `## Next up`, update threads (closing any that finished), playbooks, decisions and `TimeTracking.md` as needed, then make **one `dev-workbook closeout` call, last**, for the day's log, its ProgressLog line and the day's [[TasksArchive]] row. The JSON goes on stdin through a quoted heredoc; add `--commit` when `sync=self`:
 
 ```
-dev-workbook closeout [--commit] <<'EOF'
+dev-workbook closeout [--commit] <<'DEVWB_CLOSEOUT_JSON'
 {"date": "2026-11-23", "headline": "...", "did": ["..."], "decided": [], "learned": [],
  "case_study": [], "links": [], "archive": "..."}
-EOF
+DEVWB_CLOSEOUT_JSON
 ```
 
 `date` is the day the session **started**; `headline` is at most 12 words; `archive` is optional; pass `project` (its alias) only on a project's first archive entry. JSON-escape `"` and `\` in clauses. A second close-out the same day is the same call. Exit 3 writes nothing: on `input:` fix the JSON and rerun once; on `match=basename` confirm as above, never write by hand; otherwise, or if it is unavailable or fails, write by hand from [closeout-manual.md](closeout-manual.md).
@@ -131,7 +131,7 @@ Keep each write incremental — the golden rule above ("never overwrite; append 
 
 - **`sync=self`** — pass `--commit` to the `closeout` call, last. It ends with `commit=<sha>|none|failed pushed=yes|no|no-remote`; on `commit=failed` or `pushed=no`, tell the user and leave the vault as it is.
 
-**Background sessions** (`background=yes`) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there. For each note you would create or change, run `dev-workbook stage "<vault-relative path>"` and read and write it at the path it prints. Stage each note once. The hooks merge staged notes into the vault three ways when the session ends, so edits made meanwhile survive; a conflicting edit stays staged and the next session reports it (`dev-workbook staged` lists them). Skip renames and deletions in a background session. `dev-workbook closeout` stages its own three files.
+**Background sessions** (`background=yes`) never write a vault path directly — Claude Code blocks `Write`/`Edit` on the vault's checkout there. For each note you would create or change, run `dev-workbook stage '<vault-relative path>'` and read and write it at the path it prints. Stage each note once. The hooks merge staged notes into the vault three ways when the session ends, so edits made meanwhile survive; a conflicting edit stays staged and the next session reports it (`dev-workbook staged` lists them). Skip renames and deletions in a background session. `dev-workbook closeout` stages its own three files.
 
 ## Vault writing style
 

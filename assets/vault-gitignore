@@ -31,6 +31,27 @@ id_ed25519
 .netrc
 .pgpass
 credentials
+credentials.*
+.envrc
+*.env
+.git-credentials
+.pypirc
+.htpasswd
+*.ppk
+*.jks
+*.gpg
+*.asc
+*.kdbx
+*.der
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+!*.pub
+secret
+secrets
+secrets.*
+secret.*
 
 # OS and editor noise.
 .DS_Store
