@@ -26,7 +26,7 @@ are minor.
 
 - **Session-start context now reaches Copilot CLI.** Copilot reads only a top-level `additionalContext` and ignored the hooks' output; the hooks now detect it (`COPILOT_CLI=1`) and print that shape. Output under Claude Code and Codex is unchanged — Codex drops output that carries both shapes, so the hooks never print both.
 - The hooks find the plugin through `PLUGIN_ROOT` when `CLAUDE_PLUGIN_ROOT` is not set.
-- The network time limit added in 3.12.0 no longer prints `Terminated: 15` on stderr after every pull.
+- The network time limit added in 3.12.0 no longer prints `Terminated: 15` on stderr after every pull, or leaves a `sleep` process behind for up to 20s.
 
 ## [3.12.0] — 2026-11-27
 
