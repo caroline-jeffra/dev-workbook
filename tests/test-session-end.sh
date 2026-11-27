@@ -74,6 +74,19 @@ assert_contains "$(tracked "$v")" 'Projects/Alpha/TopicIndex.md' 'the index is c
 assert_eq "$(gitq "$v" rev-parse HEAD)" "$(remote_head "$v")" 'foreground: pushed'
 assert_file_absent "$(gitq "$v" rev-parse --absolute-git-dir)/dev-workbook-end.lock" 'the lock is released'
 
+# A topic pattern that backtracks without end is skipped after a moment, and the warning reaches
+# the next session start instead of vanishing with the detached job's output.
+v="$(build_vault end-slow-pattern)"
+mkdir -p "$v/Projects/Alpha/Notes"
+printf '{"project": "alpha", "topics": {"bad": {"name": "Bad", "patterns": ["(a+)+$"]}}}\n' \
+  > "$v/Projects/Alpha/.vault-config.json"
+printf '# Slow\n\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!\n' > "$v/Projects/Alpha/Notes/Slow.md"
+run_hook session-end.sh "$v"
+assert_contains "$HOOK_OUT" "index maintenance: Alpha: topic 'bad'" 'a runaway topic pattern is reported'
+assert_contains "$(cat "$(gitq "$v" rev-parse --absolute-git-dir)/dev-workbook-warnings" 2>/dev/null)" \
+  "topic 'bad'" 'and relayed to the next session start'
+assert_eq "$(gitq "$v" rev-parse HEAD)" "$(remote_head "$v")" 'and the push still runs'
+
 # ---------------------------------------------------------------------------
 section '--detach: returns at once, the push still lands'
 # ---------------------------------------------------------------------------
