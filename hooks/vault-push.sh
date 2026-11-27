@@ -117,7 +117,7 @@ is_ignored_path() {
 
 is_owned_path() {
   case "$1" in
-    Projects/*|Resources/*|Contributions/*) return 0 ;;
+    Projects/*|Resources/*|Contributions/*|HouseStyles/*) return 0 ;;
     "Home.md"|"TasksArchive.md"|"WorkPlanning.md") return 0 ;;
     # Pre-2.0 names, until condense-vault renames them.
     "Tasks Archive.md"|"Work Planning.md") return 0 ;;

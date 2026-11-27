@@ -241,7 +241,8 @@ hooks (no heartbeat, or one over a day old), the skills pull before their first 
 push the same owned paths when you close out the session.
 
 **What gets committed, and what does not.** The push hook does *not* `git add -A`. It commits only
-paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, and the root
+paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions/`, the optional
+`HouseStyles/` (house-style profiles kept by the companion clean-docs plugin), and the root
 `Home.md`, `TasksArchive.md`, `WorkPlanning.md` — so a stray file elsewhere in the vault is never
 published on your behalf. Two further refusals, each reported on stdout rather than done silently:
 

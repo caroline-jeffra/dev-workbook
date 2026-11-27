@@ -39,7 +39,7 @@ import tempfile
 import time
 from pathlib import Path, PurePosixPath
 
-OWNED_DIRS = ("Projects", "Resources", "Contributions")
+OWNED_DIRS = ("Projects", "Resources", "Contributions", "HouseStyles")
 OWNED_FILES = ("Home.md", "TasksArchive.md", "WorkPlanning.md")
 
 # A spool with no recorded owner process is treated as finished once it has been idle this long.
