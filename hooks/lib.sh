@@ -299,7 +299,8 @@ net_git() {
   watcher=$!
   wait "$pid"
   rc=$?
-  kill "$watcher" 2>/dev/null
+  # Reap the watcher with stderr closed, or bash reports "Terminated: 15" for it on stderr.
+  { kill "$watcher" && wait "$watcher"; } 2>/dev/null
   return "$rc"
 }
 
