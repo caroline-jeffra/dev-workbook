@@ -56,6 +56,13 @@ git_dir="$(git -C "$VAULT" rev-parse --absolute-git-dir 2>/dev/null)" \
 locked=""
 acquire_end_lock "$VAULT" 12 && locked=1
 
+# left — seconds for the next network step: what remains of this hook's 20-second timeout, less a
+# margin, so a stalled connection ends in this hook's own message rather than a killed hook.
+left() {
+  local n=$((18 - SECONDS))
+  [ "$n" -gt 2 ] && echo "$n" || echo 2
+}
+
 # --- Relay what the last session's exit had to say -----------------------------
 # Session-end output reaches no one, so vault-push.sh records its warnings and they are reported
 # here, once. Control characters are stripped: the text ends up in the agent's context.
@@ -77,7 +84,7 @@ fi
 leftover=""
 if [ -n "$(git -C "$VAULT" status --porcelain -- Projects Resources Contributions HouseStyles Home.md TasksArchive.md WorkPlanning.md 2>/dev/null)" ]; then
   before="$(git -C "$VAULT" rev-parse HEAD 2>/dev/null)"
-  said="$(DEVWB_NO_RELAY=1 bash "$(dirname "$0")/vault-push.sh" </dev/null 2>/dev/null \
+  said="$(DEVWB_PUSH_TIMEOUT="$(left)" DEVWB_NO_RELAY=1 bash "$(dirname "$0")/vault-push.sh" </dev/null 2>/dev/null \
     | sed 's/^dev-workbook: //' | tr '\n' ' ' | tr -d '\000-\037')"
   if [ "$(git -C "$VAULT" rev-parse HEAD 2>/dev/null)" != "$before" ]; then
     leftover="Committed vault changes that were not yet committed (left by an earlier session, or made outside one)."
@@ -101,14 +108,14 @@ if [ -n "$(git -C "$VAULT" log '@{upstream}..HEAD' --oneline 2>/dev/null)" ]; th
   blocked="$(push_blocker "$VAULT" | tr -d '\000-\037')"
   if [ -n "$blocked" ]; then
     stranded="Vault has ${n} unpushed commit(s) and was not pushed: ${blocked}"
-  elif git -C "$VAULT" push >/dev/null 2>&1; then
+  elif net_git "$(left)" -C "$VAULT" push >/dev/null 2>&1; then
     stranded="Pushed ${n} vault commit(s) stranded by a previous session's cancelled exit hook."
   else
     stranded="Vault has ${n} unpushed commit(s) from a previous session and the retry failed; they remain local-only."
   fi
 fi
 
-if git -C "$VAULT" pull --ff-only >/dev/null 2>&1; then
+if net_git "$(left)" -C "$VAULT" pull --ff-only >/dev/null 2>&1; then
   short="$(git -C "$VAULT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
   status="Vault pulled to latest (${short})."
 else
