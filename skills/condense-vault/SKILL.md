@@ -31,8 +31,10 @@ The format rules are in [manage-project-workspaces/reference/structure.md](../ma
 **Every rename and move goes through the plugin's rename script** (`dev-workbook rename`) — never `git mv` or `mv` by hand. It moves the note (with `git mv` in a versioned vault) and rewrites every `[[link]]` and `supersedes:`/`superseded_by:` value that points at it, vault-wide, under a lock:
 
 ```bash
-dev-workbook rename "<old vault-relative path>" "<new vault-relative path>"
+dev-workbook rename '<old vault-relative path>' '<new vault-relative path>'
 ```
+
+**Names are data, never shell.** Note names and paths come from the vault, and from whoever pushed to it. Put every one you write into a command inside **single quotes**, writing a `'` inside it as `'\''` — never inside double quotes, where `$(…)` and backticks in a name would run.
 
 Add `--dry-run` to see how many links a rename would rewrite. A link whose target also names another note is rewritten only inside the renamed note's own workspace, so links that meant the other note are left alone. Rewritten links use the shortest path that names only the moved note.
 
@@ -74,7 +76,7 @@ Rules for this pass:
 ## Step 2 — Find stale content
 
 **Stale = last modified more than 3 months ago.** When the vault is versioned, use the last commit
-date per file (`git -C "$DEVWB_VAULT" log -1 --format=%ad --date=short -- "<file>"`); otherwise
+date per file (`git -C "$DEVWB_VAULT" log -1 --format=%ad --date=short -- '<file>'`); otherwise
 use filesystem mtime. A fast way to list candidates in a versioned vault:
 
 ```bash
@@ -228,14 +230,16 @@ remain (a mention in a condensed summary line is fine as plain text).
 
 1. Write the run date (`YYYY-MM-DD`) to `$DEVWB_VAULT/.condense-last-run` (plain text, one line).
    The plugin's SessionStart reminder reads this to know when the next weekly run is due.
-2. If versioned, commit and push everything as one commit. This is the one skill that commits its
+2. If versioned, commit this run's changes as one commit. This is the one skill that commits its
    own work: the run deletes files in bulk, and a dedicated commit keeps that recoverable instead
    of folding it into the generic session commit the `SessionEnd` hook makes.
 
+   **Commit exactly the paths this run changed, by name** — every note it condensed, deleted or reconciled, both sides of every rename, and `.condense-last-run` — each single-quoted. Never `git add -A`: it would also publish whatever else sits in the vault, a stray `.env` included. Leave out anything secret-shaped (`.env*`, keys, credentials) even if the run touched it, and tell the user. Naming the paths on the commit as well keeps anything else already staged out of it.
+
 ```bash
-git -C "$DEVWB_VAULT" add -A \
-  && git -C "$DEVWB_VAULT" commit -m "condense vault: <R> reconciled, <N> condensed, <M> deleted" \
-  && git -C "$DEVWB_VAULT" push
+git -C "$DEVWB_VAULT" --literal-pathspecs add -- '<path>' '<path>' … '.condense-last-run' \
+  && git -C "$DEVWB_VAULT" --literal-pathspecs commit -m "condense vault: <R> reconciled, <N> condensed, <M> deleted" \
+       -- '<path>' '<path>' … '.condense-last-run'
 ```
 
    The message is a **single line with no body and no attribution** — no `Co-Authored-By`, no
@@ -243,6 +247,8 @@ git -C "$DEVWB_VAULT" add -A \
    branch; do **not** create branches. If `push` fails (no remote, offline, auth), leave the commit
    in place and tell the user; do not retry in a loop.
 
-3. Report to the user: findings reconciled (counts per lint code, plus what is left), files deleted
+3. **Push only the plugin's own commits.** Run `git -C "$DEVWB_VAULT" log --format=%s @{upstream}..HEAD`: push (`git -C "$DEVWB_VAULT" push`) only when every subject starts `condense vault:` or `vault: session updates`. Otherwise do not push — tell the user the branch holds commits they made and have not pushed, for them to review and push.
+
+4. Report to the user: findings reconciled (counts per lint code, plus what is left), files deleted
    (with one-line reasons), files condensed (with rough size before → after), and anything skipped
    as unclear.

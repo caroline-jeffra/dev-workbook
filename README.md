@@ -246,12 +246,18 @@ paths the plugin's conventions own — `Projects/`, `Resources/`, `Contributions
 `Home.md`, `TasksArchive.md`, `WorkPlanning.md` — so a stray file elsewhere in the vault is never
 published on your behalf. Two further refusals, each reported on stdout rather than done silently:
 
-- **Secret-shaped filenames** (`.env`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, and similar) are never
+- **Secret-shaped filenames** (`.env`, `.envrc`, `*.pem`, `*.key`, `*.ppk`, `*.gpg`, `id_rsa*`, `.npmrc`, `.git-credentials`, `secrets.*`, and similar, in any letter case) are never
   committed, even inside an owned folder. That blocklist cannot be complete, so copy
   [`assets/vault-gitignore`](assets/vault-gitignore) to your vault root as its `.gitignore`.
 - **Anything outside those folders** is left uncommitted and named in the hook's output, so you can
   decide what to do with it. `Archived/` is the deliberate exception: it holds retired material the
   plugin does not maintain, so changes there are neither committed nor mentioned.
+
+**Only the plugin's paths go into its commit.** The commit names its paths, so anything you had already staged in the vault — a file outside the owned folders, a `.env` you ran `git add` on — stays staged and out of the plugin's commit.
+
+**What gets pushed.** A push sends the whole branch, so the hooks push only when every unpushed commit is the plugin's own (its session commit, or condense-vault's) and none of them adds a secret-shaped file. If you committed something in the vault yourself and have not pushed it, the hooks leave the branch unpushed and say so; push it yourself once you have checked it, and the hooks carry on from there.
+
+**Symlinks are never written through.** Git stores symlinks, so one can arrive with a pull. The maintenance pass, the version record, the background-session spool and `dev-workbook rename` all refuse to write through a symlink or move a note out of the vault, and report it instead.
 
 **When the hook declines entirely.** If the vault has a merge, rebase, cherry-pick or revert in
 progress, has unresolved conflicts, or is on a detached HEAD, the hook commits nothing and says why.
@@ -264,7 +270,7 @@ never run `git init` for you), and a failed pull or push (no remote, offline, au
 the local state and any commit in place rather than erroring.
 
 The one exception is `condense-vault`, which makes its own commit: that run deletes files in bulk, so
-it gets a dedicated, recoverable commit rather than being folded into the generic session commit.
+it gets a dedicated, recoverable commit rather than being folded into the generic session commit. It too commits only the paths the run changed, by name, and pushes under the same rule as the hooks.
 
 ### The TasksArchive
 

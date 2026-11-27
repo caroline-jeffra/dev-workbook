@@ -14,6 +14,18 @@ are minor.
 
 ## [Unreleased]
 
+### Security
+
+- **The session commit takes only the plugin's paths.** It named no paths, so anything already staged in the vault — a `.env`, a file outside the owned folders — went into the commit the hook had just said was skipping it. It now commits its selected paths by name (as literal names, so `a[1].md` is a file, not a pattern) and leaves the rest of the index as it was.
+- **The hooks push only the plugin's own commits.** A push sends the whole branch, so a commit you made in the vault and had not pushed went out with the next session's. The session-end push and the session-start flush now push only when every unpushed commit is a `vault: session updates` or `condense vault:` commit and none adds a secret-shaped file; otherwise they say why and leave the branch for you.
+- **Secret-shaped names are matched in any letter case, and the list is longer**: `.ENV` and `KEY.PEM` are caught (macOS file names are case-insensitive), as are `.envrc`, `.git-credentials`, `.pypirc`, `*.ppk`, `*.gpg`, `*.asc`, `*.kdbx`, `*.jks`, `id_rsa*` (not `*.pub`) and `secrets.*`. `assets/vault-gitignore` lists the same.
+- **Nothing writes through a symlink.** Git stores symlinks, so one can arrive with a pull. The version record (`Projects/.dev-workbook-version`) and the generated indexes followed one to any file on disk, and an index could be created outside the vault; the spool accepted a symlinked note pointing at `.git/config`. All now refuse and report. `dev-workbook rename` also refuses a path outside the vault (absolute, `..`, a dot-directory or through a symlink), which could otherwise move a file out of the vault or pull one in to be published.
+- **Writes are atomic.** The maintenance pass and link rewriting replace a note in one step, so an interrupted run cannot leave a truncated note, and the metadata refresh no longer overwrites an edit saved while it ran.
+- **`dev-workbook rename` moves before it rewrites.** A failed move (a note named like an option, now passed after `--`) left every link already rewritten; now nothing is touched unless the move succeeds.
+- **Config and note text stay on their own line.** A newline in a topic's name or gloss can no longer inject lines into a generated index; lint and maintenance output, relayed file names and the token report's repo column are cut to one line; `dev-workbook context` escapes invisible and bidi characters.
+- **Skills quote untrusted names.** Every command a skill gives with a note name, path or ticket key now single-quotes it, the close-out heredoc uses a delimiter a note cannot contain, the manual (`sync=self`) close-out calls `dev-workbook end` instead of committing by hand, and condense-vault commits only the paths its run changed instead of `git add -A`.
+- **Hardening:** an inherited `GIT_DIR` / `GIT_WORK_TREE` no longer redirects the hooks to another repository; a relative vault path in an environment variable or config file is refused instead of resolving inside the repo you opened (`~` in an env var is now expanded); a session id of `.` or `..` is refused; a stale end lock is taken over without racing; the rename lock file is opened without following symlinks; a quiet background session's spool is kept after it is applied, so a later write is not lost; and a workspace name with a trailing newline is refused.
+
 ## [3.10.0] — 2026-11-27
 
 ### Added

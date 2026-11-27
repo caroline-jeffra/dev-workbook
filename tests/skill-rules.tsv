@@ -187,9 +187,9 @@ Remove references to finished, superseded or deleted things	reference/structure.
 Act on `sync`. The plugin's hooks pull the vault	SKILL.md
 do not run `git pull`, `git add`, `git commit` or `git push` on the vault	SKILL.md
 no hooks here, so sync yourself	SKILL.md
-stage only the paths the plugin owns	reference/closeout-manual.md
+run `dev-workbook end`. It refreshes the indexes, commits only the paths the plugin owns	reference/closeout-manual.md
 Never `git add -A`	reference/closeout-manual.md
-If the push fails, leave the commit and tell the user	reference/closeout-manual.md
+if it reports a push failed or was held back, the commit stays local	reference/closeout-manual.md
 not under version control: nothing to sync, and never `git init` it	SKILL.md
 **Background sessions** (`background=yes`)	reference/closeout.md
 Skip renames and deletions in a background session	reference/closeout.md

@@ -343,7 +343,7 @@ colleagues, absolute figures, internal hostnames, verbatim internal text. Anythi
 either gets generalised in place or moves to the `Confidential context` section; what it must not
 do is sit unmarked in prose the user will later paste into an application.
 
-In a background session (`background=yes`) run `dev-workbook stage "Contributions/<project>.md"` first and read and write the path it prints instead; the session-end hook merges it into the vault.
+In a background session (`background=yes`) run `dev-workbook stage 'Contributions/<project>.md'` first and read and write the path it prints instead; the session-end hook merges it into the vault.
 
 Write to `$DEVWB_VAULT/Contributions/<project>.md` using the structure in
 [reference/template.md](reference/template.md): light frontmatter, then **Context → Major efforts →
