@@ -134,7 +134,7 @@ run_hook() {
   local fake_home="$TEST_TMP/home.$$"
   mkdir -p "$fake_home"
   HOOK_OUT="$(printf '%s' "$payload" \
-    | env HOME="$fake_home" DEVWB_VAULT="$vault" bash "$HOOKS/$hook" 2>&1)"
+    | env -u COPILOT_CLI HOME="$fake_home" DEVWB_VAULT="$vault" bash "$HOOKS/$hook" 2>&1)"
   HOOK_RC=$?
   return 0
 }

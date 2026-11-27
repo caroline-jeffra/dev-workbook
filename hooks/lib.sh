@@ -149,17 +149,34 @@ push_blocker() {
 
 # ---------------------------------------------------------------- output
 
-# emit_context <text> — session-start context for the agent, in the harness's format, chosen by
-# DEVWB_FORMAT: `claude` (default) prints Claude Code's hookSpecificOutput JSON, `cursor`
-# prints {"additional_context": ...}, `plain` prints the text. JSON needs jq; without it the
-# hook stays silent rather than erroring.
+# devwb_format — the output format for session-start context: DEVWB_FORMAT when set, otherwise
+# `copilot` under GitHub Copilot CLI (it sets COPILOT_CLI=1) and `claude` everywhere else.
+# Codex reads the `claude` shape. No one shape serves every harness: Copilot reads only a
+# top-level additionalContext, and Codex drops output that has one.
+devwb_format() {
+  if [ -n "${DEVWB_FORMAT:-}" ]; then
+    printf '%s\n' "$DEVWB_FORMAT"
+  elif [ "${COPILOT_CLI:-}" = 1 ]; then
+    printf 'copilot\n'
+  else
+    printf 'claude\n'
+  fi
+}
+
+# emit_context <text> — session-start context for the agent, in the format devwb_format picks:
+# `claude` prints Claude Code's hookSpecificOutput JSON, `copilot` prints {"additionalContext": ...},
+# `cursor` prints {"additional_context": ...}, `plain` prints the text. JSON needs jq; without it
+# the hook stays silent rather than erroring.
 emit_context() {
-  case "${DEVWB_FORMAT:-claude}" in
+  case "$(devwb_format)" in
     plain)
       printf '%s\n' "$1" ;;
     cursor)
       command -v jq >/dev/null 2>&1 \
         && jq -n --arg ctx "$1" '{additional_context: $ctx}' 2>/dev/null ;;
+    copilot)
+      command -v jq >/dev/null 2>&1 \
+        && jq -n --arg ctx "$1" '{additionalContext: $ctx}' 2>/dev/null ;;
     *)
       command -v jq >/dev/null 2>&1 \
         && jq -n --arg ctx "$1" \
@@ -169,7 +186,7 @@ emit_context() {
 }
 
 # can_emit — true when emit_context can produce output, so a hook can skip work it could not report.
-can_emit() { [ "${DEVWB_FORMAT:-claude}" = plain ] || command -v jq >/dev/null 2>&1; }
+can_emit() { [ "$(devwb_format)" = plain ] || command -v jq >/dev/null 2>&1; }
 
 # ---------------------------------------------------------------- warnings relay
 
@@ -190,7 +207,7 @@ warnings_file() {
 # reporting. Call it under the session-end lock. Without Python it does nothing: the spool waits.
 apply_spool() {
   local py script
-  script="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/..}/hooks/vault_spool.py"
+  script="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/..}}/hooks/vault_spool.py"
   [ -f "$script" ] || return 0
   for py in python3 python; do
     if command -v "$py" >/dev/null 2>&1; then

@@ -22,7 +22,7 @@ stranded=""
 # stale one. Needs Python; without it the guard is simply not armed.
 claim_version() {
   local py script
-  script="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}/hooks/vault_maintain.py"
+  script="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(dirname "$0")/..}}/hooks/vault_maintain.py"
   [ -f "$script" ] || return 0
   for py in python3 python; do
     if command -v "$py" >/dev/null 2>&1; then

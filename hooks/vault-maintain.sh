@@ -32,7 +32,7 @@ for candidate in python3 python; do
 done
 [ -n "$PY" ] || exit 0
 
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}/hooks/vault_maintain.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(dirname "$0")/..}}/hooks/vault_maintain.py"
 [ -f "$SCRIPT" ] || exit 0
 
 # The script fails open internally too; the redirect and `|| true` are belt and
