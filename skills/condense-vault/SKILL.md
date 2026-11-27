@@ -1,5 +1,6 @@
 ---
 name: condense-vault
+allowed-tools: Bash(dev-workbook *)
 description: Weekly vault cleanup — reconciles project workspaces with their note formats, condenses notes untouched >3 months to bullets, and deletes old finished-work records outside projects. Use for "condense the vault", "clean up the vault", "run the vault cleanup", or when this plugin's SessionStart reminder says the weekly run is due.
 ---
 

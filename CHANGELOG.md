@@ -14,6 +14,10 @@ are minor.
 
 ## [Unreleased]
 
+### Changed
+
+- **Skills pre-approve the plugin's own command.** Each skill declares `allowed-tools: Bash(dev-workbook *)`, so its `context`, `brief`, `closeout`, `rename` and `stage` calls run without a permission prompt during the turn that invokes the skill. The README's new setup step shows how to add the vault as an additional directory to stop the remaining prompts.
+
 ### Fixed
 
 - **Notes with an empty frontmatter value are maintained again.** The decision and playbook templates write `tickets: []`, but the emitter dropped empty values, so no such note survived the round-trip check and maintenance skipped it on every run, with a line of output each time (261 notes in one real vault). Empty values are now written back as read, and those notes get their derived `project`, `topics` and `tags`. The first session end after updating fills them in.
