@@ -34,8 +34,10 @@ most projects still use the old flat layout.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -264,7 +266,7 @@ class Config:
             folders={**DEFAULT_FOLDERS, **(raw.get("folders") or {})},
             root_notes=set(raw.get("root_notes", [])),
             index_types=set(raw.get("index_types", [])),
-            topics=raw.get("topics", {}),
+            topics=clean_topics(raw.get("topics", {})),
             generated_types=set(raw.get("generated_types", ["index", "log-index"])),
             min_hits=raw.get("min_hits", 3),
             title_weight=raw.get("title_weight", 4),
@@ -275,6 +277,23 @@ class Config:
             if name == folder:
                 return doctype
         return None
+
+
+def clean_topics(topics: object) -> dict[str, dict]:
+    """The config's topics, with every name and gloss on one line. The config arrives with the
+    vault, so a newline in a gloss must not become a line of its own in a generated index."""
+    if not isinstance(topics, dict):
+        return {}
+    out: dict[str, dict] = {}
+    for slug, spec in topics.items():
+        if not isinstance(spec, dict):
+            continue
+        spec = dict(spec)
+        for key in ("name", "gloss"):
+            if key in spec:
+                spec[key] = one_line(spec[key])
+        out[one_line(slug)] = spec
+    return out
 
 
 # ---------------------------------------------------------------- topics
@@ -305,6 +324,44 @@ def topics_for(cfg: Config, title: str, body: str, limit: int = 6) -> list[str]:
     return sorted(s for s, _ in kept[:limit])
 
 
+# ---------------------------------------------------------------- safe writes
+
+CONTROL = re.compile(r"[\x00-\x1f\x7f\u0085\u2028\u2029\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+
+
+def one_line(value: object, limit: int = 0) -> str:
+    """Text from a config file or a note, made safe to print on one line: control, separator and
+    invisible characters become spaces, and with a limit it is cut to that many characters."""
+    text = CONTROL.sub(" ", str(value))
+    return text if not limit or len(text) <= limit else text[: limit - 1] + "…"
+
+
+def write_atomic(path: Path, text: str) -> None:
+    """Replace path's content all at once, never through a symlink.
+
+    A symlink can arrive from the vault's remote — git stores them — so writing through one would
+    let pulled content point a write anywhere on disk. And a write that dies halfway must not
+    leave a truncated note, so the text goes to a temporary file beside it that then replaces it.
+    """
+    if path.is_symlink():
+        raise OSError(f"{path.name} is a symlink — not writing through it")
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        if path.exists():
+            os.chmod(tmp, path.stat().st_mode & 0o777)
+        else:
+            os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 # ---------------------------------------------------------------- notes
 
 
@@ -318,6 +375,7 @@ class Note:
     raw_fm: str = ""
     topics: list[str] = field(default_factory=list)
     changed: bool = False
+    text: str = ""                 # the file as read, to detect an edit made during the run
 
     @property
     def drawing(self) -> bool:
@@ -372,7 +430,7 @@ def collect(root: Path, cfg: Config) -> list[Note]:
         if is_drawing(p):
             doctype = "diagram"
 
-        notes.append(Note(p, p.stem, meta, body, doctype, raw_fm=raw))
+        notes.append(Note(p, p.stem, meta, body, doctype, raw_fm=raw, text=text))
     return notes
 
 
@@ -446,8 +504,18 @@ def refresh_metadata(notes: list[Note], cfg: Config) -> list[str]:
                 current = n.path.read_text(encoding="utf-8")
             except OSError:
                 continue
+            # Written since this run read it (the editor, another session): the new text is
+            # built from the old body, so writing it would discard that edit. The next run
+            # picks the note up again.
+            if n.text and current != n.text:
+                n.meta = before
+                continue
             if new_text != current:
-                n.path.write_text(new_text, encoding="utf-8")
+                try:
+                    write_atomic(n.path, new_text)
+                except OSError:
+                    n.meta = before
+                    continue
                 n.changed = True
                 added = sorted(set(fields) - set(before))
                 changes.append(
@@ -498,6 +566,13 @@ def write_if_changed(path: Path, content: str) -> bool:
     are overwritten only appears in the file *after* it has already been overwritten.
     """
     content = content.rstrip() + "\n"
+    if path.is_symlink():
+        print(
+            f"vault-maintain: {path.parent.name}: {path.name} is a symlink — not writing "
+            f"through it. Replace it with a regular file or remove it to let the index generate.",
+            file=sys.stderr,
+        )
+        return False
     try:
         if path.exists():
             existing = path.read_text(encoding="utf-8")
@@ -516,7 +591,11 @@ def write_if_changed(path: Path, content: str) -> bool:
                 return False
     except OSError:
         pass
-    path.write_text(content, encoding="utf-8")
+    try:
+        write_atomic(path, content)
+    except OSError as exc:
+        print(f"vault-maintain: {path.parent.name}: {path.name}: {exc}", file=sys.stderr)
+        return False
     return True
 
 
@@ -1268,8 +1347,11 @@ def recorded_version(vault: Path) -> str | None:
     """The newest version recorded under either the current or the pre-3.0 file name."""
     found = []
     for rel in (VERSION_FILE, LEGACY_VERSION_FILE):
+        path = vault / rel
+        if path.is_symlink() or path.parent.is_symlink():
+            continue
         try:
-            text = (vault / rel).read_text(encoding="utf-8").strip()
+            text = path.read_text(encoding="utf-8").strip()
         except OSError:
             continue
         if parse_version(text):
@@ -1290,11 +1372,12 @@ def claim(vault: Path, mine: str | None) -> None:
 
     Only into an existing Projects/ — creating that folder is the skills' call, behind consent.
     """
-    if not mine or not (vault / "Projects").is_dir():
+    projects = vault / "Projects"
+    if not mine or projects.is_symlink() or not projects.is_dir():
         return
     rec = recorded_version(vault)
     if rec is None or parse_version(mine) > parse_version(rec):
-        (vault / VERSION_FILE).write_text(mine + "\n", encoding="utf-8")
+        write_atomic(vault / VERSION_FILE, mine + "\n")
 
 
 # ---------------------------------------------------------------- main
@@ -1425,8 +1508,10 @@ def run_lint(vault: Path, count_only: bool) -> int:
     if count_only:
         print(len(findings))
     else:
+        # Findings quote link targets and names from the notes, which arrive with the vault:
+        # one line each, and never a paragraph of someone else's text.
         for f in findings:
-            print(f)
+            print(one_line(f, 400))
         print(f"vault-lint: {len(findings)} finding(s)")
     return 0
 
@@ -1480,7 +1565,7 @@ def main(argv: list[str] | None = None) -> int:
     if total:
         print(f"vault-maintain: {len(total)} update(s)")
         for m in total[:20]:
-            print(f"  {m}")
+            print(f"  {one_line(m, 400)}")
     return 0
 
 
