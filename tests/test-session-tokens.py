@@ -418,6 +418,16 @@ check(h.returncode == 0 and all(o in h.stdout for o in ("--since", "--sessions",
                                                         "--vault", "--by", "--json")),
       "dev-workbook tokens --help lists the options")
 
+row = {k: 0 for k in ("skill_loads", "skill_bytes", "description_bytes", "reinjected_bytes",
+                      "hook_context_bytes_all_plugins", "reference_reads", "reference_bytes",
+                      "vault_calls", "vault_input_bytes", "vault_result_bytes")}
+row.update(date="2026-01-01", version="1", repo="evil\n| 2099 | fake |",
+           tokens={"input": 0, "cache_creation": 0, "cache_read": 0, "output": 0})
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    st.print_rows([row])
+check(len(buf.getvalue().splitlines()) == 3, "a newline in a repo name cannot forge a table row", buf.getvalue())
+
 print(f"\n{PASS} passed, {len(FAIL)} failed")
 for f in FAIL:
     print(f"  - {f}")

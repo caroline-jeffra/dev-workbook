@@ -469,5 +469,11 @@ os.environ["OBSIDIAN_VAULT"] = "/legacy-env"
 check(paths.vault_source() == "env", "vault_source: OBSIDIAN_VAULT is env")
 os.environ.pop("OBSIDIAN_VAULT")
 
+# Values that could read as extra keys to a model are quoted; readable text is left readable.
+check(wc.fmt("a\u202eb") == '"a\\u202eb"', "a bidi control is quoted and escaped", wc.fmt("a\u202eb"))
+check(wc.fmt("x\uff1dy").startswith('"'), "a look-alike = is quoted")
+check(wc.fmt("/Users/x/Caf\u00e9") == '"/Users/x/Caf\u00e9"', "an accent stays readable")
+check(wc.SAFE_NAME.fullmatch("Evil\n") is None, "a workspace name with a trailing newline is refused")
+
 print(f"\n{PASS} passed, {len(FAIL)} failed")
 sys.exit(1 if FAIL else 0)

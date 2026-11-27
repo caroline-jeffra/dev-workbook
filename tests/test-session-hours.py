@@ -124,6 +124,15 @@ try:
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
+# Records of an unexpected shape are skipped, not fatal.
+for weird in ({"type": "user", "message": "str"}, {"type": "user", "timestamp": 5, "message": {"role": "user", "content": "hi"}},
+              {"type": "user", "timestamp": "2026-01-01T00:00:00Z", "message": {"role": "user", "content": [{"type": "text", "text": 7}]}}):
+    try:
+        sh.is_user_typed(weird) and sh.first_text(weird)
+        check(True, f"odd record tolerated: {str(weird)[:40]}")
+    except Exception as exc:  # noqa: BLE001
+        check(False, f"odd record tolerated: {str(weird)[:40]}", repr(exc))
+
 print()
 if not FAIL:
     print(f"\033[32m{PASS} passed\033[0m")

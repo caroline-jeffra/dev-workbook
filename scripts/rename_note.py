@@ -27,7 +27,10 @@ new name is unique, `[[Alpha/Log/2026-10-01]]` when it is not.
 
 The file is moved with `git mv` when git tracks it, a plain move otherwise. Concurrent callers
 are serialised with a lock, so parallel runs never interleave read-modify-write on one note.
-Fails closed: a missing source or an existing target changes nothing.
+Fails closed: a missing source or an existing target changes nothing, and neither does a path that
+leaves the vault (absolute, `..`, a dot-directory, or through a symlink) — git stores symlinks, so
+one can arrive with a pull and must not turn a rename into a move out of, or into, the vault. The
+note is moved before any link is rewritten, so a failed move leaves every note as it was.
 """
 
 from __future__ import annotations
@@ -35,6 +38,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -44,7 +48,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 
 from dev_workbook_paths import resolve_vault  # noqa: E402
-from vault_maintain import shortest_ref, suffix_counts  # noqa: E402
+from vault_maintain import shortest_ref, suffix_counts, write_atomic  # noqa: E402
 
 SUPERSESSION_KEYS = ("supersedes", "superseded_by")
 
@@ -94,11 +98,28 @@ def rewrite_supersession(text: str, old: str, new: str) -> str:
     return "---\n" + "\n".join(lines) + "\n---\n" + text[m.end():]
 
 
+def in_vault(vault: Path, rel: str) -> Path:
+    """vault/rel, or ValueError when rel could leave the vault: absolute, `..`, a dot-directory,
+    or any existing part of it a symlink."""
+    p = Path(rel)
+    if not rel or p.is_absolute() or any(part in ("", ".", "..") or part.startswith(".")
+                                         for part in p.parts):
+        raise ValueError(f"not a path inside the vault: {rel}")
+    cur = vault
+    for part in p.parts:
+        cur = cur / part
+        if cur.is_symlink():
+            raise ValueError(f"refusing a path through a symlink: {rel}")
+    return cur
+
+
 def rename(vault: Path, old: str, new: str, dry_run: bool = False) -> tuple[int, int]:
     """Returns (links rewritten, files changed). Raises ValueError on a refused rename."""
-    src, dst = vault / old, vault / new
+    src, dst = in_vault(vault, old), in_vault(vault, new)
     if not src.is_file():
         raise ValueError(f"no such note: {old}")
+    if src.suffix != ".md":
+        raise ValueError(f"only a .md note can be renamed: {old}")
     if dst.exists():
         raise ValueError(f"target already exists: {new}")
     if dst.suffix != ".md":
@@ -107,7 +128,8 @@ def rename(vault: Path, old: str, new: str, dry_run: bool = False) -> tuple[int,
     old_name, new_name = src.stem, dst.stem
     rel = Path(old)
     ws = workspace_of(rel)
-    shared = any(p != src for p in vault.rglob(src.name)
+    # By name, not rglob(src.name): a name holding `[`, `*` or `?` is a glob pattern to rglob.
+    shared = any(p != src and p.name == src.name for p in vault.rglob("*.md")
                  if not any(x.startswith(".") for x in p.relative_to(vault).parts))
 
     # Every note the vault's links can resolve to — Archived/ included, since links still reach it.
@@ -162,13 +184,17 @@ def rename(vault: Path, old: str, new: str, dry_run: bool = False) -> tuple[int,
 
     if dry_run:
         return links, files
-    for p, out in pending:
-        p.write_text(out, encoding="utf-8")
+    # Move first: if it fails, no note has been touched. The renamed note's own rewrite (a link to
+    # itself) then goes to its new path.
     dst.parent.mkdir(parents=True, exist_ok=True)
     if is_versioned(vault) and is_tracked(vault, old):
-        subprocess.run(["git", "-C", str(vault), "mv", old, new], check=True, capture_output=True)
+        r = subprocess.run(["git", "-C", str(vault), "mv", "--", old, new], capture_output=True, text=True)
+        if r.returncode != 0:
+            raise ValueError(f"git mv failed: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else r.returncode}")
     else:
         src.rename(dst)
+    for p, out in pending:
+        write_atomic(dst if p == src else p, out)
     return links, files
 
 
@@ -186,7 +212,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     vault = vault.resolve()
     key = hashlib.sha1(str(vault).encode()).hexdigest()[:12]
-    with open(Path(tempfile.gettempdir()) / f"dev-workbook-rename-{key}.lock", "w") as lock:
+    # O_NOFOLLOW and no truncation: in a shared temp dir, a planted symlink must not turn
+    # opening the lock into clobbering whatever it points at.
+    fd = os.open(Path(tempfile.gettempdir()) / f"dev-workbook-rename-{key}.lock",
+                 os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
             links, files = rename(vault, a.old, a.new, a.dry_run)

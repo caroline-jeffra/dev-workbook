@@ -56,15 +56,16 @@ def is_user_typed(o: dict) -> bool:
     """Only messages the user typed: not tool results, reminders, summaries or Claude's turns."""
     if o.get("type") != "user" or o.get("isMeta") or o.get("isCompactSummary"):
         return False
-    m = o.get("message") or {}
-    if m.get("role") != "user":
+    m = o.get("message")
+    if not isinstance(m, dict) or m.get("role") != "user":
         return False
     c = m.get("content")
     if isinstance(c, list):
         if any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c):
             return False
         text = " ".join(
-            b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text"
+            b["text"] for b in c
+            if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str)
         )
     else:
         text = c if isinstance(c, str) else ""
@@ -75,9 +76,11 @@ def is_user_typed(o: dict) -> bool:
 
 
 def first_text(o: dict) -> str:
-    c = (o.get("message") or {}).get("content")
+    m = o.get("message")
+    c = m.get("content") if isinstance(m, dict) else None
     if isinstance(c, list):
-        c = " ".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
+        c = " ".join(b["text"] for b in c
+                     if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str))
     return " ".join(str(c or "").split())
 
 
@@ -93,7 +96,8 @@ def user_messages(dirs: list[Path]) -> list[tuple[datetime, str]]:
                         o = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if not o.get("timestamp") or not is_user_typed(o):
+                    if (not isinstance(o, dict) or not isinstance(o.get("timestamp"), str)
+                            or not is_user_typed(o)):
                         continue
                     try:
                         ts = datetime.fromisoformat(o["timestamp"].replace("Z", "+00:00")).astimezone()

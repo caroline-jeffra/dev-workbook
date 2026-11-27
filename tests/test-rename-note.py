@@ -156,6 +156,54 @@ try:
             check(True, f"{why}: refused")
     check(before == {p: p.read_bytes() for p in v.rglob("*.md")}, "no file changed by a refused rename")
 
+    section("Paths that leave the vault are refused")
+    outside = tmp / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("key\n")
+    (v / "Projects/Alpha/Shared").symlink_to(outside)
+    before = {p: p.read_bytes() for p in v.rglob("*.md")}
+    for old_p, new_p, why in [
+        ("Projects/Alpha/Decisions/UseOldHost.md", "../outside/Stolen.md", "a .. target"),
+        ("Projects/Alpha/Decisions/UseOldHost.md", str(outside / "Abs.md"), "an absolute target"),
+        ("Projects/Alpha/Decisions/UseOldHost.md", "Projects/Alpha/Shared/In.md", "a target through a symlink"),
+        ("Projects/Alpha/Shared/secret.txt", "Resources/Pulled.md", "a source through a symlink"),
+        ("../outside/secret.txt", "Resources/Pulled.md", "a .. source"),
+        ("Projects/Alpha/Decisions/UseOldHost.md", ".git/Hidden.md", "a dot-directory target"),
+    ]:
+        try:
+            rn.rename(v, old_p, new_p)
+            check(False, f"{why}: refused")
+        except ValueError:
+            check(True, f"{why}: refused")
+    check(before == {p: p.read_bytes() for p in v.rglob("*.md")} and sorted(x.name for x in outside.iterdir()) == ["secret.txt"],
+          "nothing moved in or out, and no link rewritten")
+    (v / "Projects/Alpha/Shared").unlink()
+
+    section("A failed move rewrites no link")
+    write(v / "-n.md", "# dash\n")
+    write(v / "Resources/LinksDash.md", "see [[-n]]\n")
+    git(v, "add", "-A")
+    git(v, "commit", "-qm", "dash")
+    rn.rename(v, "-n.md", "Resources/Dashed.md")
+    check((v / "Resources/Dashed.md").is_file() and "[[Dashed]]" in (v / "Resources/LinksDash.md").read_text(),
+          "a note named like an option is moved by git mv --")
+    write(v / "Resources/Blocker.md", "# b\n")
+    import unittest.mock as um
+    before = {p: p.read_bytes() for p in v.rglob("*.md")}
+    real_run = rn.subprocess.run
+
+    def failing_mv(cmd, *a, **k):
+        if "mv" in cmd:
+            return rn.subprocess.CompletedProcess(cmd, 1, "", "fatal: boom")
+        return real_run(cmd, *a, **k)
+
+    with um.patch.object(rn.subprocess, "run", side_effect=failing_mv):
+        try:
+            rn.rename(v, "Resources/Dashed.md", "Resources/Dashed2.md")
+        except Exception:
+            pass
+    check(before == {p: p.read_bytes() for p in v.rglob("*.md")}, "a refused git mv leaves every link as it was")
+
     section("Dry run")
     before = {p: p.read_bytes() for p in v.rglob("*.md")}
     links, files = rn.rename(v, "Projects/Alpha/Decisions/UseOldHost.md",

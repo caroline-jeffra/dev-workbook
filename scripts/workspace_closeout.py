@@ -155,7 +155,7 @@ def parse_request(raw: str) -> dict:
         raise Refusal("archive must not contain | or [[ (no links or pipes in table cells)", "input")
     project = req.get("project")
     out["project"] = one_line(project, "project") if project not in (None, "") else None
-    if out["project"] and not wc.SAFE_NAME.match(out["project"]):
+    if out["project"] and not wc.SAFE_NAME.fullmatch(out["project"]):
         raise Refusal("project must be a plain name", "input")
     return out
 
@@ -445,10 +445,14 @@ def plan(vault: Path, workspace: str, req: dict, background: bool, dry_run: bool
         rels.append("TasksArchive.md")
     paths = {}
     for rel in rels:
-        real = vault_spool.inside(vault, rel)
-        if real is None:
+        real = vault_spool.inside(vault, rel)      # None for any symlink along the path
+        try:
+            escapes = not (vault / rel).resolve().is_relative_to(vault.resolve())
+        except OSError:
+            escapes = True
+        if escapes:
             raise Refusal(f"{rel} resolves outside the vault")
-        if through_link(vault, rel):
+        if real is None or through_link(vault, rel):
             raise Refusal(f"{rel} is reached through a symlink inside the vault")
         paths[rel] = real
     if background:
