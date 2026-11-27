@@ -88,6 +88,25 @@ LOG = "---\ntype: log\ndate: 2026-11-05\n---\n\n# 2026-11-05\n\n- **Did:** first
 # ---------------------------------------------------------------------------
 section("Staging only accepts what the vault hooks publish")
 # ---------------------------------------------------------------------------
+section("Symlinks and session ids cannot redirect the spool")
+# ---------------------------------------------------------------------------
+
+v = vault("links")
+(v / ".git").mkdir(exist_ok=True)
+(v / ".git" / "config").write_text("[core]\n")
+(v / "Projects" / "Alpha" / "Cfg.md").symlink_to(v / ".git" / "config")
+path, msg = vs.stage(v, "Projects/Alpha/Cfg.md", "s-inlink")
+check(path is None, "a symlink to a file inside the vault but outside the owned folders is refused", msg)
+check(vs.apply_note(v, "Projects/Alpha/Cfg.md", v / "Home.md", v / "nope") == "refused",
+      "and applying through one is refused")
+check((v / ".git" / "config").read_text() == "[core]\n", "the link's target is untouched")
+
+for bad_sid in ("..", ".", ".hidden"):
+    os.environ["CLAUDE_CODE_SESSION_ID"] = bad_sid
+    check(vs.session_id() is None, f"session id refused: {bad_sid!r}")
+os.environ.pop("CLAUDE_CODE_SESSION_ID", None)
+
+# ---------------------------------------------------------------------------
 
 v = vault("paths")
 for rel in ("Projects/Alpha/Notes/A.md", "Resources/R.md", "Contributions/C.md", "HouseStyles/Acme/PullRequest.md", "Home.md",
@@ -273,6 +292,18 @@ for p in spool("s-nopid").rglob("*"):
     os.utime(p, (old, old))
 vs.apply(v)
 check((v / "Projects/Alpha/Overview.md").read_text() == "new\n", "no owner pid: an idle spool is applied")
+check((spool("s-nopid") / "meta.json").is_file(),
+      "an idle spool is kept with its record, in case its session was only quiet")
+later = spool("s-nopid") / "notes" / "Projects/Alpha/Overview.md"
+later.parent.mkdir(parents=True, exist_ok=True)
+later.write_text("newer\n")
+check(any("s-nopid" in line and "Overview.md" in line for line in vs.pending(v)),
+      "a write after it was applied is still listed")
+for p in spool("s-nopid").rglob("*"):
+    os.utime(p, (old, old))
+vs.apply(v)
+check((v / "Projects/Alpha/Overview.md").read_text() == "new\n" and later.is_file(),
+      "and is kept, not lost, when it no longer merges cleanly")
 
 v = vault("busy")
 subprocess.run(["git", "init", "-q", str(v)], check=True)
